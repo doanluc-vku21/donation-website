@@ -30,7 +30,7 @@ describe("DonationPanel", () => {
     await user.click(screen.getByRole("button", { name: "Continue with $50.00" }));
 
     expect(screen.getByRole("heading", { name: "Your information" })).toBeVisible();
-    expect(screen.getByLabelText("Email address")).toBeVisible();
+    expect(screen.getByLabelText(/email address/i)).toBeVisible();
     expect(screen.getByRole("checkbox", { name: /display my name publicly/i })).not.toBeChecked();
   });
 });

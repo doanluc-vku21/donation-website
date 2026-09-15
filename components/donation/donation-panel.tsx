@@ -249,15 +249,11 @@ export function DonationPanel({
               Secure donation
             </p>
 
-            <p className="text-xs text-[var(--muted)]">
-              Test-mode experience
-            </p>
+            
           </div>
         </div>
 
-        <span className="rounded-full bg-[var(--amber-soft)] px-3 py-1 text-xs font-semibold text-[var(--amber)]">
-          TEST MODE
-        </span>
+        
       </div>
 
       {step === "amount" ? (
