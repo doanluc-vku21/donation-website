@@ -11,6 +11,11 @@ import type { SanityCampaign } from "@/sanity/types/campaign";
 const CAMPAIGN_SLUG =
   "give-a-child-a-brighter-tomorrow";
 
+// Quan trọng:
+// Không để Next.js giữ bản page cũ trên production
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function Home() {
   // ==========================================
   // SUPABASE
@@ -34,6 +39,9 @@ export default async function Home() {
       CAMPAIGN_QUERY,
       {
         slug: CAMPAIGN_SLUG,
+      },
+      {
+        cache: "no-store",
       },
     );
 
