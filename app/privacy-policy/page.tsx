@@ -1,0 +1,2 @@
+import { LegalPage } from "@/components/legal/legal-page";
+export default function Privacy(){return <LegalPage title="Privacy Policy"><p>This sample explains that donor contact information is collected to process a donation, issue a receipt, and provide requested support.</p><p>The production policy must name the data controller, retention periods, lawful basis, processors, rights, and contact route applicable to the organization.</p></LegalPage>}
