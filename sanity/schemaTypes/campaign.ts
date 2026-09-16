@@ -51,6 +51,27 @@ export const campaignType = defineType({
     }),
 
     defineField({
+      name: "organizationLogo",
+      title: "Organization logo",
+      type: "image",
+
+      options: {
+        hotspot: true,
+      },
+
+      fields: [
+        defineField({
+          name: "alt",
+          title: "Alt text",
+          type: "string",
+
+          initialValue:
+            "Organization logo",
+        }),
+      ],
+    }),
+
+    defineField({
       name: "eyebrow",
       title: "Eyebrow",
       type: "string",
@@ -114,126 +135,6 @@ export const campaignType = defineType({
         {
           type: "block",
         },
-      ],
-    }),
-
-    defineField({
-      name: "nourishmentCard",
-      title: "Nourishment card",
-      type: "object",
-      group: "story",
-
-      options: {
-        collapsible: true,
-        collapsed: true,
-      },
-
-      initialValue: {
-        title: "Nourishment",
-
-        description:
-          "Consistent access to balanced meals and clean water.",
-      },
-
-      fields: [
-        defineField({
-          name: "title",
-          title: "Title",
-          type: "string",
-
-          validation: (rule) =>
-            rule.required(),
-        }),
-
-        defineField({
-          name: "description",
-          title: "Description",
-          type: "text",
-          rows: 3,
-
-          validation: (rule) =>
-            rule.required(),
-        }),
-      ],
-    }),
-
-    defineField({
-      name: "learningCard",
-      title: "Learning card",
-      type: "object",
-      group: "story",
-
-      options: {
-        collapsible: true,
-        collapsed: true,
-      },
-
-      initialValue: {
-        title: "Learning",
-
-        description:
-          "School materials and supportive places to learn.",
-      },
-
-      fields: [
-        defineField({
-          name: "title",
-          title: "Title",
-          type: "string",
-
-          validation: (rule) =>
-            rule.required(),
-        }),
-
-        defineField({
-          name: "description",
-          title: "Description",
-          type: "text",
-          rows: 3,
-
-          validation: (rule) =>
-            rule.required(),
-        }),
-      ],
-    }),
-
-    defineField({
-      name: "steadyCareCard",
-      title: "Steady care card",
-      type: "object",
-      group: "story",
-
-      options: {
-        collapsible: true,
-        collapsed: true,
-      },
-
-      initialValue: {
-        title: "Steady care",
-
-        description:
-          "Practical help shaped around each local community.",
-      },
-
-      fields: [
-        defineField({
-          name: "title",
-          title: "Title",
-          type: "string",
-
-          validation: (rule) =>
-            rule.required(),
-        }),
-
-        defineField({
-          name: "description",
-          title: "Description",
-          type: "text",
-          rows: 3,
-
-          validation: (rule) =>
-            rule.required(),
-        }),
       ],
     }),
 
@@ -561,7 +462,9 @@ export const campaignType = defineType({
       title: "title",
       subtitle:
         "organizationName",
-      media: "heroImage",
+
+      media:
+        "organizationLogo",
     },
   },
 });
