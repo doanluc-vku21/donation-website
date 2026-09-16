@@ -23,6 +23,19 @@ import {
   formatUsd,
 } from "@/lib/money";
 
+declare global {
+  interface Window {
+    fbq?: (
+      action: string,
+      event: string,
+      params?: Record<
+        string,
+        unknown
+      >,
+    ) => void;
+  }
+}
+
 type DonationPanelProps = {
   campaign: Campaign;
 };
@@ -39,7 +52,6 @@ export function DonationPanel({
       "one_time",
     );
 
-  // Không chọn số tiền mặc định.
   const [amount, setAmount] =
     useState(0);
 
@@ -431,8 +443,44 @@ export function DonationPanel({
         );
       }
 
-      window.location.href =
-        data.url;
+      // =====================================================
+      // META PIXEL - INITIATE CHECKOUT
+      // =====================================================
+
+      if (
+        typeof window !==
+          "undefined" &&
+        typeof window.fbq ===
+          "function"
+      ) {
+        window.fbq(
+          "track",
+          "InitiateCheckout",
+          {
+            value:
+              total / 100,
+
+            currency:
+              "USD",
+
+            content_name:
+              "Donation",
+
+            content_category:
+              frequency ===
+              "monthly"
+                ? "Monthly donation"
+                : "One-time donation",
+          },
+        );
+      }
+
+      // Cho Meta Pixel một chút thời gian
+      // gửi event trước khi sang Stripe.
+      window.setTimeout(() => {
+        window.location.href =
+          data.url;
+      }, 150);
     } catch (
       checkoutError
     ) {
@@ -447,7 +495,7 @@ export function DonationPanel({
           ? checkoutError.message
           : "Unable to start checkout.",
       );
-    } finally {
+
       setIsLoading(
         false,
       );
@@ -459,10 +507,6 @@ export function DonationPanel({
       id="donation-panel"
       className="rounded-[28px] border border-[var(--border)] bg-white p-5 shadow-[0_24px_70px_rgba(20,43,78,0.12)] sm:p-7"
     >
-      {/* =====================================================
-          HEADER
-      ====================================================== */}
-
       <div className="mb-6 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
           <span className="grid size-10 place-items-center rounded-full bg-[var(--success-soft)] text-[var(--success)]">
@@ -483,10 +527,6 @@ export function DonationPanel({
       {step ===
       "amount" ? (
         <div>
-          {/* =================================================
-              TITLE
-          ================================================== */}
-
           <h2 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">
             Choose your gift
           </h2>
@@ -497,14 +537,9 @@ export function DonationPanel({
             practical support.
           </p>
 
-          {/* =================================================
-              FREQUENCY
-          ================================================== */}
-
           <fieldset className="mt-6 grid grid-cols-2 gap-2 rounded-2xl bg-[var(--surface)] p-1.5">
             <legend className="sr-only">
-              Donation
-              frequency
+              Donation frequency
             </legend>
 
             {(
@@ -562,10 +597,6 @@ export function DonationPanel({
               ),
             )}
           </fieldset>
-
-          {/* =================================================
-              DONATION OPTIONS
-          ================================================== */}
 
           <fieldset className="mt-5 space-y-2.5">
             <legend className="sr-only">
@@ -634,10 +665,6 @@ export function DonationPanel({
             )}
           </fieldset>
 
-          {/* =================================================
-              OTHER AMOUNT
-          ================================================== */}
-
           <label className="mt-3 block">
             <span className="text-sm font-medium text-[var(--ink)]">
               Other amount
@@ -673,10 +700,6 @@ export function DonationPanel({
             </span>
           </label>
 
-          {/* =================================================
-              IMPACT
-          ================================================== */}
-
           {selectedImpact && (
             <p className="mt-4 rounded-2xl bg-[var(--mint)] px-4 py-3 text-sm leading-6 text-[var(--ink)]">
               <strong>
@@ -688,10 +711,6 @@ export function DonationPanel({
               .
             </p>
           )}
-
-          {/* =================================================
-              COVER FEE
-          ================================================== */}
 
           <label
             className={`mt-5 flex items-start gap-3 text-sm leading-5 text-[var(--muted)] ${
@@ -724,8 +743,7 @@ export function DonationPanel({
 
             <span>
               <strong className="text-[var(--ink)]">
-                Cover transaction
-                costs
+                Cover transaction costs
               </strong>
 
               <br />
@@ -737,10 +755,6 @@ export function DonationPanel({
               campaign.
             </span>
           </label>
-
-          {/* =================================================
-              TOTAL
-          ================================================== */}
 
           <dl className="mt-5 space-y-2 border-t border-[var(--border)] pt-5 text-sm">
             <div className="flex justify-between">
@@ -761,9 +775,7 @@ export function DonationPanel({
               hasValidAmount && (
                 <div className="flex justify-between">
                   <dt className="text-[var(--muted)]">
-                    Estimated
-                    transaction
-                    costs
+                    Estimated transaction costs
                   </dt>
 
                   <dd className="font-medium text-[var(--ink)]">
@@ -798,10 +810,6 @@ export function DonationPanel({
             </div>
           </dl>
 
-          {/* =================================================
-              MONTHLY NOTICE
-          ================================================== */}
-
           {frequency ===
             "monthly" &&
             hasValidAmount && (
@@ -813,10 +821,6 @@ export function DonationPanel({
                 canceled.
               </p>
             )}
-
-          {/* =================================================
-              CONTINUE BUTTON
-          ================================================== */}
 
           <button
             ref={
@@ -868,10 +872,6 @@ export function DonationPanel({
           </button>
         </div>
       ) : (
-        /* ===================================================
-            DONOR INFO
-        ==================================================== */
-
         <div>
           <button
             type="button"
@@ -995,15 +995,13 @@ export function DonationPanel({
 
             <span>
               <strong className="text-[var(--ink)]">
-                Display my name
-                publicly
+                Display my name publicly
               </strong>
 
               <br />
 
               Leave unchecked to
-              appear as
-              Anonymous.
+              appear as Anonymous.
             </span>
           </label>
 
@@ -1044,9 +1042,7 @@ export function DonationPanel({
 
                 <div className="mt-1 flex items-center justify-between gap-4 text-xs text-[var(--muted)]">
                   <span>
-                    Transaction
-                    cost
-                    contribution
+                    Transaction cost contribution
                   </span>
 
                   <span>
@@ -1094,7 +1090,7 @@ export function DonationPanel({
 
             Payment will be
             processed securely
-            by Stripe Sandbox.
+            by Stripe.
           </p>
         </div>
       )}
@@ -1157,8 +1153,7 @@ function FormField({
           event,
         ) =>
           onChange(
-            event.target
-              .value,
+            event.target.value,
           )
         }
         className="mt-2 min-h-12 w-full rounded-2xl border border-[var(--border)] px-4 outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--soft-blue)] disabled:cursor-not-allowed disabled:bg-[var(--surface)] disabled:opacity-70"
