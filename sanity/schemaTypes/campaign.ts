@@ -50,6 +50,31 @@ export const campaignType = defineType({
       type: "string",
     }),
 
+    // =========================================================
+    // ORGANIZATION LOGO
+    // =========================================================
+
+    defineField({
+      name: "organizationLogo",
+      title: "Organization logo",
+      type: "image",
+
+      options: {
+        hotspot: true,
+      },
+
+      fields: [
+        defineField({
+          name: "alt",
+          title: "Alt text",
+          type: "string",
+
+          initialValue:
+            "Organization logo",
+        }),
+      ],
+    }),
+
     defineField({
       name: "eyebrow",
       title: "Eyebrow",
@@ -67,6 +92,7 @@ export const campaignType = defineType({
       name: "heroImage",
       title: "Hero image",
       type: "image",
+
       options: {
         hotspot: true,
       },
@@ -116,6 +142,10 @@ export const campaignType = defineType({
         },
       ],
     }),
+
+    // =========================================================
+    // KEEP OLD STORY CARDS
+    // =========================================================
 
     defineField({
       name: "nourishmentCard",
@@ -561,7 +591,9 @@ export const campaignType = defineType({
       title: "title",
       subtitle:
         "organizationName",
-      media: "heroImage",
+
+      media:
+        "organizationLogo",
     },
   },
 });

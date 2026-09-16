@@ -1,4 +1,6 @@
-import { defineQuery } from "next-sanity";
+import {
+  defineQuery,
+} from "next-sanity";
 
 export const CAMPAIGN_QUERY =
   defineQuery(`
@@ -14,6 +16,23 @@ export const CAMPAIGN_QUERY =
       "slug": slug.current,
 
       organizationName,
+
+      organizationLogo {
+        asset-> {
+          _id,
+          url,
+
+          metadata {
+            dimensions,
+            lqip
+          }
+        },
+
+        alt,
+        hotspot,
+        crop
+      },
+
       eyebrow,
       summary,
 
