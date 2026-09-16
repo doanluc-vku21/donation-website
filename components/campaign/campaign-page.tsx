@@ -1,5 +1,4 @@
 import Image from "next/image";
-
 import {
   Sparkles,
 } from "lucide-react";
@@ -51,39 +50,6 @@ export function CampaignPage({
   campaign: Campaign;
   content: SanityCampaign;
 }) {
-  // ===========================================================
-  // ORGANIZATION LOGO
-  // ===========================================================
-
-  const logoUrl =
-    content.organizationLogo
-      ?.asset?.url;
-
-  const logoWidth =
-    content.organizationLogo
-      ?.asset
-      ?.metadata
-      ?.dimensions
-      ?.width ?? 100;
-
-  const logoHeight =
-    content.organizationLogo
-      ?.asset
-      ?.metadata
-      ?.dimensions
-      ?.height ?? 100;
-
-  const logoAlt =
-    content.organizationLogo
-      ?.alt ||
-    content.organizationName ||
-    campaign.organizationName ||
-    "Organization logo";
-
-  // ===========================================================
-  // HERO IMAGE
-  // ===========================================================
-
   const heroUrl =
     content.heroImage
       ?.asset?.url;
@@ -135,35 +101,13 @@ export function CampaignPage({
               href="#top"
               className="inline-flex min-w-0 items-center gap-3 rounded-lg"
             >
-              {/* ===============================================
-                  ORGANIZATION LOGO
-              ================================================ */}
-
-              {logoUrl ? (
-                <Image
-                  src={logoUrl}
-                  alt={logoAlt}
-                  width={logoWidth}
-                  height={logoHeight}
-                  className="
-                    size-11
-                    shrink-0
-                    object-contain
-                  "
-                />
-              ) : (
-                <Image
-                  src="/sample-logo.svg"
-                  alt={logoAlt}
-                  width={46}
-                  height={46}
-                  className="
-                    size-11
-                    shrink-0
-                    object-contain
-                  "
-                />
-              )}
+              <Image
+                src="/sample-logo.svg"
+                alt=""
+                width={46}
+                height={46}
+                className="size-11 shrink-0"
+              />
 
               <span className="min-w-0">
                 <strong className="block truncate text-[17px] tracking-tight">
@@ -194,7 +138,9 @@ export function CampaignPage({
                 />
 
                 <span className="truncate">
-                  {content.eyebrow}
+                  {
+                    content.eyebrow
+                  }
                 </span>
               </p>
             )}
@@ -220,32 +166,29 @@ export function CampaignPage({
 
             {content.summary && (
               <p className="mt-6 max-w-full text-base leading-7 text-[var(--muted)] sm:text-lg sm:leading-8 lg:max-w-2xl">
-                {content.summary}
+                {
+                  content.summary
+                }
               </p>
             )}
 
             <div className="mt-8 w-full min-w-0 max-w-full">
               <ProgressCard
-                raisedAmountUsd={
-                  campaign.raisedAmountUsd
-                }
-                goalAmountUsd={
-                  content.goalAmount != null
-                    ? Math.round(
-                        content.goalAmount *
-                          100,
-                      )
-                    : campaign.goalAmountUsd
-                }
-                donorCount={
-                  campaign.donorCount
-                }
-              />
+  raisedAmountUsd={
+    campaign.raisedAmountUsd
+  }
+  goalAmountUsd={
+    content.goalAmount != null
+      ? Math.round(content.goalAmount * 100)
+      : campaign.goalAmountUsd
+  }
+  donorCount={
+    campaign.donorCount
+  }
+/>
             </div>
 
-            {/* =================================================
-                HERO
-            ================================================== */}
+            {/* HERO */}
 
             <figure
               className="
@@ -350,13 +293,9 @@ export function CampaignPage({
             <div className="mb-8 w-full min-w-0 max-w-full lg:hidden">
               <MobileStoryToggle>
                 <CampaignStory
-                  campaign={
-                    campaign
-                  }
-                  content={
-                    content
-                  }
-                />
+  campaign={campaign}
+  content={content}
+/>
               </MobileStoryToggle>
             </div>
 
@@ -404,13 +343,9 @@ export function CampaignPage({
           "
         >
           <CampaignStory
-            campaign={
-              campaign
-            }
-            content={
-              content
-            }
-          />
+  campaign={campaign}
+  content={content}
+/>
 
           <RecentDonations
             donations={
@@ -419,9 +354,7 @@ export function CampaignPage({
           />
 
           <SiteFooter
-            content={
-              content
-            }
+            content={content}
           />
         </div>
 
@@ -431,9 +364,7 @@ export function CampaignPage({
 
         <div className="w-full min-w-0 lg:hidden">
           <SiteFooter
-            content={
-              content
-            }
+            content={content}
           />
         </div>
       </div>
