@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { stripe } from "@/lib/stripe/server";
 
 type DonationFrequency =
@@ -7,11 +8,8 @@ type DonationFrequency =
 
 type CheckoutBody = {
   campaignId: string;
-
   amountCents: number;
-
   coverFee: boolean;
-
   frequency: DonationFrequency;
 
   donor: {
@@ -38,9 +36,10 @@ export async function POST(
       donor,
     } = body;
 
-    /*
-     * Validate campaign
-     */
+    // =========================================================
+    // VALIDATE CAMPAIGN
+    // =========================================================
+
     if (!campaignId) {
       return NextResponse.json(
         {
@@ -53,12 +52,13 @@ export async function POST(
       );
     }
 
-    /*
-     * Validate donation amount
-     *
-     * amountCents = cents
-     * 5000 = $50
-     */
+    // =========================================================
+    // VALIDATE DONATION AMOUNT
+    //
+    // amountCents uses cents
+    // 5000 = $50
+    // =========================================================
+
     if (
       !Number.isInteger(
         amountCents,
@@ -76,9 +76,10 @@ export async function POST(
       );
     }
 
-    /*
-     * Validate frequency
-     */
+    // =========================================================
+    // VALIDATE FREQUENCY
+    // =========================================================
+
     if (
       frequency !==
         "one_time" &&
@@ -96,9 +97,10 @@ export async function POST(
       );
     }
 
-    /*
-     * Validate donor
-     */
+    // =========================================================
+    // VALIDATE DONOR
+    // =========================================================
+
     if (
       !donor?.firstName?.trim() ||
       !donor?.lastName?.trim() ||
@@ -115,9 +117,10 @@ export async function POST(
       );
     }
 
-    /*
-     * Basic email validation
-     */
+    // =========================================================
+    // EMAIL VALIDATION
+    // =========================================================
+
     const email =
       donor.email
         .trim()
@@ -142,13 +145,13 @@ export async function POST(
       );
     }
 
-    /*
-     * Calculate transaction cost contribution
-     *
-     * IMPORTANT:
-     * Không dùng total từ client.
-     * Server tự tính lại.
-     */
+    // =========================================================
+    // TRANSACTION COST CONTRIBUTION
+    //
+    // Never trust a total sent by client.
+    // Server calculates again.
+    // =========================================================
+
     const feeAmountCents =
       coverFee
         ? Math.round(
@@ -162,17 +165,25 @@ export async function POST(
       amountCents +
       feeAmountCents;
 
-    /*
-     * Site URL
-     */
+    // =========================================================
+    // SITE URL
+    //
+    // Local:
+    // http://localhost:3000
+    //
+    // Production:
+    // https://donate.hungersupport.org
+    // =========================================================
+
     const siteUrl =
       process.env
         .NEXT_PUBLIC_SITE_URL ??
       "http://localhost:3000";
 
-    /*
-     * Public display name
-     */
+    // =========================================================
+    // DISPLAY NAME
+    // =========================================================
+
     const displayName =
       donor.displayPublicly
         ? `${donor.firstName.trim()} ${donor.lastName
@@ -180,11 +191,12 @@ export async function POST(
             .charAt(0)}.`
         : "Anonymous";
 
-    /*
-     * Shared metadata
-     *
-     * Metadata này sẽ được webhook đọc lại.
-     */
+    // =========================================================
+    // SHARED METADATA
+    //
+    // Webhook reads this metadata later.
+    // =========================================================
+
     const metadata = {
       campaign_id:
         campaignId,
@@ -228,31 +240,37 @@ export async function POST(
           : "true",
     };
 
-    /*
-     * Create Stripe Checkout Session
-     */
+    // =========================================================
+    // CREATE STRIPE CHECKOUT SESSION
+    // =========================================================
+
     const session =
       await stripe.checkout.sessions.create(
         {
-          /*
-           * one_time:
-           * mode = payment
-           *
-           * monthly:
-           * mode = subscription
-           */
+          // -----------------------------------------------------
+          // MODE
+          //
+          // one_time = payment
+          // monthly = subscription
+          // -----------------------------------------------------
+
           mode:
             frequency ===
             "monthly"
               ? "subscription"
               : "payment",
 
+          // -----------------------------------------------------
+          // CUSTOMER
+          // -----------------------------------------------------
+
           customer_email:
             email,
 
-          /*
-           * Donation line item
-           */
+          // -----------------------------------------------------
+          // LINE ITEM
+          // -----------------------------------------------------
+
           line_items: [
             {
               quantity: 1,
@@ -264,9 +282,7 @@ export async function POST(
                 unit_amount:
                   totalAmountCents,
 
-                /*
-                 * Chỉ subscription mới có recurring.
-                 */
+                // Monthly recurring only
                 ...(frequency ===
                 "monthly"
                   ? {
@@ -301,35 +317,29 @@ export async function POST(
             },
           ],
 
-          /*
-           * Success / cancel URLs
-           */
+          // =====================================================
+          // REDIRECT URLS
+          // =====================================================
+
           success_url:
             `${siteUrl}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
 
           cancel_url:
-            `${siteUrl}/#donation-panel`,
+            `${siteUrl}/gaza-food#donation-panel`,
 
-          /*
-           * Checkout Session metadata.
-           *
-           * checkout.session.completed
-           * sẽ đọc metadata này.
-           */
+          // =====================================================
+          // CHECKOUT SESSION METADATA
+          // =====================================================
+
           metadata,
 
-          /*
-           * Nếu monthly:
-           *
-           * copy metadata xuống Subscription.
-           *
-           * Nhờ vậy invoice/payment recurring
-           * các tháng sau vẫn biết:
-           *
-           * campaign nào
-           * donor nào
-           * amount nào
-           */
+          // =====================================================
+          // SUBSCRIPTION METADATA
+          //
+          // Copy metadata into subscription so recurring
+          // invoice/payment events can identify campaign/donor.
+          // =====================================================
+
           ...(frequency ===
           "monthly"
             ? {
@@ -342,18 +352,20 @@ export async function POST(
         },
       );
 
-    /*
-     * Stripe phải trả checkout URL.
-     */
+    // =========================================================
+    // STRIPE MUST RETURN CHECKOUT URL
+    // =========================================================
+
     if (!session.url) {
       throw new Error(
         "Stripe Checkout URL was not created.",
       );
     }
 
-    /*
-     * Client redirect tới URL này.
-     */
+    // =========================================================
+    // RESPONSE
+    // =========================================================
+
     return NextResponse.json(
       {
         url: session.url,
