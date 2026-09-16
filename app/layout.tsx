@@ -15,19 +15,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pixelId =
-    "1061285453382644";
-
   return (
     <html lang="en">
-      <body>
-        {/* ================================================
-            META PIXEL
-        ================================================= */}
-
+      <head>
+        {/* Meta Pixel Code */}
         <Script
           id="meta-pixel"
-          strategy="afterInteractive"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               !function(f,b,e,v,n,t,s)
@@ -62,12 +56,15 @@ export default function RootLayout({
                 'https://connect.facebook.net/en_US/fbevents.js'
               );
 
-              fbq('init', '${pixelId}');
+              fbq('init', '1061285453382644');
               fbq('track', 'PageView');
             `,
           }}
         />
+        {/* End Meta Pixel Code */}
+      </head>
 
+      <body>
         <noscript>
           <img
             height="1"
@@ -75,14 +72,10 @@ export default function RootLayout({
             style={{
               display: "none",
             }}
-            src={`https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1`}
+            src="https://www.facebook.com/tr?id=1061285453382644&ev=PageView&noscript=1"
             alt=""
           />
         </noscript>
-
-        {/* ================================================
-            APP
-        ================================================= */}
 
         {children}
       </body>
