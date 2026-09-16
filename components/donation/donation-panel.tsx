@@ -30,20 +30,18 @@ type DonationPanelProps = {
 export function DonationPanel({
   campaign,
 }: DonationPanelProps) {
-  const defaultOption =
-    campaign.donationOptions.find(
-      (option) => option.featured,
-    ) ?? campaign.donationOptions[0];
+  // =========================================================
+  // STATE
+  // =========================================================
 
   const [frequency, setFrequency] =
     useState<DonationFrequency>(
       "one_time",
     );
 
+  // Không chọn số tiền mặc định.
   const [amount, setAmount] =
-    useState(
-      defaultOption.amountUsd,
-    );
+    useState(0);
 
   const [
     customAmount,
@@ -97,6 +95,14 @@ export function DonationPanel({
     );
 
   // =========================================================
+  // VALID AMOUNT
+  // =========================================================
+
+  const hasValidAmount =
+    Number.isInteger(amount) &&
+    amount >= 100;
+
+  // =========================================================
   // SMOOTH MOBILE SCROLL
   // =========================================================
 
@@ -123,11 +129,8 @@ export function DonationPanel({
       const viewportHeight =
         window.innerHeight;
 
-      // Khoảng trống dưới nút
       const bottomGap = 24;
 
-      // Nếu nút đã nhìn thấy đầy đủ
-      // thì không cần cuộn.
       if (
         rect.top >= 0 &&
         rect.bottom <=
@@ -137,8 +140,6 @@ export function DonationPanel({
         return;
       }
 
-      // Chỉ scroll đúng khoảng cần thiết
-      // để cạnh dưới nút vừa hiện ra.
       const distance =
         rect.bottom -
         (viewportHeight -
@@ -224,38 +225,51 @@ export function DonationPanel({
   // TOTAL
   // =========================================================
 
-  const fee = coverFee
-    ? calculateFeeContribution(
-        amount,
-      )
-    : 0;
+  const fee =
+    hasValidAmount &&
+    coverFee
+      ? calculateFeeContribution(
+          amount,
+        )
+      : 0;
 
   const total =
-    amount + fee;
+    hasValidAmount
+      ? amount + fee
+      : 0;
 
   const selectedImpact =
-    campaign.donationOptions.find(
-      (option) =>
-        option.amountUsd ===
-        amount,
-    )?.impactText;
+    hasValidAmount
+      ? campaign.donationOptions.find(
+          (option) =>
+            option.amountUsd ===
+            amount,
+        )?.impactText
+      : undefined;
 
   const ctaLabel =
-    useMemo(
-      () =>
-        `Continue with ${formatUsd(
+    useMemo(() => {
+      if (
+        !Number.isInteger(
           amount,
-        )}${
-          frequency ===
-          "monthly"
-            ? " monthly"
-            : ""
-        }`,
-      [
+        ) ||
+        amount < 100
+      ) {
+        return "Choose an amount";
+      }
+
+      return `Continue with ${formatUsd(
         amount,
-        frequency,
-      ],
-    );
+      )}${
+        frequency ===
+        "monthly"
+          ? " monthly"
+          : ""
+      }`;
+    }, [
+      amount,
+      frequency,
+    ]);
 
   // =========================================================
   // CUSTOM AMOUNT
@@ -265,6 +279,13 @@ export function DonationPanel({
     raw: string,
   ) {
     setCustomAmount(raw);
+
+    if (
+      raw.trim() === ""
+    ) {
+      setAmount(0);
+      return;
+    }
 
     const dollars =
       Number(raw);
@@ -282,6 +303,8 @@ export function DonationPanel({
       );
 
       scrollToContinue();
+    } else {
+      setAmount(0);
     }
   }
 
@@ -513,7 +536,11 @@ export function DonationPanel({
                         value,
                       );
 
-                      scrollToContinue();
+                      if (
+                        hasValidAmount
+                      ) {
+                        scrollToContinue();
+                      }
                     }}
                   />
 
@@ -666,11 +693,20 @@ export function DonationPanel({
               COVER FEE
           ================================================== */}
 
-          <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm leading-5 text-[var(--muted)]">
+          <label
+            className={`mt-5 flex items-start gap-3 text-sm leading-5 text-[var(--muted)] ${
+              hasValidAmount
+                ? "cursor-pointer"
+                : "cursor-not-allowed opacity-60"
+            }`}
+          >
             <input
               type="checkbox"
               checked={
                 coverFee
+              }
+              disabled={
+                !hasValidAmount
               }
               onChange={(
                 event,
@@ -713,27 +749,30 @@ export function DonationPanel({
               </dt>
 
               <dd className="font-medium text-[var(--ink)]">
-                {formatUsd(
-                  amount,
-                )}
+                {hasValidAmount
+                  ? formatUsd(
+                      amount,
+                    )
+                  : "—"}
               </dd>
             </div>
 
-            {coverFee && (
-              <div className="flex justify-between">
-                <dt className="text-[var(--muted)]">
-                  Estimated
-                  transaction
-                  costs
-                </dt>
+            {coverFee &&
+              hasValidAmount && (
+                <div className="flex justify-between">
+                  <dt className="text-[var(--muted)]">
+                    Estimated
+                    transaction
+                    costs
+                  </dt>
 
-                <dd className="font-medium text-[var(--ink)]">
-                  {formatUsd(
-                    fee,
-                  )}
-                </dd>
-              </div>
-            )}
+                  <dd className="font-medium text-[var(--ink)]">
+                    {formatUsd(
+                      fee,
+                    )}
+                  </dd>
+                </div>
+              )}
 
             <div className="flex justify-between text-base">
               <dt className="font-semibold text-[var(--ink)]">
@@ -744,12 +783,15 @@ export function DonationPanel({
               </dt>
 
               <dd className="font-semibold text-[var(--ink)]">
-                {formatUsd(
-                  total,
-                )}
+                {hasValidAmount
+                  ? formatUsd(
+                      total,
+                    )
+                  : "—"}
 
                 {frequency ===
-                "monthly"
+                  "monthly" &&
+                hasValidAmount
                   ? "/month"
                   : ""}
               </dd>
@@ -761,15 +803,16 @@ export function DonationPanel({
           ================================================== */}
 
           {frequency ===
-            "monthly" && (
-            <p className="mt-4 rounded-xl bg-[var(--mint)] px-4 py-3 text-sm leading-5 text-[var(--ink)]">
-              Your donation will
-              repeat every month
-              until the
-              subscription is
-              canceled.
-            </p>
-          )}
+            "monthly" &&
+            hasValidAmount && (
+              <p className="mt-4 rounded-xl bg-[var(--mint)] px-4 py-3 text-sm leading-5 text-[var(--ink)]">
+                Your donation will
+                repeat every month
+                until the
+                subscription is
+                canceled.
+              </p>
+            )}
 
           {/* =================================================
               CONTINUE BUTTON
@@ -780,14 +823,46 @@ export function DonationPanel({
               continueButtonRef
             }
             type="button"
+            disabled={
+              !hasValidAmount
+            }
             onClick={() => {
               setError("");
+
+              if (
+                !hasValidAmount
+              ) {
+                return;
+              }
 
               setStep(
                 "donor",
               );
             }}
-            className="mt-6 flex min-h-13 w-full items-center justify-center rounded-2xl bg-[var(--accent)] px-5 py-3.5 font-semibold text-white shadow-[0_10px_24px_rgba(37,99,235,0.25)] transition hover:bg-[var(--accent-dark)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+            className="
+              mt-6
+              flex
+              min-h-13
+              w-full
+              items-center
+              justify-center
+              rounded-2xl
+              bg-[var(--accent)]
+              px-5
+              py-3.5
+              font-semibold
+              text-white
+              shadow-[0_10px_24px_rgba(37,99,235,0.25)]
+              transition
+              hover:bg-[var(--accent-dark)]
+              focus-visible:outline
+              focus-visible:outline-2
+              focus-visible:outline-offset-2
+              focus-visible:outline-[var(--focus)]
+              disabled:cursor-not-allowed
+              disabled:opacity-50
+              disabled:hover:bg-[var(--accent)]
+            "
           >
             {ctaLabel}
           </button>
