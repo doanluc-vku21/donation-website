@@ -361,14 +361,26 @@ async function handleCheckoutSessionCompleted(
         subscriptionId,
     });
 
-  if (donationError) {
-    console.error(
-      "Donation insert error:",
-      donationError,
+if (donationError) {
+  if (
+    donationError.code ===
+    "23505"
+  ) {
+    console.log(
+      "Donation already processed by database constraint:",
+      session.id,
     );
 
-    throw donationError;
+    return;
   }
+
+  console.error(
+    "Donation insert error:",
+    donationError,
+  );
+
+  throw donationError;
+}
 
   console.log(
     "Donation saved successfully:",
@@ -670,15 +682,26 @@ async function handleInvoicePaymentSucceeded(
       stripe_subscription_id:
         subscriptionId,
     });
-
-  if (donationError) {
-    console.error(
-      "Recurring donation insert error:",
-      donationError,
+if (donationError) {
+  if (
+    donationError.code ===
+    "23505"
+  ) {
+    console.log(
+      "Recurring donation already processed:",
+      invoice.id,
     );
 
-    throw donationError;
+    return;
   }
+
+  console.error(
+    "Recurring donation insert error:",
+    donationError,
+  );
+
+  throw donationError;
+}
 
   console.log(
     "Recurring monthly donation saved:",
