@@ -153,7 +153,10 @@ export function SiteFooter({
                 "Open Hands Relief"}
             </p>
 
-            
+            <p className="mt-1">
+              {content.footerSubtitle ||
+                "Sample organization · UI preview"}
+            </p>
           </div>
 
           {/* LEGAL LINKS */}
