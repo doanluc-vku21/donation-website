@@ -15,6 +15,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const metaPixelId = "1779006939838355";
+
   return (
     <html lang="en">
       <head>
@@ -56,7 +58,7 @@ export default function RootLayout({
                 'https://connect.facebook.net/en_US/fbevents.js'
               );
 
-              fbq('init', '1061285453382644');
+              fbq('init', '${metaPixelId}');
               fbq('track', 'PageView');
             `,
           }}
@@ -72,7 +74,7 @@ export default function RootLayout({
             style={{
               display: "none",
             }}
-            src="https://www.facebook.com/tr?id=1061285453382644&ev=PageView&noscript=1"
+            src={`https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1`}
             alt=""
           />
         </noscript>
