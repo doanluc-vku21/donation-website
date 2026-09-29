@@ -33,16 +33,19 @@ import {
 } from "./mobile-story-toggle";
 
 import {
-  DonationPanel,
-} from "@/components/donation/donation-panel";
-
-import {
   MobileDonateBar,
 } from "@/components/donation/mobile-donate-bar";
 
 import {
   ShareMenu,
 } from "@/components/share/share-menu";
+
+import {
+  CampaignDonateCard,
+} from "./campaign-donate-card";
+import {
+  MobileCampaignHero,
+} from "./mobile-campaign-hero";
 
 export function CampaignPage({
   campaign,
@@ -103,42 +106,131 @@ export function CampaignPage({
       ?.height ?? 760;
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[radial-gradient(circle_at_12%_5%,rgba(226,235,251,.9),transparent_28%),var(--page)]">
+    <main
+  className="
+    min-h-screen
+    w-full
+    overflow-x-hidden
+    bg-white
+
+    pb-[140px]
+    lg:pb-0
+  "
+>
       <div
         className="
           mx-auto
           grid
           w-full
           min-w-0
-          max-w-[1400px]
-          gap-10
+          max-w-[1120px]
+          gap-8
           px-5
-          py-6
+          py-7
 
-          lg:grid-cols-[minmax(0,3fr)_minmax(380px,2fr)]
+          lg:grid-cols-[minmax(0,1fr)_330px]
           lg:items-start
-          lg:gap-x-16
-          lg:gap-y-12
-          lg:px-10
-          lg:py-8
-
-          xl:px-16
+          lg:gap-x-10
+          lg:gap-y-10
+          lg:px-8
+          lg:py-10
         "
       >
         {/* =====================================================
-            CAMPAIGN INTRO
+            LEFT COLUMN
         ====================================================== */}
+        <MobileCampaignHero
+  campaign={{
+    ...campaign,
 
-        <div className="w-full min-w-0 max-w-full">
-          <header className="flex min-w-0 items-center justify-between gap-3 sm:gap-5">
-            <a
-              href="#top"
-              className="inline-flex min-w-0 items-center gap-3 rounded-lg"
+    goalAmountUsd:
+      content.goalAmount != null
+        ? Math.round(
+            content.goalAmount * 100,
+          )
+        : campaign.goalAmountUsd,
+  }}
+  content={content}
+/>
+        <div
+          className="
+            w-full
+            min-w-0
+          "
+        >
+          {/* ===================================================
+              TITLE
+          ==================================================== */}
+
+          <section
+  id="top"
+  className="
+    hidden
+    w-full
+    min-w-0
+
+    lg:block
+  "
+>
+            {content.eyebrow && (
+              <p
+                className="
+                  mb-4
+                  inline-flex
+                  items-center
+                  gap-2
+                  rounded-full
+                  bg-[#f5f7f2]
+                  px-3
+                  py-2
+                  text-xs
+                  font-bold
+                  uppercase
+                  tracking-[0.14em]
+                  text-[#376341]
+
+                  lg:hidden
+                "
+              >
+                <Sparkles
+                  aria-hidden="true"
+                  className="size-3.5"
+                />
+
+                {content.eyebrow}
+              </p>
+            )}
+
+            <h1
+              className="
+                max-w-[760px]
+                break-words
+                text-[34px]
+                font-bold
+                leading-[1.08]
+                tracking-[-0.035em]
+                text-[#101820]
+
+                sm:text-[42px]
+
+                lg:text-[48px]
+              "
             >
-              {/* ===============================================
-                  ORGANIZATION LOGO
-              ================================================ */}
+              {content.title}
+            </h1>
 
+            {/* ===============================================
+                ORGANIZER
+            ================================================ */}
+
+            <div
+              className="
+                mt-5
+                flex
+                items-center
+                gap-3
+              "
+            >
               {logoUrl ? (
                 <Image
                   src={logoUrl}
@@ -146,7 +238,7 @@ export function CampaignPage({
                   width={logoWidth}
                   height={logoHeight}
                   className="
-                    size-11
+                    size-8
                     shrink-0
                     object-contain
                   "
@@ -155,111 +247,50 @@ export function CampaignPage({
                 <Image
                   src="/sample-logo.svg"
                   alt={logoAlt}
-                  width={46}
-                  height={46}
+                  width={32}
+                  height={32}
                   className="
-                    size-11
+                    size-8
                     shrink-0
                     object-contain
                   "
                 />
               )}
 
-              <span className="min-w-0">
-                <strong className="block truncate text-[17px] tracking-tight">
+              <p
+                className="
+                  text-sm
+                  text-[#687386]
+                "
+              >
+                Organized by{" "}
+                <strong
+                  className="
+                    font-semibold
+                    text-[#182333]
+                  "
+                >
                   {content.organizationName ||
                     campaign.organizationName}
                 </strong>
-
-                <small className="block truncate text-xs text-[var(--muted)]">
-                  Care, made tangible
-                </small>
-              </span>
-            </a>
-
-            <div className="shrink-0">
-              <ShareMenu />
-            </div>
-          </header>
-
-          <section
-            id="top"
-            className="w-full min-w-0 max-w-full pt-12 sm:pt-16"
-          >
-            {content.eyebrow && (
-              <p className="inline-flex max-w-full items-center gap-2 rounded-full bg-white px-3.5 py-2 text-xs font-bold uppercase tracking-[.16em] text-[var(--accent)] shadow-sm">
-                <Sparkles
-                  aria-hidden="true"
-                  className="size-3.5 shrink-0"
-                />
-
-                <span className="truncate">
-                  {content.eyebrow}
-                </span>
               </p>
-            )}
 
-            <h1
-              className="
-                mt-6
-                max-w-full
-                break-words
-                text-[clamp(2.4rem,11vw,5.4rem)]
-                font-semibold
-                leading-[.98]
-                tracking-[-.055em]
-
-                sm:text-[clamp(2.6rem,8vw,5.4rem)]
-
-                lg:max-w-3xl
-                lg:text-[clamp(2.6rem,6vw,5.4rem)]
-              "
-            >
-              {content.title}
-            </h1>
-
-            {content.summary && (
-              <p className="mt-6 max-w-full text-base leading-7 text-[var(--muted)] sm:text-lg sm:leading-8 lg:max-w-2xl">
-                {content.summary}
-              </p>
-            )}
-
-            <div className="mt-8 w-full min-w-0 max-w-full">
-              <ProgressCard
-                raisedAmountUsd={
-                  campaign.raisedAmountUsd
-                }
-                goalAmountUsd={
-                  content.goalAmount != null
-                    ? Math.round(
-                        content.goalAmount *
-                          100,
-                      )
-                    : campaign.goalAmountUsd
-                }
-                donorCount={
-                  campaign.donorCount
-                }
-              />
+              <div className="ml-auto lg:hidden">
+                <ShareMenu />
+              </div>
             </div>
 
-            {/* =================================================
+            {/* ===============================================
                 HERO
-            ================================================== */}
+            ================================================ */}
 
             <figure
               className="
                 relative
                 mt-8
-                w-full
-                min-w-0
-                max-w-full
                 overflow-hidden
-                rounded-[24px]
-                bg-[#173d76]
-                shadow-[0_26px_80px_rgba(22,54,92,.15)]
-
-                sm:rounded-[30px]
+                rounded-[18px]
+                bg-[#eef1f3]
               "
             >
               {heroUrl ? (
@@ -270,60 +301,115 @@ export function CampaignPage({
                       ?.alt ||
                     content.title
                   }
-                  width={
-                    heroWidth
-                  }
-                  height={
-                    heroHeight
-                  }
+                  width={heroWidth}
+                  height={heroHeight}
                   priority
-                  className="block h-auto w-full max-w-full"
+                  className="
+                    block
+                    h-auto
+                    w-full
+                  "
                 />
               ) : (
                 <Image
                   src="/sample-campaign-hero.svg"
-                  alt={
-                    content.title
-                  }
+                  alt={content.title}
                   width={1200}
                   height={760}
                   priority
-                  className="block h-auto w-full max-w-full"
+                  className="
+                    block
+                    h-auto
+                    w-full
+                  "
                 />
               )}
-
-              <figcaption
-                className="
-                  absolute
-                  bottom-3
-                  left-3
-                  right-3
-                  w-fit
-                  max-w-[calc(100%-24px)]
-                  rounded-full
-                  bg-white/90
-                  px-3
-                  py-2
-                  text-[11px]
-                  font-semibold
-                  leading-4
-                  shadow-sm
-                  backdrop-blur
-
-                  sm:bottom-4
-                  sm:left-4
-                  sm:right-auto
-                  sm:max-w-[calc(100%-32px)]
-                  sm:px-4
-                  sm:text-xs
-                "
-              >
-                A little support can
-                open a lifetime of
-                possibility.
-              </figcaption>
             </figure>
           </section>
+
+          {/* =================================================
+              MOBILE PROGRESS
+          ================================================== */}
+
+          
+
+          {/* =================================================
+              MOBILE STORY
+          ================================================== */}
+
+          <div
+            className="
+              mt-7
+              lg:hidden
+            "
+          >
+            <MobileStoryToggle>
+              <CampaignStory
+                campaign={campaign}
+                content={content}
+              />
+            </MobileStoryToggle>
+          </div>
+
+          {/* =================================================
+              DESKTOP STORY
+          ================================================== */}
+
+          <div
+            className="
+              mt-8
+              hidden
+
+              lg:block
+            "
+          >
+            <CampaignStory
+              campaign={campaign}
+              content={content}
+            />
+
+            <RecentDonations
+              donations={
+                campaign.recentDonations
+              }
+            />
+
+            <SiteFooter
+              content={content}
+            />
+          </div>
+
+          {/* =================================================
+              MOBILE RECENT
+          ================================================== */}
+
+          <div
+            className="
+              mt-7
+              lg:hidden
+            "
+          >
+            <RecentDonations
+              donations={
+                campaign.recentDonations
+              }
+            />
+          </div>
+
+          {/* =================================================
+              MOBILE FOOTER
+          ================================================== */}
+
+          <div
+            className="
+              mt-8
+              lg:hidden
+            "
+          >
+            <SiteFooter
+              content={content}
+            />
+          </div>
         </div>
 
         {/* =====================================================
@@ -332,113 +418,52 @@ export function CampaignPage({
 
         <aside
           className="
-            w-full
-            min-w-0
-            max-w-full
-
-            lg:col-start-2
-            lg:row-span-2
-            lg:row-start-1
-          "
-          aria-label="Donation form"
-        >
-          <div className="w-full min-w-0 max-w-full lg:sticky lg:top-8">
-            {/* ===============================================
-                MOBILE STORY
-            ================================================ */}
-
-            <div className="mb-8 w-full min-w-0 max-w-full lg:hidden">
-              <MobileStoryToggle>
-                <CampaignStory
-                  campaign={
-                    campaign
-                  }
-                  content={
-                    content
-                  }
-                />
-              </MobileStoryToggle>
-            </div>
-
-            {/* ===============================================
-                MOBILE RECENT DONATIONS
-            ================================================ */}
-
-            <div className="mb-7 w-full min-w-0 max-w-full overflow-hidden lg:hidden">
-              <RecentDonations
-                donations={
-                  campaign.recentDonations
-                }
-                className="mt-0"
-              />
-            </div>
-
-            {/* ===============================================
-                DONATION PANEL
-            ================================================ */}
-
-            <div className="w-full min-w-0 max-w-full">
-              <DonationPanel
-                campaign={
-                  campaign
-                }
-              />
-            </div>
-          </div>
-        </aside>
-
-        {/* =====================================================
-            DESKTOP STORY
-        ====================================================== */}
-
-        <div
-          className="
             hidden
             w-full
             min-w-0
-            max-w-full
 
-            lg:col-start-1
-            lg:row-start-2
             lg:block
           "
+          aria-label="Donation summary"
         >
-          <CampaignStory
-            campaign={
-              campaign
-            }
-            content={
-              content
-            }
-          />
+          <div
+            className="
+              sticky
+              top-6
+              w-full
+            "
+          >
+            <CampaignDonateCard
+              campaign={{
+                ...campaign,
 
-          <RecentDonations
-            donations={
-              campaign.recentDonations
-            }
-          />
-
-          <SiteFooter
-            content={
-              content
-            }
-          />
-        </div>
-
-        {/* =====================================================
-            MOBILE FOOTER
-        ====================================================== */}
-
-        <div className="w-full min-w-0 lg:hidden">
-          <SiteFooter
-            content={
-              content
-            }
-          />
-        </div>
+                goalAmountUsd:
+                  content.goalAmount != null
+                    ? Math.round(
+                        content.goalAmount *
+                          100,
+                      )
+                    : campaign.goalAmountUsd,
+              }}
+              donateHref="/gaza-food/donate"
+            />
+          </div>
+        </aside>
       </div>
 
-      <MobileDonateBar />
+      <MobileDonateBar
+  campaign={{
+    ...campaign,
+
+    goalAmountUsd:
+      content.goalAmount != null
+        ? Math.round(
+            content.goalAmount *
+              100,
+          )
+        : campaign.goalAmountUsd,
+  }}
+/>
     </main>
   );
 }

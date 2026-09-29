@@ -7,7 +7,9 @@ import type {
   RecentDonation,
 } from "@/lib/sample-data";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createSupabaseServerClient,
+} from "@/lib/supabase/server";
 
 type CampaignRow = {
   id: string;
@@ -45,15 +47,20 @@ type RecentDonationRow = {
 function formatRelativeTime(
   dateString: string,
 ) {
-  const date = new Date(dateString);
+  const date =
+    new Date(dateString);
 
   const diff =
-    Date.now() - date.getTime();
+    Date.now() -
+    date.getTime();
 
-  const minutes = Math.max(
-    0,
-    Math.floor(diff / 60000),
-  );
+  const minutes =
+    Math.max(
+      0,
+      Math.floor(
+        diff / 60000,
+      ),
+    );
 
   if (minutes < 1) {
     return "Just now";
@@ -67,9 +74,10 @@ function formatRelativeTime(
     } ago`;
   }
 
-  const hours = Math.floor(
-    minutes / 60,
-  );
+  const hours =
+    Math.floor(
+      minutes / 60,
+    );
 
   if (hours < 24) {
     return `${hours} ${
@@ -79,9 +87,10 @@ function formatRelativeTime(
     } ago`;
   }
 
-  const days = Math.floor(
-    hours / 24,
-  );
+  const days =
+    Math.floor(
+      hours / 24,
+    );
 
   return `${days} ${
     days === 1
@@ -114,8 +123,14 @@ export async function getCampaignBySlug(
         currency
       `,
     )
-    .eq("slug", slug)
-    .eq("is_active", true)
+    .eq(
+      "slug",
+      slug,
+    )
+    .eq(
+      "is_active",
+      true,
+    )
     .maybeSingle();
 
   if (campaignError) {
@@ -140,8 +155,14 @@ export async function getCampaignBySlug(
     statsResult,
     recentResult,
   ] = await Promise.all([
+    // ===========================================
+    // DONATION OPTIONS
+    // ===========================================
+
     supabase
-      .from("donation_options")
+      .from(
+        "donation_options",
+      )
       .select(
         `
           id,
@@ -162,6 +183,10 @@ export async function getCampaignBySlug(
         },
       ),
 
+    // ===========================================
+    // PUBLIC STATS
+    // ===========================================
+
     supabase.rpc(
       "get_campaign_public_stats",
       {
@@ -170,12 +195,20 @@ export async function getCampaignBySlug(
       },
     ),
 
+    // ===========================================
+    // CONTRIBUTIONS
+    //
+    // Trước đây chỉ lấy 5.
+    // Bây giờ lấy tối đa 100 để dùng popup See all.
+    // ===========================================
+
     supabase.rpc(
       "get_recent_donations",
       {
         campaign_uuid:
           campaign.id,
-        donation_limit: 5,
+
+        donation_limit: 100,
       },
     ),
   ]);
@@ -186,15 +219,24 @@ export async function getCampaignBySlug(
     throw donationOptionsResult.error;
   }
 
-  if (statsResult.error) {
+  if (
+    statsResult.error
+  ) {
     throw statsResult.error;
   }
 
-  if (recentResult.error) {
+  if (
+    recentResult.error
+  ) {
     throw recentResult.error;
   }
 
-  const donationOptions: DonationOption[] =
+  // =============================================
+  // DONATION OPTIONS
+  // =============================================
+
+  const donationOptions:
+    DonationOption[] =
     (
       donationOptionsResult.data ??
       []
@@ -215,6 +257,10 @@ export async function getCampaignBySlug(
       }),
     );
 
+  // =============================================
+  // STATS
+  // =============================================
+
   const stats =
     (
       statsResult.data ??
@@ -223,7 +269,12 @@ export async function getCampaignBySlug(
       | CampaignStatsRow
       | undefined;
 
-  const recentDonations: RecentDonation[] =
+  // =============================================
+  // CONTRIBUTIONS
+  // =============================================
+
+  const recentDonations:
+    RecentDonation[] =
     (
       recentResult.data ??
       []
@@ -231,7 +282,8 @@ export async function getCampaignBySlug(
       (
         row: RecentDonationRow,
       ) => ({
-        id: row.id,
+        id:
+          row.id,
 
         displayName:
           row.display_name,
@@ -251,6 +303,10 @@ export async function getCampaignBySlug(
       }),
     );
 
+  // =============================================
+  // RETURN
+  // =============================================
+
   return {
     id:
       campaign.id,
@@ -262,17 +318,21 @@ export async function getCampaignBySlug(
       campaign.organization_name,
 
     eyebrow:
-      campaign.eyebrow ?? "",
+      campaign.eyebrow ??
+      "",
 
     summary:
-      campaign.summary ?? "",
+      campaign.summary ??
+      "",
 
     story:
-      campaign.story ?? [],
+      campaign.story ??
+      [],
 
     goalAmountUsd:
       Number(
-        campaign.goal_amount_cents,
+        campaign
+          .goal_amount_cents,
       ),
 
     raisedAmountUsd:

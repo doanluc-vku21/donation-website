@@ -1,284 +1,642 @@
 "use client";
 
 import {
-  ChevronLeft,
-  ChevronRight,
-  Heart,
-} from "lucide-react";
-import {
   useEffect,
-  useRef,
+  useMemo,
   useState,
 } from "react";
 
-import { formatUsd } from "@/lib/money";
-import type { RecentDonation } from "@/lib/sample-data";
+import {
+  ChevronDown,
+  X,
+} from "lucide-react";
+
+import {
+  formatUsd,
+} from "@/lib/money";
+
+import type {
+  RecentDonation,
+} from "@/lib/sample-data";
 
 type RecentDonationsProps = {
   donations: RecentDonation[];
   className?: string;
-  limit?: number;
+
+  /**
+   * Số contribution hiển thị ngoài trang.
+   * Reference đang hiển thị 4.
+   */
+  previewLimit?: number;
 };
+
+type SortMode =
+  | "recent"
+  | "highest";
 
 export function RecentDonations({
   donations,
   className = "mt-12",
-  limit,
+  previewLimit = 4,
 }: RecentDonationsProps) {
-  const sliderRef =
-    useRef<HTMLUListElement>(null);
+  const [
+    modalOpen,
+    setModalOpen,
+  ] = useState(false);
 
-  const [canScrollLeft, setCanScrollLeft] =
-    useState(false);
+  const [
+    sortMode,
+    setSortMode,
+  ] =
+    useState<SortMode>(
+      "recent",
+    );
 
-  const [canScrollRight, setCanScrollRight] =
-    useState(false);
+  // =============================================
+  // PREVIEW
+  // =============================================
 
-  const visibleDonations =
-    typeof limit === "number"
-      ? donations.slice(0, limit)
-      : donations;
+  const previewDonations =
+    donations.slice(
+      0,
+      previewLimit,
+    );
 
-  function updateScrollState() {
-    const slider =
-      sliderRef.current;
+  // =============================================
+  // SORTED MODAL LIST
+  // =============================================
 
-    if (!slider) {
+  const sortedDonations =
+    useMemo(() => {
+      const result = [
+        ...donations,
+      ];
+
+      if (
+        sortMode ===
+        "highest"
+      ) {
+        result.sort(
+          (a, b) =>
+            b.amountUsd -
+            a.amountUsd,
+        );
+      }
+
+      /*
+       * Với "recent" không cần sort lại vì
+       * RPC hiện đã trả donation mới nhất trước.
+       */
+      return result;
+    }, [
+      donations,
+      sortMode,
+    ]);
+
+  // =============================================
+  // LOCK BODY WHEN MODAL OPEN
+  // =============================================
+
+  useEffect(() => {
+    if (!modalOpen) {
       return;
     }
 
-    const maxScroll =
-      slider.scrollWidth -
-      slider.clientWidth;
+    const originalOverflow =
+      document.body.style
+        .overflow;
 
-    setCanScrollLeft(
-      slider.scrollLeft > 4,
-    );
+    document.body.style
+      .overflow = "hidden";
 
-    setCanScrollRight(
-      maxScroll > 4 &&
-        slider.scrollLeft <
-          maxScroll - 4,
-    );
-  }
-
-  useEffect(() => {
-    updateScrollState();
-
-    const handleResize = () => {
-      updateScrollState();
-    };
+    function handleKeyDown(
+      event: KeyboardEvent,
+    ) {
+      if (
+        event.key ===
+        "Escape"
+      ) {
+        setModalOpen(false);
+      }
+    }
 
     window.addEventListener(
-      "resize",
-      handleResize,
+      "keydown",
+      handleKeyDown,
     );
 
     return () => {
+      document.body.style
+        .overflow =
+        originalOverflow;
+
       window.removeEventListener(
-        "resize",
-        handleResize,
+        "keydown",
+        handleKeyDown,
       );
     };
-  }, [visibleDonations.length]);
+  }, [
+    modalOpen,
+  ]);
 
-  if (visibleDonations.length === 0) {
+  if (
+    donations.length === 0
+  ) {
     return null;
   }
 
-  function scrollSlider(
-    direction: "left" | "right",
-  ) {
-    const slider =
-      sliderRef.current;
-
-    if (!slider) {
-      return;
-    }
-
-    const firstCard =
-      slider.querySelector<HTMLElement>(
-        "[data-donation-card]",
-      );
-
-    const cardWidth =
-      firstCard?.getBoundingClientRect()
-        .width ??
-      slider.clientWidth * 0.86;
-
-    slider.scrollBy({
-      left:
-        direction === "right"
-          ? cardWidth + 12
-          : -(cardWidth + 12),
-
-      behavior: "smooth",
-    });
-  }
-
   return (
-    <section
-      className={`${className} w-full min-w-0 max-w-full overflow-hidden`}
-      aria-labelledby="recent-supporters-title"
-    >
-      {/* HEADER */}
-      <div className="flex min-w-0 items-end justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--accent)]">
-            Community
-          </p>
+    <>
+      {/* =========================================
+          CONTRIBUTIONS SECTION
+      ========================================== */}
 
-          <h2
-            id="recent-supporters-title"
-            className="mt-2 truncate text-[22px] font-semibold tracking-tight text-[var(--ink)] sm:text-2xl"
-          >
-            Recent supporters
-          </h2>
-        </div>
+      <section
+        className={`${className} w-full`}
+        aria-labelledby="contributions-title"
+      >
+        {/* HEADER */}
 
-        {visibleDonations.length >
-          1 && (
-          <div className="hidden shrink-0 items-center gap-2 sm:flex">
-            <button
-              type="button"
-              aria-label="Previous supporters"
-              disabled={!canScrollLeft}
-              onClick={() =>
-                scrollSlider(
-                  "left",
-                )
-              }
-              className="grid size-10 place-items-center rounded-full border border-[var(--border)] bg-white text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-35"
-            >
-              <ChevronLeft
-                aria-hidden="true"
-                className="size-4"
-              />
-            </button>
-
-            <button
-              type="button"
-              aria-label="Next supporters"
-              disabled={!canScrollRight}
-              onClick={() =>
-                scrollSlider(
-                  "right",
-                )
-              }
-              className="grid size-10 place-items-center rounded-full border border-[var(--border)] bg-white text-[var(--ink)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-35"
-            >
-              <ChevronRight
-                aria-hidden="true"
-                className="size-4"
-              />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* LOCAL SLIDER VIEWPORT */}
-      <div className="mt-5 w-full min-w-0 max-w-full overflow-hidden">
-        <ul
-          ref={sliderRef}
-          onScroll={
-            updateScrollState
-          }
+        <div
           className="
             flex
-            w-full
-            min-w-0
-            max-w-full
-            snap-x
-            snap-mandatory
-            gap-3
-            overflow-x-auto
-            overflow-y-hidden
-            overscroll-x-contain
-            scroll-smooth
-            pb-2
-            touch-pan-x
-
-            [-webkit-overflow-scrolling:touch]
-            [scrollbar-width:none]
-            [&::-webkit-scrollbar]:hidden
+            items-center
+            justify-between
+            gap-4
+            border-t
+            border-[#e3e8ee]
+            pt-8
           "
         >
-          {visibleDonations.map(
+          <h2
+            id="contributions-title"
+            className="
+              text-[26px]
+              font-bold
+              tracking-[-0.03em]
+              text-[#07152d]
+            "
+          >
+            Contributions
+          </h2>
+
+          <span
+            className="
+              shrink-0
+              text-[14px]
+              text-[#718096]
+            "
+          >
+            {donations.length.toLocaleString(
+              "en-US",
+            )}{" "}
+            {donations.length ===
+            1
+              ? "contribution"
+              : "contributions"}
+          </span>
+        </div>
+
+        {/* LIST */}
+
+        <ul
+          className="
+            mt-5
+            divide-y
+            divide-[#e7ebef]
+          "
+        >
+          {previewDonations.map(
             (donation) => (
-              <li
-                key={donation.id}
-                data-donation-card
-                className="
-                  flex
-                  min-h-[108px]
-                  w-[86%]
-                  min-w-0
-                  shrink-0
-                  snap-start
-                  items-center
-                  justify-between
-                  gap-3
-                  overflow-hidden
-                  rounded-2xl
-                  border
-                  border-[var(--border)]
-                  bg-white
-                  px-4
-                  py-4
-                  shadow-[0_8px_30px_rgba(24,44,72,.04)]
-
-                  sm:w-[300px]
-                  sm:gap-4
-                  sm:px-5
-
-                  lg:w-[calc(50%-6px)]
-                "
-              >
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--soft-blue)] text-[var(--accent)]">
-                    <Heart
-                      aria-hidden="true"
-                      className="size-4 fill-current"
-                    />
-                  </span>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[var(--ink)]">
-                      {
-                        donation.displayName
-                      }
-                    </p>
-
-                    <p className="mt-1 line-clamp-2 text-xs leading-[1.45] text-[var(--muted)]">
-                      {donation.frequency ===
-                      "monthly"
-                        ? "Started a monthly gift"
-                        : "Made a one-time gift"}
-
-                      {" · "}
-
-                      {
-                        donation.relativeTime
-                      }
-                    </p>
-                  </div>
-                </div>
-
-                <strong className="shrink-0 text-sm text-[var(--ink)]">
-                  {formatUsd(
-                    donation.amountUsd,
-                  ).replace(
-                    ".00",
-                    "",
-                  )}
-                </strong>
-              </li>
+              <ContributionRow
+                key={
+                  donation.id
+                }
+                donation={
+                  donation
+                }
+              />
             ),
           )}
         </ul>
+
+        {/* SEE ALL */}
+
+        {donations.length >
+          previewLimit && (
+          <button
+            type="button"
+            onClick={() => {
+              setSortMode(
+                "recent",
+              );
+
+              setModalOpen(
+                true,
+              );
+            }}
+            className="
+              mt-5
+              flex
+              min-h-[46px]
+              w-full
+              items-center
+              justify-center
+              rounded-full
+              border
+              border-[#d9e0e7]
+              bg-white
+              px-5
+              text-[14px]
+              font-medium
+              text-[#101828]
+              shadow-[0_2px_4px_rgba(15,23,42,.08)]
+              transition
+
+              hover:border-[#aeb8c5]
+            "
+          >
+            See all
+          </button>
+        )}
+      </section>
+
+      {/* =========================================
+          MODAL
+      ========================================== */}
+
+      {modalOpen && (
+        <div
+          className="
+            fixed
+            inset-0
+            z-[100]
+            flex
+            items-center
+            justify-center
+            bg-black/60
+            p-4
+          "
+          onMouseDown={(
+            event,
+          ) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              setModalOpen(
+                false,
+              );
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contributions-modal-title"
+            className="
+              flex
+              max-h-[82vh]
+              w-full
+              max-w-[520px]
+              flex-col
+              overflow-hidden
+              rounded-[20px]
+              bg-white
+              shadow-[0_24px_80px_rgba(0,0,0,.28)]
+            "
+          >
+            {/* ================================
+                MODAL HEADER
+            ================================= */}
+
+            <div
+              className="
+                shrink-0
+                px-6
+                pb-4
+                pt-6
+              "
+            >
+              <div
+                className="
+                  flex
+                  items-start
+                  justify-between
+                  gap-4
+                "
+              >
+                <div>
+                  <h2
+                    id="contributions-modal-title"
+                    className="
+                      text-[20px]
+                      font-bold
+                      text-[#111827]
+                    "
+                  >
+                    Contributions
+                  </h2>
+
+                  <p
+                    className="
+                      mt-3
+                      text-[14px]
+                      text-[#66758a]
+                    "
+                  >
+                    Contributions
+                    available for this
+                    campaign.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  aria-label="Close contributions"
+                  onClick={() =>
+                    setModalOpen(
+                      false,
+                    )
+                  }
+                  className="
+                    -mr-2
+                    -mt-2
+                    grid
+                    size-10
+                    shrink-0
+                    place-items-center
+                    rounded-full
+                    text-[#637083]
+                    transition
+
+                    hover:bg-[#f3f5f7]
+                    hover:text-[#111827]
+                  "
+                >
+                  <X
+                    aria-hidden="true"
+                    className="size-5"
+                  />
+                </button>
+              </div>
+
+              {/* SORT */}
+
+              <label
+                className="
+                  mt-5
+                  block
+                "
+              >
+                <span
+                  className="
+                    block
+                    text-[14px]
+                    font-medium
+                    text-[#111827]
+                  "
+                >
+                  Sort by
+                </span>
+
+                <div
+                  className="
+                    relative
+                    mt-2
+                  "
+                >
+                  <select
+                    value={
+                      sortMode
+                    }
+                    onChange={(
+                      event,
+                    ) =>
+                      setSortMode(
+                        event.target
+                          .value as SortMode,
+                      )
+                    }
+                    className="
+                      min-h-[50px]
+                      w-full
+                      appearance-none
+                      rounded-[12px]
+                      border
+                      border-[#0e6c48]
+                      bg-white
+                      px-4
+                      pr-11
+                      text-[14px]
+                      text-[#111827]
+                      outline-none
+
+                      focus:ring-2
+                      focus:ring-[#ccebdd]
+                    "
+                  >
+                    <option value="recent">
+                      Most recent
+                    </option>
+
+                    <option value="highest">
+                      Highest amount
+                    </option>
+                  </select>
+
+                  <ChevronDown
+                    aria-hidden="true"
+                    className="
+                      pointer-events-none
+                      absolute
+                      right-4
+                      top-1/2
+                      size-4
+                      -translate-y-1/2
+                      text-[#111827]
+                    "
+                  />
+                </div>
+              </label>
+            </div>
+
+            {/* ================================
+                SCROLLABLE LIST
+            ================================= */}
+
+            <div
+              className="
+                min-h-0
+                flex-1
+                overflow-y-auto
+                px-6
+                pb-6
+
+                [scrollbar-width:thin]
+              "
+            >
+              <ul
+                className="
+                  divide-y
+                  divide-[#e7ebef]
+                "
+              >
+                {sortedDonations.map(
+                  (
+                    donation,
+                  ) => (
+                    <ContributionRow
+                      key={
+                        donation.id
+                      }
+                      donation={
+                        donation
+                      }
+                    />
+                  ),
+                )}
+              </ul>
+            </div>
+          </section>
+        </div>
+      )}
+    </>
+  );
+}
+
+// =================================================
+// CONTRIBUTION ROW
+// =================================================
+
+function ContributionRow({
+  donation,
+}: {
+  donation: RecentDonation;
+}) {
+  const initials =
+    getInitials(
+      donation.displayName,
+    );
+
+  return (
+    <li
+      className="
+        flex
+        min-h-[72px]
+        items-center
+        gap-3
+        py-4
+      "
+    >
+      {/* AVATAR */}
+
+      <span
+        className="
+          grid
+          size-10
+          shrink-0
+          place-items-center
+          rounded-full
+          bg-[#e7f6d7]
+          text-[12px]
+          font-medium
+          text-[#09633f]
+        "
+      >
+        {initials}
+      </span>
+
+      {/* NAME + TIME */}
+
+      <div
+        className="
+          min-w-0
+          flex-1
+        "
+      >
+        <p
+          className="
+            truncate
+            text-[14px]
+            font-semibold
+            text-[#07152d]
+          "
+        >
+          {donation.displayName}
+        </p>
+
+        <p
+          className="
+            mt-0.5
+            truncate
+            text-[12px]
+            text-[#6480a0]
+          "
+        >
+          {donation.relativeTime}
+        </p>
       </div>
 
-      
-    </section>
+      {/* AMOUNT */}
+
+      <strong
+        className="
+          shrink-0
+          rounded-full
+          bg-[#edf6e7]
+          px-3
+          py-1.5
+          text-[14px]
+          font-semibold
+          text-[#006341]
+        "
+      >
+        {formatUsd(
+          donation.amountUsd,
+        ).replace(
+          ".00",
+          "",
+        )}
+      </strong>
+    </li>
   );
+}
+
+// =================================================
+// INITIALS
+// =================================================
+
+function getInitials(
+  displayName: string,
+) {
+  if (
+    !displayName ||
+    displayName
+      .toLowerCase() ===
+      "anonymous"
+  ) {
+    return "A";
+  }
+
+  const words =
+    displayName
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+
+  if (
+    words.length === 1
+  ) {
+    return words[0]
+      .slice(0, 2)
+      .toUpperCase();
+  }
+
+  return (
+    words[0][0] +
+    words[
+      words.length - 1
+    ][0]
+  ).toUpperCase();
 }
