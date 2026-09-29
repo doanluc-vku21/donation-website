@@ -1,4 +1,5 @@
 import type {
+  FundUsageItem,
   SanityCampaign,
 } from "@/sanity/types/campaign";
 
@@ -10,9 +11,12 @@ export function FundUsage({
   content,
 }: FundUsageProps) {
   const items =
-    content.fundUsageItems ?? [];
+    content.fundUsageItems ??
+    [];
 
-  if (items.length === 0) {
+  if (
+    items.length === 0
+  ) {
     return null;
   }
 
@@ -37,6 +41,10 @@ export function FundUsage({
       "
       aria-labelledby="fund-usage-title"
     >
+      {/* =========================================
+          SECTION HEADER
+      ========================================== */}
+
       <h2
         id="fund-usage-title"
         className="
@@ -67,6 +75,10 @@ export function FundUsage({
         </p>
       )}
 
+      {/* =========================================
+          ITEMS
+      ========================================== */}
+
       <div
         className="
           mt-6
@@ -81,82 +93,212 @@ export function FundUsage({
         "
       >
         {items.map(
-          (item, index) => {
-            const amount =
-              typeof item.amount ===
-              "number"
-                ? formatAmount(
-                    item.amount,
-                    content.currency ||
-                      "USD",
-                  )
-                : null;
-
-            const description =
-              item.description?.trim();
-
-            return (
-              <article
-                key={
-                  item._key ||
-                  `${item.title}-${index}`
-                }
-                className={`
-                  py-6
-
-                  ${
-                    index > 0
-                      ? "border-t border-[var(--border)]"
-                      : ""
-                  }
-                `}
-              >
-                <h3
-                  className="
-                    text-[16px]
-                    font-semibold
-                    leading-6
-                    text-[var(--ink)]
-
-                    sm:text-[17px]
-                  "
-                >
-                  {amount && (
-                    <>
-                      {amount}
-
-                      {item.title
-                        ? ": "
-                        : ""}
-                    </>
-                  )}
-
-                  {item.title}
-                </h3>
-
-                {description && (
-                  <p
-                    className="
-                      mt-3
-                      whitespace-pre-line
-                      text-[15px]
-                      leading-[1.6]
-                      text-[var(--muted)]
-
-                      sm:text-[16px]
-                    "
-                  >
-                    {description}
-                  </p>
-                )}
-              </article>
-            );
-          },
+          (
+            item,
+            index,
+          ) => (
+            <FundUsageRow
+              key={
+                item._key ||
+                `${index}`
+              }
+              item={
+                item
+              }
+              currency={
+                content.currency ||
+                "USD"
+              }
+              showDivider={
+                index > 0
+              }
+            />
+          ),
         )}
       </div>
     </section>
   );
 }
+
+// ==========================================================
+// FUND USAGE ROW
+// ==========================================================
+
+function FundUsageRow({
+  item,
+  currency,
+  showDivider,
+}: {
+  item: FundUsageItem;
+
+  currency: string;
+
+  showDivider: boolean;
+}) {
+  // Existing items created before itemType
+  // remain normal allocation items.
+  const itemType =
+    item.itemType ||
+    "allocation";
+
+  // ========================================================
+  // TITLE + TEXT
+  // ========================================================
+
+  if (
+    itemType === "text"
+  ) {
+    const title =
+      item.title?.trim();
+
+    const content =
+      item.content?.trim();
+
+    if (
+      !title &&
+      !content
+    ) {
+      return null;
+    }
+
+    return (
+      <article
+        className={`
+          py-6
+
+          ${
+            showDivider
+              ? "border-t border-[var(--border)]"
+              : ""
+          }
+        `}
+      >
+        {title && (
+          <h3
+            className="
+              text-[16px]
+              font-semibold
+              leading-6
+              text-[var(--ink)]
+
+              sm:text-[17px]
+            "
+          >
+            {title}
+          </h3>
+        )}
+
+        {content && (
+          <p
+            className={`
+              whitespace-pre-line
+              text-[15px]
+              leading-[1.65]
+              text-[var(--muted)]
+
+              sm:text-[16px]
+
+              ${
+                title
+                  ? "mt-3"
+                  : ""
+              }
+            `}
+          >
+            {content}
+          </p>
+        )}
+      </article>
+    );
+  }
+
+  // ========================================================
+  // ALLOCATION
+  // ========================================================
+
+  const amount =
+    typeof item.amount ===
+    "number"
+      ? formatAmount(
+          item.amount,
+          currency,
+        )
+      : null;
+
+  const title =
+    item.title?.trim();
+
+  const description =
+    item.description?.trim();
+
+  if (
+    !amount &&
+    !title &&
+    !description
+  ) {
+    return null;
+  }
+
+  return (
+    <article
+      className={`
+        py-6
+
+        ${
+          showDivider
+            ? "border-t border-[var(--border)]"
+            : ""
+        }
+      `}
+    >
+      {(amount ||
+        title) && (
+        <h3
+          className="
+            text-[16px]
+            font-semibold
+            leading-6
+            text-[var(--ink)]
+
+            sm:text-[17px]
+          "
+        >
+          {amount && (
+            <>
+              {amount}
+
+              {title
+                ? ": "
+                : ""}
+            </>
+          )}
+
+          {title}
+        </h3>
+      )}
+
+      {description && (
+        <p
+          className="
+            mt-3
+            whitespace-pre-line
+            text-[15px]
+            leading-[1.6]
+            text-[var(--muted)]
+
+            sm:text-[16px]
+          "
+        >
+          {description}
+        </p>
+      )}
+    </article>
+  );
+}
+
+// ==========================================================
+// FORMAT AMOUNT
+// ==========================================================
 
 function formatAmount(
   amount: number,
@@ -166,11 +308,17 @@ function formatAmount(
     return new Intl.NumberFormat(
       "en-US",
       {
-        style: "currency",
+        style:
+          "currency",
+
         currency,
-        maximumFractionDigits: 0,
+
+        maximumFractionDigits:
+          0,
       },
-    ).format(amount);
+    ).format(
+      amount,
+    );
   } catch {
     return `$${amount.toLocaleString(
       "en-US",

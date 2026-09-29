@@ -84,9 +84,11 @@ export const CAMPAIGN_QUERY =
 
       fundUsageItems[] {
         _key,
+        itemType,
         amount,
         title,
-        description
+        description,
+        content
       },
 
       // =====================================

@@ -1,6 +1,10 @@
-import { NextResponse } from "next/server";
+import {
+  NextResponse,
+} from "next/server";
 
-import { stripe } from "@/lib/stripe/server";
+import {
+  stripe,
+} from "@/lib/stripe/server";
 
 type DonationFrequency =
   | "one_time"
@@ -10,14 +14,17 @@ type CheckoutBody = {
   campaignId: string;
   amountCents: number;
   coverFee: boolean;
-  frequency: DonationFrequency;
+
+  frequency:
+    DonationFrequency;
 
   donor: {
     firstName: string;
     lastName: string;
     email: string;
-    phone?: string;
-    displayPublicly: boolean;
+
+    displayPublicly:
+      boolean;
   };
 };
 
@@ -54,9 +61,6 @@ export async function POST(
 
     // =========================================================
     // VALIDATE DONATION AMOUNT
-    //
-    // amountCents uses cents
-    // 5000 = $50
     // =========================================================
 
     if (
@@ -118,7 +122,7 @@ export async function POST(
     }
 
     // =========================================================
-    // EMAIL VALIDATION
+    // EMAIL
     // =========================================================
 
     const email =
@@ -146,10 +150,7 @@ export async function POST(
     }
 
     // =========================================================
-    // TRANSACTION COST CONTRIBUTION
-    //
-    // Never trust a total sent by client.
-    // Server calculates again.
+    // TRANSACTION COST
     // =========================================================
 
     const feeAmountCents =
@@ -167,12 +168,6 @@ export async function POST(
 
     // =========================================================
     // SITE URL
-    //
-    // Local:
-    // http://localhost:3000
-    //
-    // Production:
-    // https://donate.hungersupport.org
     // =========================================================
 
     const siteUrl =
@@ -192,9 +187,7 @@ export async function POST(
         : "Anonymous";
 
     // =========================================================
-    // SHARED METADATA
-    //
-    // Webhook reads this metadata later.
+    // METADATA
     // =========================================================
 
     const metadata = {
@@ -227,10 +220,6 @@ export async function POST(
       donor_email:
         email,
 
-      donor_phone:
-        donor.phone?.trim() ??
-        "",
-
       display_name:
         displayName,
 
@@ -241,35 +230,20 @@ export async function POST(
     };
 
     // =========================================================
-    // CREATE STRIPE CHECKOUT SESSION
+    // STRIPE SESSION
     // =========================================================
 
     const session =
       await stripe.checkout.sessions.create(
         {
-          // -----------------------------------------------------
-          // MODE
-          //
-          // one_time = payment
-          // monthly = subscription
-          // -----------------------------------------------------
-
           mode:
             frequency ===
             "monthly"
               ? "subscription"
               : "payment",
 
-          // -----------------------------------------------------
-          // CUSTOMER
-          // -----------------------------------------------------
-
           customer_email:
             email,
-
-          // -----------------------------------------------------
-          // LINE ITEM
-          // -----------------------------------------------------
 
           line_items: [
             {
@@ -282,7 +256,6 @@ export async function POST(
                 unit_amount:
                   totalAmountCents,
 
-                // Monthly recurring only
                 ...(frequency ===
                 "monthly"
                   ? {
@@ -317,9 +290,9 @@ export async function POST(
             },
           ],
 
-          // =====================================================
-          // REDIRECT URLS
-          // =====================================================
+          // =====================================
+          // REDIRECT
+          // =====================================
 
           success_url:
             `${siteUrl}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
@@ -327,18 +300,7 @@ export async function POST(
           cancel_url:
             `${siteUrl}/gaza-food#donation-panel`,
 
-          // =====================================================
-          // CHECKOUT SESSION METADATA
-          // =====================================================
-
           metadata,
-
-          // =====================================================
-          // SUBSCRIPTION METADATA
-          //
-          // Copy metadata into subscription so recurring
-          // invoice/payment events can identify campaign/donor.
-          // =====================================================
 
           ...(frequency ===
           "monthly"
@@ -352,23 +314,16 @@ export async function POST(
         },
       );
 
-    // =========================================================
-    // STRIPE MUST RETURN CHECKOUT URL
-    // =========================================================
-
     if (!session.url) {
       throw new Error(
         "Stripe Checkout URL was not created.",
       );
     }
 
-    // =========================================================
-    // RESPONSE
-    // =========================================================
-
     return NextResponse.json(
       {
-        url: session.url,
+        url:
+          session.url,
 
         sessionId:
           session.id,

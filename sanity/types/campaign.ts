@@ -11,9 +11,18 @@ export type FooterPopupContent = {
 
 export type FundUsageItem = {
   _key: string;
+
+  itemType?:
+    | "allocation"
+    | "text";
+
   amount?: number;
+
   title?: string;
+
   description?: string;
+
+  content?: string;
 };
 
 export type SanityImage = {

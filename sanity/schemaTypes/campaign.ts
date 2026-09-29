@@ -58,7 +58,6 @@ export const campaignType = defineType({
       name: "organizationLogo",
       title: "Organization logo",
       type: "image",
-
       options: {
         hotspot: true,
       },
@@ -68,7 +67,6 @@ export const campaignType = defineType({
           name: "alt",
           title: "Alt text",
           type: "string",
-
           initialValue:
             "Organization logo",
         }),
@@ -92,7 +90,6 @@ export const campaignType = defineType({
       name: "heroImage",
       title: "Hero image",
       type: "image",
-
       options: {
         hotspot: true,
       },
@@ -115,7 +112,6 @@ export const campaignType = defineType({
       title: "Story eyebrow",
       type: "string",
       group: "story",
-
       initialValue:
         "Why this matters",
     }),
@@ -125,7 +121,6 @@ export const campaignType = defineType({
       title: "Story heading",
       type: "string",
       group: "story",
-
       initialValue:
         "Care today becomes confidence tomorrow.",
     }),
@@ -156,7 +151,6 @@ export const campaignType = defineType({
 
       initialValue: {
         title: "Nourishment",
-
         description:
           "Consistent access to balanced meals and clean water.",
       },
@@ -166,7 +160,6 @@ export const campaignType = defineType({
           name: "title",
           title: "Title",
           type: "string",
-
           validation: (rule) =>
             rule.required(),
         }),
@@ -176,7 +169,6 @@ export const campaignType = defineType({
           title: "Description",
           type: "text",
           rows: 3,
-
           validation: (rule) =>
             rule.required(),
         }),
@@ -196,7 +188,6 @@ export const campaignType = defineType({
 
       initialValue: {
         title: "Learning",
-
         description:
           "School materials and supportive places to learn.",
       },
@@ -206,7 +197,6 @@ export const campaignType = defineType({
           name: "title",
           title: "Title",
           type: "string",
-
           validation: (rule) =>
             rule.required(),
         }),
@@ -216,7 +206,6 @@ export const campaignType = defineType({
           title: "Description",
           type: "text",
           rows: 3,
-
           validation: (rule) =>
             rule.required(),
         }),
@@ -236,7 +225,6 @@ export const campaignType = defineType({
 
       initialValue: {
         title: "Steady care",
-
         description:
           "Practical help shaped around each local community.",
       },
@@ -246,7 +234,6 @@ export const campaignType = defineType({
           name: "title",
           title: "Title",
           type: "string",
-
           validation: (rule) =>
             rule.required(),
         }),
@@ -256,7 +243,6 @@ export const campaignType = defineType({
           title: "Description",
           type: "text",
           rows: 3,
-
           validation: (rule) =>
             rule.required(),
         }),
@@ -272,7 +258,6 @@ export const campaignType = defineType({
       title: "Section title",
       type: "string",
       group: "fundUsage",
-
       initialValue:
         "How the funds will be used",
     }),
@@ -282,7 +267,6 @@ export const campaignType = defineType({
       title: "Section subtitle",
       type: "string",
       group: "fundUsage",
-
       initialValue:
         "The organizer’s plan for the campaign goal.",
     }),
@@ -300,6 +284,43 @@ export const campaignType = defineType({
           title: "Fund usage item",
 
           fields: [
+            // =====================================
+            // TYPE
+            // =====================================
+
+            defineField({
+              name: "itemType",
+              title: "Item type",
+              type: "string",
+
+              initialValue:
+                "allocation",
+
+              options: {
+                layout: "radio",
+
+                list: [
+                  {
+                    title:
+                      "Allocation — Amount + title + description",
+                    value:
+                      "allocation",
+                  },
+                  {
+                    title:
+                      "Title + Text — No amount",
+                    value:
+                      "text",
+                  },
+                ],
+              },
+            }),
+
+            // =====================================
+            // AMOUNT
+            // Allocation only
+            // =====================================
+
             defineField({
               name: "amount",
               title: "Amount",
@@ -308,11 +329,49 @@ export const campaignType = defineType({
               description:
                 "Enter amount in dollars. Example: 3000",
 
+              hidden: ({
+                parent,
+              }) =>
+                parent?.itemType ===
+                "text",
+
               validation: (rule) =>
-                rule
-                  .required()
-                  .min(0),
+                rule.custom(
+                  (
+                    value,
+                    context,
+                  ) => {
+                    const parent =
+                      context.parent as
+                        | {
+                            itemType?: string;
+                          }
+                        | undefined;
+
+                    if (
+                      parent?.itemType ===
+                      "text"
+                    ) {
+                      return true;
+                    }
+
+                    if (
+                      typeof value !==
+                        "number" ||
+                      value < 0
+                    ) {
+                      return "Amount is required for Allocation items.";
+                    }
+
+                    return true;
+                  },
+                ),
             }),
+
+            // =====================================
+            // TITLE
+            // Used by BOTH types
+            // =====================================
 
             defineField({
               name: "title",
@@ -320,8 +379,23 @@ export const campaignType = defineType({
               type: "string",
 
               validation: (rule) =>
-                rule.required(),
+                rule.custom(
+                  (value) => {
+                    if (
+                      !value?.trim()
+                    ) {
+                      return "Title is required.";
+                    }
+
+                    return true;
+                  },
+                ),
             }),
+
+            // =====================================
+            // DESCRIPTION
+            // Allocation only
+            // =====================================
 
             defineField({
               name: "description",
@@ -331,19 +405,107 @@ export const campaignType = defineType({
 
               description:
                 "Put each detail on a new line if needed.",
+
+              hidden: ({
+                parent,
+              }) =>
+                parent?.itemType ===
+                "text",
+            }),
+
+            // =====================================
+            // TEXT CONTENT
+            // Title + Text only
+            // =====================================
+
+            defineField({
+              name: "content",
+              title: "Text",
+              type: "text",
+              rows: 6,
+
+              description:
+                "Main text content. No amount will be shown.",
+
+              hidden: ({
+                parent,
+              }) =>
+                parent?.itemType !==
+                "text",
+
+              validation: (rule) =>
+                rule.custom(
+                  (
+                    value,
+                    context,
+                  ) => {
+                    const parent =
+                      context.parent as
+                        | {
+                            itemType?: string;
+                          }
+                        | undefined;
+
+                    if (
+                      parent?.itemType !==
+                      "text"
+                    ) {
+                      return true;
+                    }
+
+                    if (
+                      !value?.trim()
+                    ) {
+                      return "Text is required.";
+                    }
+
+                    return true;
+                  },
+                ),
             }),
           ],
 
+          // =====================================
+          // STUDIO PREVIEW
+          // =====================================
+
           preview: {
             select: {
-              title: "title",
-              amount: "amount",
+              itemType:
+                "itemType",
+              title:
+                "title",
+              amount:
+                "amount",
+              content:
+                "content",
             },
 
             prepare({
+              itemType,
               title,
               amount,
+              content,
             }) {
+              if (
+                itemType ===
+                "text"
+              ) {
+                return {
+                  title:
+                    title ||
+                    "Title + Text",
+
+                  subtitle:
+                    content
+                      ? content.slice(
+                          0,
+                          90,
+                        )
+                      : "No text",
+                };
+              }
+
               return {
                 title:
                   title ||
@@ -375,7 +537,6 @@ export const campaignType = defineType({
       title: "Organization name",
       type: "string",
       group: "footer",
-
       initialValue:
         "Open Hands Relief",
     }),
@@ -385,7 +546,6 @@ export const campaignType = defineType({
       title: "Organization subtitle",
       type: "string",
       group: "footer",
-
       initialValue:
         "Sample organization · UI preview",
     }),
@@ -395,7 +555,6 @@ export const campaignType = defineType({
       title: "Secure payment text",
       type: "string",
       group: "footer",
-
       initialValue:
         "Secure payments are processed by Stripe.",
     }),
@@ -416,14 +575,16 @@ export const campaignType = defineType({
           name: "label",
           title: "Link label",
           type: "string",
-          initialValue: "About",
+          initialValue:
+            "About",
         }),
 
         defineField({
           name: "title",
           title: "Popup title",
           type: "string",
-          initialValue: "About",
+          initialValue:
+            "About",
         }),
 
         defineField({
@@ -456,14 +617,16 @@ export const campaignType = defineType({
           name: "label",
           title: "Link label",
           type: "string",
-          initialValue: "Contact",
+          initialValue:
+            "Contact",
         }),
 
         defineField({
           name: "title",
           title: "Popup title",
           type: "string",
-          initialValue: "Contact",
+          initialValue:
+            "Contact",
         }),
 
         defineField({
@@ -496,7 +659,8 @@ export const campaignType = defineType({
           name: "label",
           title: "Link label",
           type: "string",
-          initialValue: "Privacy",
+          initialValue:
+            "Privacy",
         }),
 
         defineField({
@@ -537,7 +701,8 @@ export const campaignType = defineType({
           name: "label",
           title: "Link label",
           type: "string",
-          initialValue: "Terms",
+          initialValue:
+            "Terms",
         }),
 
         defineField({
@@ -578,7 +743,6 @@ export const campaignType = defineType({
           name: "label",
           title: "Link label",
           type: "string",
-
           initialValue:
             "Refund policy",
         }),
@@ -587,7 +751,6 @@ export const campaignType = defineType({
           name: "title",
           title: "Popup title",
           type: "string",
-
           initialValue:
             "Donation / Refund Policy",
         }),
@@ -614,7 +777,6 @@ export const campaignType = defineType({
       name: "goalAmount",
       title: "Donation goal",
       type: "number",
-
       validation: (rule) =>
         rule.min(0),
     }),
@@ -623,8 +785,8 @@ export const campaignType = defineType({
       name: "currency",
       title: "Currency",
       type: "string",
-
-      initialValue: "USD",
+      initialValue:
+        "USD",
 
       options: {
         list: [
@@ -656,8 +818,8 @@ export const campaignType = defineType({
       name: "isActive",
       title: "Active campaign",
       type: "boolean",
-
-      initialValue: true,
+      initialValue:
+        true,
     }),
 
     // =========================================================
@@ -683,7 +845,6 @@ export const campaignType = defineType({
       title: "title",
       subtitle:
         "organizationName",
-
       media:
         "organizationLogo",
     },

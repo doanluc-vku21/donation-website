@@ -42,7 +42,6 @@ type DonationStep =
 
 type DonationFlowProps = {
   campaign: Campaign;
-
   embedded?: boolean;
 
   onStepChange?: (
@@ -78,9 +77,12 @@ export function DonationFlow({
   ] = useState("");
 
   const [
-    showCustom,
-    setShowCustom,
-  ] = useState(false);
+    selectedPreset,
+    setSelectedPreset,
+  ] =
+    useState<number | null>(
+      null,
+    );
 
   const [
     coverFee,
@@ -113,11 +115,6 @@ export function DonationFlow({
   const [
     email,
     setEmail,
-  ] = useState("");
-
-  const [
-    phone,
-    setPhone,
   ] = useState("");
 
   const [
@@ -171,7 +168,7 @@ export function DonationFlow({
     ]);
 
   // ============================================
-  // SELECT AMOUNT
+  // SELECT PRESET
   // ============================================
 
   function selectAmount(
@@ -181,22 +178,34 @@ export function DonationFlow({
       amountCents,
     );
 
-    setCustomAmount("");
+    setSelectedPreset(
+      amountCents,
+    );
 
-    setShowCustom(false);
+    setCustomAmount("");
 
     setError("");
   }
+
+  // ============================================
+  // CUSTOM AMOUNT
+  // ============================================
 
   function chooseCustom(
     raw: string,
   ) {
     setCustomAmount(raw);
 
+    // Custom input means preset is no longer selected.
+    setSelectedPreset(
+      null,
+    );
+
     if (
       raw.trim() === ""
     ) {
       setAmount(0);
+      setError("");
       return;
     }
 
@@ -211,10 +220,11 @@ export function DonationFlow({
     ) {
       setAmount(
         Math.round(
-          dollars *
-            100,
+          dollars * 100,
         ),
       );
+
+      setError("");
     } else {
       setAmount(0);
     }
@@ -249,7 +259,7 @@ export function DonationFlow({
       !hasValidAmount
     ) {
       setError(
-        "Please select a donation amount.",
+        "Please select or enter a donation amount.",
       );
 
       return;
@@ -360,9 +370,6 @@ export function DonationFlow({
                     email:
                       email.trim(),
 
-                    phone:
-                      phone.trim(),
-
                     displayPublicly,
                   },
                 },
@@ -460,7 +467,9 @@ export function DonationFlow({
   ) {
     return (
       <section>
-        {/* FREQUENCY */}
+        {/* =====================================
+            FREQUENCY
+        ====================================== */}
 
         <fieldset
           className="
@@ -554,7 +563,9 @@ export function DonationFlow({
           )}
         </fieldset>
 
-        {/* TITLE */}
+        {/* =====================================
+            TITLE
+        ====================================== */}
 
         <h2
           className="
@@ -567,7 +578,9 @@ export function DonationFlow({
           Choose your gift
         </h2>
 
-        {/* AMOUNTS */}
+        {/* =====================================
+            PRESET AMOUNTS
+        ====================================== */}
 
         <fieldset
           className="
@@ -586,9 +599,8 @@ export function DonationFlow({
               option,
             ) => {
               const selected =
-                amount ===
-                  option.amountUsd &&
-                !showCustom;
+                selectedPreset ===
+                option.amountUsd;
 
               return (
                 <label
@@ -631,6 +643,8 @@ export function DonationFlow({
                       px-1
                       text-center
                       transition
+
+                      hover:border-[#78947f]
 
                       peer-checked:border-[#1f6a47]
                       peer-checked:bg-[#f4faef]
@@ -703,106 +717,84 @@ export function DonationFlow({
           )}
         </fieldset>
 
-        {/* OTHER AMOUNT */}
+        {/* =====================================
+            CUSTOM AMOUNT - ALWAYS VISIBLE
+        ====================================== */}
 
-        <div
+        <label
           className="
             mt-3
-            text-center
+            flex
+            min-h-[48px]
+            items-center
+            rounded-[12px]
+            border
+            border-[#cfd5cf]
+            bg-white
+            px-3
+            transition
+
+            focus-within:border-[#1f6a47]
+            focus-within:ring-1
+            focus-within:ring-[#1f6a47]
           "
         >
-          {!showCustom ? (
-            <button
-              type="button"
-              onClick={() => {
-                setShowCustom(
-                  true,
-                );
+          <span
+            className="
+              font-semibold
+              text-[#657069]
+            "
+          >
+            $
+          </span>
 
-                setAmount(
-                  0,
-                );
+          <input
+            type="number"
+            min="1"
+            step="1"
+            inputMode="decimal"
+            placeholder="Enter amount"
+            value={
+              customAmount
+            }
+            onChange={(
+              event,
+            ) =>
+              chooseCustom(
+                event
+                  .target
+                  .value,
+              )
+            }
+            className="
+              min-w-0
+              flex-1
+              bg-transparent
+              px-2.5
+              py-2
+              text-[14px]
+              text-[#182136]
+              outline-none
 
-                setCustomAmount(
-                  "",
-                );
-              }}
-              className="
-                text-[13px]
-                font-medium
-                text-[#17593c]
-                underline
-                underline-offset-2
-              "
-            >
-              Other amounts
-            </button>
-          ) : (
-            <div>
-              <label
-                className="
-                  flex
-                  min-h-[46px]
-                  items-center
-                  rounded-[11px]
-                  border
-                  border-[#cfd5cf]
-                  bg-white
-                  px-3
-                "
-              >
-                <span
-                  className="
-                    font-semibold
-                    text-[#546159]
-                  "
-                >
-                  $
-                </span>
+              placeholder:text-[#9aa29d]
+            "
+          />
 
-                <input
-                  autoFocus
-                  type="number"
-                  min="1"
-                  step="1"
-                  inputMode="decimal"
-                  placeholder="Enter amount"
-                  value={
-                    customAmount
-                  }
-                  onChange={(
-                    event,
-                  ) =>
-                    chooseCustom(
-                      event
-                        .target
-                        .value,
-                    )
-                  }
-                  className="
-                    min-w-0
-                    flex-1
-                    bg-transparent
-                    px-2
-                    py-2
-                    outline-none
-                  "
-                />
+          <span
+            className="
+              shrink-0
+              text-[11px]
+              font-medium
+              text-[#7c8580]
+            "
+          >
+            USD
+          </span>
+        </label>
 
-                <span
-                  className="
-                    text-xs
-                    text-[#6a766f]
-                  "
-                >
-                  USD
-                </span>
-              </label>
-            </div>
-          )}
-        </div>
-
-        {/* COMPACT OPTIONS */}
+        {/* =====================================
+            OPTIONS
+        ====================================== */}
 
         <div
           className="
@@ -839,7 +831,9 @@ export function DonationFlow({
           </CompactCheck>
         </div>
 
-        {/* TOTAL */}
+        {/* =====================================
+            TOTAL
+        ====================================== */}
 
         {hasValidAmount && (
           <div
@@ -879,7 +873,9 @@ export function DonationFlow({
           </div>
         )}
 
-        {/* ERROR */}
+        {/* =====================================
+            ERROR
+        ====================================== */}
 
         {error && (
           <p
@@ -898,7 +894,9 @@ export function DonationFlow({
           </p>
         )}
 
-        {/* CONTINUE */}
+        {/* =====================================
+            CONTINUE
+        ====================================== */}
 
         <button
           type="button"
@@ -966,7 +964,9 @@ export function DonationFlow({
 
   return (
     <section>
-      {/* BACK + TITLE SAME AREA */}
+      {/* =====================================
+          BACK
+      ====================================== */}
 
       <button
         type="button"
@@ -1000,6 +1000,10 @@ export function DonationFlow({
         Back
       </button>
 
+      {/* =====================================
+          HEADING
+      ====================================== */}
+
       <div
         className="
           mt-1
@@ -1028,7 +1032,9 @@ export function DonationFlow({
         </p>
       </div>
 
-      {/* FIRST + LAST SAME ROW */}
+      {/* =====================================
+          FIRST + LAST NAME
+      ====================================== */}
 
       <div
         className="
@@ -1071,11 +1077,13 @@ export function DonationFlow({
         />
       </div>
 
-      {/* EMAIL */}
+      {/* =====================================
+          EMAIL
+      ====================================== */}
 
       <div
         className="
-          mt-2.5
+          mt-3
         "
       >
         <FormField
@@ -1096,37 +1104,15 @@ export function DonationFlow({
         />
       </div>
 
-      {/* PHONE */}
+      {/* =====================================
+          COMPACT SUMMARY
+      ====================================== */}
 
       <div
         className="
-          mt-2.5
-        "
-      >
-        <FormField
-          label="Phone number (optional)"
-          name="phone"
-          type="tel"
-          autoComplete="tel"
-          value={
-            phone
-          }
-          onChange={
-            setPhone
-          }
-          disabled={
-            isLoading
-          }
-        />
-      </div>
-
-      {/* COMPACT SUMMARY */}
-
-      <div
-        className="
-          mt-3
+          mt-4
           flex
-          min-h-[46px]
+          min-h-[48px]
           items-center
           justify-between
           gap-3
@@ -1164,7 +1150,8 @@ export function DonationFlow({
               Includes{" "}
               {formatUsd(
                 fee,
-              )} fee
+              )}{" "}
+              fee
             </p>
           )}
         </div>
@@ -1186,7 +1173,9 @@ export function DonationFlow({
         </strong>
       </div>
 
-      {/* ERROR */}
+      {/* =====================================
+          ERROR
+      ====================================== */}
 
       {error && (
         <p
@@ -1205,7 +1194,9 @@ export function DonationFlow({
         </p>
       )}
 
-      {/* CHECKOUT */}
+      {/* =====================================
+          CHECKOUT
+      ====================================== */}
 
       <button
         type="button"
@@ -1216,7 +1207,7 @@ export function DonationFlow({
           handleCheckout
         }
         className="
-          mt-3
+          mt-4
           flex
           min-h-[50px]
           w-full
