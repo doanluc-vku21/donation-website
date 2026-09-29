@@ -5,14 +5,8 @@ import Link from "next/link";
 
 import {
   BadgeCheck,
-  Check,
   Heart,
-  Share2,
 } from "lucide-react";
-
-import {
-  useState,
-} from "react";
 
 import type {
   Campaign,
@@ -27,6 +21,10 @@ import {
   progressPercent,
 } from "@/lib/money";
 
+import {
+  ShareMenu,
+} from "@/components/share/share-menu";
+
 type MobileCampaignHeroProps = {
   campaign: Campaign;
   content: SanityCampaign;
@@ -36,9 +34,6 @@ export function MobileCampaignHero({
   campaign,
   content,
 }: MobileCampaignHeroProps) {
-  const [copied, setCopied] =
-    useState(false);
-
   const progress =
     progressPercent(
       campaign.raisedAmountUsd,
@@ -88,51 +83,6 @@ export function MobileCampaignHero({
     content.organizationName ||
     campaign.organizationName;
 
-  async function handleShare() {
-    const url =
-      window.location.href;
-
-    try {
-      if (
-        typeof navigator.share ===
-        "function"
-      ) {
-        await navigator.share({
-          title:
-            campaign.title,
-          text:
-            campaign.title,
-          url,
-        });
-
-        return;
-      }
-
-      await navigator.clipboard.writeText(
-        url,
-      );
-
-      setCopied(true);
-
-      window.setTimeout(
-        () => {
-          setCopied(false);
-        },
-        1800,
-      );
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.name ===
-          "AbortError"
-      ) {
-        return;
-      }
-
-      console.error(error);
-    }
-  }
-
   return (
     <div
       className="
@@ -142,10 +92,6 @@ export function MobileCampaignHero({
         lg:hidden
       "
     >
-      {/* ==========================================
-          HERO IMAGE
-      =========================================== */}
-
       <section
         className="
           relative
@@ -190,10 +136,6 @@ export function MobileCampaignHero({
           />
         )}
 
-        {/* ==========================================
-            IMAGE OVERLAY
-        =========================================== */}
-
         <div
           className="
             absolute
@@ -204,10 +146,6 @@ export function MobileCampaignHero({
             to-black/75
           "
         />
-
-        {/* ==========================================
-            ORGANIZATION BADGE
-        =========================================== */}
 
         <div
           className="
@@ -236,8 +174,6 @@ export function MobileCampaignHero({
               backdrop-blur-md
             "
           >
-            {/* LOGO */}
-
             <span
               className="
                 grid
@@ -281,8 +217,6 @@ export function MobileCampaignHero({
               )}
             </span>
 
-            {/* ORGANIZATION NAME */}
-
             <span
               className="
                 min-w-0
@@ -297,8 +231,6 @@ export function MobileCampaignHero({
               {organizationName}
             </span>
 
-            {/* VERIFIED ICON */}
-
             <span
               className="
                 inline-flex
@@ -307,8 +239,6 @@ export function MobileCampaignHero({
                 justify-center
                 text-[#5aa2ff]
               "
-              aria-label="Verified organization"
-              title="Verified organization"
             >
               <BadgeCheck
                 aria-hidden="true"
@@ -321,10 +251,6 @@ export function MobileCampaignHero({
             </span>
           </div>
         </div>
-
-        {/* ==========================================
-            CAMPAIGN TITLE
-        =========================================== */}
 
         <div
           className="
@@ -350,10 +276,6 @@ export function MobileCampaignHero({
           </h1>
         </div>
 
-        {/* ==========================================
-            CURVED WHITE BOTTOM
-        =========================================== */}
-
         <div
           aria-hidden="true"
           className="
@@ -370,10 +292,6 @@ export function MobileCampaignHero({
           "
         />
       </section>
-
-      {/* ==========================================
-          INLINE DONATION PANEL
-      =========================================== */}
 
       <section
         id="mobile-inline-donate"
@@ -392,8 +310,6 @@ export function MobileCampaignHero({
           shadow-[0_5px_18px_rgba(0,0,0,.04)]
         "
       >
-        {/* MONEY */}
-
         <div
           className="
             flex
@@ -466,6 +382,7 @@ export function MobileCampaignHero({
                 "
               >
                 of{" "}
+
                 <span
                   className="
                     underline
@@ -507,8 +424,6 @@ export function MobileCampaignHero({
           </div>
         </div>
 
-        {/* DONATE */}
-
         <Link
           href="/gaza-food/donate"
           className="
@@ -540,41 +455,18 @@ export function MobileCampaignHero({
           Donate
         </Link>
 
-        {/* SHARE */}
-
-        <button
-          type="button"
-          onClick={handleShare}
+        <div
           className="
-            mx-auto
             mt-1
             flex
-            min-h-[38px]
-            items-center
             justify-center
-            gap-2
-            px-4
-            text-[13px]
-            font-medium
-            text-[#44536a]
           "
         >
-          {copied ? (
-            <Check
-              aria-hidden="true"
-              className="size-4"
-            />
-          ) : (
-            <Share2
-              aria-hidden="true"
-              className="size-4"
-            />
-          )}
-
-          {copied
-            ? "Copied"
-            : "Share"}
-        </button>
+          <ShareMenu
+            title={content.title}
+            triggerVariant="inline"
+          />
+        </div>
       </section>
     </div>
   );

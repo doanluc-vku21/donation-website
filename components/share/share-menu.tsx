@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
 import {
   Check,
   Copy,
@@ -9,9 +10,15 @@ import {
   Share2,
   X,
 } from "lucide-react";
+
 import { QRCodeSVG } from "qrcode.react";
 
-const title = "Give a Child a Brighter Tomorrow";
+type ShareMenuProps = {
+  title?: string;
+  triggerVariant?: "default" | "inline" | "solid";
+  triggerLabel?: string;
+  triggerClassName?: string;
+};
 
 function FacebookIcon({
   className = "",
@@ -47,32 +54,107 @@ function XTwitterIcon({
   );
 }
 
-export function ShareMenu() {
-  const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+export function ShareMenu({
+  title = "Share this campaign",
+  triggerVariant = "default",
+  triggerLabel = "Share",
+  triggerClassName = "",
+}: ShareMenuProps) {
+  const [open, setOpen] =
+    useState(false);
+
+  const [copied, setCopied] =
+    useState(false);
 
   const url =
     typeof window === "undefined"
-      ? "https://example.org"
+      ? ""
       : window.location.href;
 
-  const encodedUrl = encodeURIComponent(url);
-  const encodedText = encodeURIComponent(`${title} — ${url}`);
+  const encodedUrl =
+    encodeURIComponent(url);
+
+  const encodedText =
+    encodeURIComponent(
+      `${title} — ${url}`,
+    );
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const originalOverflow =
+      document.body.style
+        .overflow;
+
+    document.body.style
+      .overflow = "hidden";
+
+    function handleEscape(
+      event: KeyboardEvent,
+    ) {
+      if (
+        event.key ===
+        "Escape"
+      ) {
+        setOpen(false);
+      }
+    }
+
+    window.addEventListener(
+      "keydown",
+      handleEscape,
+    );
+
+    return () => {
+      document.body.style
+        .overflow =
+        originalOverflow;
+
+      window.removeEventListener(
+        "keydown",
+        handleEscape,
+      );
+    };
+  }, [open]);
 
   async function copyLink() {
     try {
-      if (navigator.clipboard) {
-        await navigator.clipboard.writeText(url);
+      if (
+        navigator.clipboard
+      ) {
+        await navigator.clipboard.writeText(
+          url,
+        );
       } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = url;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
+        const textarea =
+          document.createElement(
+            "textarea",
+          );
 
-        document.body.appendChild(textarea);
+        textarea.value =
+          url;
+
+        textarea.style.position =
+          "fixed";
+
+        textarea.style.opacity =
+          "0";
+
+        document.body.appendChild(
+          textarea,
+        );
+
         textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
+
+        document.execCommand(
+          "copy",
+        );
+
+        document.body.removeChild(
+          textarea,
+        );
       }
 
       setCopied(true);
@@ -81,30 +163,66 @@ export function ShareMenu() {
         setCopied(false);
       }, 1800);
     } catch (error) {
-      console.error("Unable to copy link:", error);
+      console.error(
+        "Unable to copy link:",
+        error,
+      );
     }
   }
+
+  const triggerBase =
+    "inline-flex items-center justify-center gap-2 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]";
+
+  const triggerVariantClass =
+    triggerVariant ===
+    "inline"
+      ? "min-h-[38px] px-4 text-[13px] font-medium text-[#44536a]"
+      : triggerVariant ===
+          "solid"
+        ? "min-h-[50px] w-full rounded-full bg-[#214f38] px-4 text-[16px] font-bold text-[#c7f985]"
+        : "min-h-11 rounded-full border border-[var(--border)] bg-white px-4 text-sm font-semibold shadow-sm hover:border-[var(--accent)] hover:text-[var(--accent)]";
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 text-sm font-semibold shadow-sm transition hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+        onClick={() =>
+          setOpen(true)
+        }
+        className={`${triggerBase} ${triggerVariantClass} ${triggerClassName}`}
       >
         <Share2
           aria-hidden="true"
-          className="size-4"
+          className={
+            triggerVariant ===
+            "solid"
+              ? "size-[17px]"
+              : "size-4"
+          }
         />
 
-        Share
+        {triggerLabel}
       </button>
 
       {open && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-[#0b1c33]/45 p-4 backdrop-blur-sm"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
+          className="
+            fixed
+            inset-0
+            z-[200]
+            grid
+            place-items-center
+            bg-[#0b1c33]/45
+            p-4
+            backdrop-blur-sm
+          "
+          onMouseDown={(
+            event,
+          ) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
               setOpen(false);
             }
           }}
@@ -113,17 +231,47 @@ export function ShareMenu() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="share-title"
-            className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl"
+            className="
+              w-full
+              max-w-md
+              rounded-[28px]
+              bg-white
+              p-5
+              shadow-2xl
+
+              sm:p-6
+            "
           >
-            <div className="flex items-start justify-between gap-5">
+            <div
+              className="
+                flex
+                items-start
+                justify-between
+                gap-5
+              "
+            >
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
+                <p
+                  className="
+                    text-xs
+                    font-bold
+                    uppercase
+                    tracking-[0.16em]
+                    text-[var(--accent)]
+                  "
+                >
                   Spread the word
                 </p>
 
                 <h2
                   id="share-title"
-                  className="mt-2 text-2xl font-semibold tracking-tight"
+                  className="
+                    mt-2
+                    text-2xl
+                    font-semibold
+                    tracking-tight
+                    text-[var(--ink)]
+                  "
                 >
                   Share this campaign
                 </h2>
@@ -132,8 +280,20 @@ export function ShareMenu() {
               <button
                 type="button"
                 aria-label="Close share dialog"
-                onClick={() => setOpen(false)}
-                className="grid size-11 place-items-center rounded-full bg-[var(--surface)] text-[var(--muted)] transition hover:text-[var(--ink)]"
+                onClick={() =>
+                  setOpen(false)
+                }
+                className="
+                  grid
+                  size-11
+                  place-items-center
+                  rounded-full
+                  bg-[var(--surface)]
+                  text-[var(--muted)]
+                  transition
+
+                  hover:text-[var(--ink)]
+                "
               >
                 <X
                   aria-hidden="true"
@@ -142,11 +302,20 @@ export function ShareMenu() {
               </button>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
+            <div
+              className="
+                mt-6
+                grid
+                grid-cols-2
+                gap-3
+              "
+            >
               <ShareLink
                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`}
                 label="Facebook"
-                icon={<FacebookIcon className="size-4" />}
+                icon={
+                  <FacebookIcon className="size-4" />
+                }
               />
 
               <ShareLink
@@ -163,12 +332,14 @@ export function ShareMenu() {
               <ShareLink
                 href={`https://twitter.com/intent/tweet?text=${encodedText}`}
                 label="X / Twitter"
-                icon={<XTwitterIcon className="size-4" />}
+                icon={
+                  <XTwitterIcon className="size-4" />
+                }
               />
 
               <ShareLink
                 href={`mailto:?subject=${encodeURIComponent(
-                  title
+                  title,
                 )}&body=${encodedText}`}
                 label="Email"
                 icon={
@@ -183,7 +354,23 @@ export function ShareMenu() {
             <button
               type="button"
               onClick={copyLink}
-              className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[var(--border)] font-semibold transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+              className="
+                mt-3
+                flex
+                min-h-12
+                w-full
+                items-center
+                justify-center
+                gap-2
+                rounded-2xl
+                border
+                border-[var(--border)]
+                font-semibold
+                transition
+
+                hover:border-[var(--accent)]
+                hover:text-[var(--accent)]
+              "
             >
               {copied ? (
                 <Check
@@ -197,25 +384,60 @@ export function ShareMenu() {
                 />
               )}
 
-              {copied ? "Link copied" : "Copy link"}
+              {copied
+                ? "Link copied"
+                : "Copy link"}
             </button>
 
-            <div className="mt-6 flex items-center gap-5 rounded-2xl bg-[var(--surface)] p-4">
-              <div className="rounded-xl bg-white p-2">
+            <div
+              className="
+                mt-6
+                flex
+                items-center
+                gap-4
+                rounded-2xl
+                bg-[var(--surface)]
+                p-4
+              "
+            >
+              <div
+                className="
+                  shrink-0
+                  rounded-xl
+                  bg-white
+                  p-2
+                "
+              >
                 <QRCodeSVG
                   value={url}
-                  size={92}
+                  size={88}
                   bgColor="#ffffff"
                   fgColor="#10233f"
                 />
               </div>
 
-              <div>
-                <p className="font-semibold">
+              <div
+                className="
+                  min-w-0
+                "
+              >
+                <p
+                  className="
+                    font-semibold
+                    text-[var(--ink)]
+                  "
+                >
                   Scan to open this campaign
                 </p>
 
-                <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
+                <p
+                  className="
+                    mt-1
+                    text-sm
+                    leading-5
+                    text-[var(--muted)]
+                  "
+                >
                   Use your phone camera to share the campaign in person.
                 </p>
               </div>
@@ -241,9 +463,25 @@ function ShareLink({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--soft-blue)] px-3 text-sm font-semibold text-[var(--accent)] transition hover:bg-[#dce8ff]"
+      className="
+        flex
+        min-h-12
+        items-center
+        justify-center
+        gap-2
+        rounded-2xl
+        bg-[var(--soft-blue)]
+        px-3
+        text-sm
+        font-semibold
+        text-[var(--accent)]
+        transition
+
+        hover:bg-[#dce8ff]
+      "
     >
       {icon}
+
       {label}
     </a>
   );

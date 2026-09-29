@@ -3,9 +3,7 @@
 import Link from "next/link";
 
 import {
-  Check,
   Heart,
-  Share2,
 } from "lucide-react";
 
 import {
@@ -22,6 +20,10 @@ import {
   progressPercent,
 } from "@/lib/money";
 
+import {
+  ShareMenu,
+} from "@/components/share/share-menu";
+
 type MobileDonateBarProps = {
   campaign: Campaign;
 };
@@ -32,9 +34,6 @@ export function MobileDonateBar({
   const [visible, setVisible] =
     useState(false);
 
-  const [copied, setCopied] =
-    useState(false);
-
   const progress =
     progressPercent(
       campaign.raisedAmountUsd,
@@ -43,11 +42,6 @@ export function MobileDonateBar({
 
   const latestDonation =
     campaign.recentDonations?.[0];
-
-  // ============================================
-  // SHOW FIXED BAR ONLY AFTER INLINE PANEL
-  // SCROLLS OUT OF VIEW
-  // ============================================
 
   useEffect(() => {
     const target =
@@ -69,8 +63,6 @@ export function MobileDonateBar({
           const rect =
             entry.boundingClientRect;
 
-          // Chỉ hiện khi panel đã trôi lên phía trên.
-          // Không hiện nếu panel nằm phía dưới viewport.
           const passedAbove =
             !entry.isIntersecting &&
             rect.bottom <= 0;
@@ -90,54 +82,6 @@ export function MobileDonateBar({
       observer.disconnect();
     };
   }, []);
-
-  async function handleShare() {
-    const url =
-      window.location.href;
-
-    try {
-      if (
-        typeof navigator.share ===
-        "function"
-      ) {
-        await navigator.share({
-          title:
-            campaign.title,
-          text:
-            campaign.title,
-          url,
-        });
-
-        return;
-      }
-
-      await navigator.clipboard.writeText(
-        url,
-      );
-
-      setCopied(true);
-
-      window.setTimeout(
-        () => {
-          setCopied(false);
-        },
-        1800,
-      );
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.name ===
-          "AbortError"
-      ) {
-        return;
-      }
-
-      console.error(
-        "Unable to share:",
-        error,
-      );
-    }
-  }
 
   if (!visible) {
     return null;
@@ -249,41 +193,12 @@ export function MobileDonateBar({
             Donate
           </Link>
 
-          <button
-            type="button"
-            onClick={
-              handleShare
+          <ShareMenu
+            title={
+              campaign.title
             }
-            className="
-              flex
-              min-h-[50px]
-              items-center
-              justify-center
-              gap-2
-              rounded-full
-              bg-[#214f38]
-              px-4
-              text-[16px]
-              font-bold
-              text-[#c7f985]
-            "
-          >
-            {copied ? (
-              <Check
-                aria-hidden="true"
-                className="size-[17px]"
-              />
-            ) : (
-              <Share2
-                aria-hidden="true"
-                className="size-[17px]"
-              />
-            )}
-
-            {copied
-              ? "Copied"
-              : "Share"}
-          </button>
+            triggerVariant="solid"
+          />
         </div>
       </section>
     </div>
@@ -364,6 +279,7 @@ function RaisedText({
         "
       >
         of{" "}
+
         <span
           className="
             underline
