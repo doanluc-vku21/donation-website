@@ -1,13 +1,14 @@
-import Link from "next/link";
-
 import {
-  Heart,
   LockKeyhole,
 } from "lucide-react";
 
 import type {
   Campaign,
 } from "@/lib/sample-data";
+
+import type {
+  SanityCampaign,
+} from "@/sanity/types/campaign";
 
 import {
   formatUsd,
@@ -18,14 +19,18 @@ import {
   ShareMenu,
 } from "@/components/share/share-menu";
 
+import {
+  DonationModal,
+} from "@/components/donation/donation-modal";
+
 type CampaignDonateCardProps = {
   campaign: Campaign;
-  donateHref: string;
+  content: SanityCampaign;
 };
 
 export function CampaignDonateCard({
   campaign,
-  donateHref,
+  content,
 }: CampaignDonateCardProps) {
   const progress =
     progressPercent(
@@ -48,14 +53,17 @@ export function CampaignDonateCard({
         shadow-[0_18px_50px_rgba(15,35,60,0.08)]
       "
     >
-      {/* ================================
-          PROGRESS INFO
-      ================================= */}
+      {/* PROGRESS */}
 
-      <div className="flex items-start gap-4">
+      <div
+        className="
+          flex
+          items-start
+          gap-4
+        "
+      >
         <div
           className="
-            relative
             grid
             size-[64px]
             shrink-0
@@ -93,7 +101,12 @@ export function CampaignDonateCard({
           </div>
         </div>
 
-        <div className="min-w-0 pt-1">
+        <div
+          className="
+            min-w-0
+            pt-1
+          "
+        >
           <p
             className="
               text-[18px]
@@ -107,7 +120,13 @@ export function CampaignDonateCard({
               campaign.raisedAmountUsd,
             )}{" "}
             raised{" "}
-            <span className="font-normal text-[#6e7a8b]">
+
+            <span
+              className="
+                font-normal
+                text-[#6e7a8b]
+              "
+            >
               of
             </span>
           </p>
@@ -139,7 +158,11 @@ export function CampaignDonateCard({
                 text-[#6b7687]
               "
             >
-              {latestDonation.displayName} donated{" "}
+              {
+                latestDonation.displayName
+              }{" "}
+              donated{" "}
+
               {formatUsd(
                 latestDonation.amountUsd,
               ).replace(
@@ -151,48 +174,35 @@ export function CampaignDonateCard({
         </div>
       </div>
 
-      {/* ================================
-          DONATE BUTTON
-      ================================= */}
+      {/* DONATE POPUP */}
 
-      <Link
-        href={donateHref}
-        className="
-          mt-6
-          flex
-          min-h-[52px]
-          w-full
-          items-center
-          justify-center
-          gap-2
-          rounded-full
-          bg-[#bdf676]
-          px-5
-          text-[17px]
-          font-semibold
-          text-[#18421d]
-          shadow-[0_5px_14px_rgba(114,184,44,0.17)]
-          transition
+      <div className="mt-6">
+        <DonationModal
+          campaign={campaign}
+          content={content}
+          triggerClassName="
+            flex
+            min-h-[52px]
+            w-full
+            items-center
+            justify-center
+            gap-2
+            rounded-full
+            bg-[#bdf676]
+            px-5
+            text-[17px]
+            font-semibold
+            text-[#18421d]
+            shadow-[0_5px_14px_rgba(114,184,44,0.17)]
+            transition
 
-          hover:bg-[#b0ed67]
-
-          focus-visible:outline
-          focus-visible:outline-2
-          focus-visible:outline-offset-2
-          focus-visible:outline-[#287a33]
-        "
-      >
-        <Heart
-          aria-hidden="true"
-          className="size-[18px]"
+            hover:bg-[#b0ed67]
+            active:scale-[0.99]
+          "
         />
+      </div>
 
-        Donate
-      </Link>
-
-      {/* ================================
-          SHARE
-      ================================= */}
+      {/* SHARE */}
 
       <div
         className="
@@ -201,12 +211,14 @@ export function CampaignDonateCard({
           justify-center
         "
       >
-        <ShareMenu />
+        <ShareMenu
+          title={
+            content.title
+          }
+        />
       </div>
 
-      {/* ================================
-          STRIPE SECURE TEXT
-      ================================= */}
+      {/* SECURE */}
 
       <div
         className="
@@ -228,9 +240,7 @@ export function CampaignDonateCard({
           className="size-4"
         />
 
-        <span>
-          Secure payment through Stripe
-        </span>
+        Secure payment through Stripe
       </div>
     </section>
   );

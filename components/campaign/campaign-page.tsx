@@ -443,20 +443,21 @@ export function CampaignPage({
             "
           >
             <CampaignDonateCard
-              campaign={
-                campaignWithGoal
-              }
-              donateHref="/gaza-food/donate"
-            />
+  campaign={
+    campaignWithGoal
+  }
+  content={content}
+/>
           </div>
         </aside>
       </div>
 
       <MobileDonateBar
-        campaign={
-          campaignWithGoal
-        }
-      />
+  campaign={
+    campaignWithGoal
+  }
+  content={content}
+/>
     </main>
   );
 }

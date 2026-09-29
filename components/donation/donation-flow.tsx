@@ -7,6 +7,7 @@ import {
 
 import {
   ArrowLeft,
+  ArrowRight,
   Check,
   Heart,
   LockKeyhole,
@@ -35,40 +36,69 @@ declare global {
   }
 }
 
+type DonationStep =
+  | "amount"
+  | "donor";
+
 type DonationFlowProps = {
   campaign: Campaign;
+
+  embedded?: boolean;
+
+  onStepChange?: (
+    step: DonationStep,
+  ) => void;
 };
 
 export function DonationFlow({
   campaign,
+  embedded = false,
+  onStepChange,
 }: DonationFlowProps) {
   // ============================================
   // STATE
   // ============================================
 
-  const [frequency, setFrequency] =
+  const [
+    frequency,
+    setFrequency,
+  ] =
     useState<DonationFrequency>(
       "one_time",
     );
 
-  const [amount, setAmount] =
-    useState(0);
+  const [
+    amount,
+    setAmount,
+  ] = useState(0);
 
   const [
     customAmount,
     setCustomAmount,
   ] = useState("");
 
-  const [showCustom, setShowCustom] =
-    useState(false);
+  const [
+    showCustom,
+    setShowCustom,
+  ] = useState(false);
 
-  const [coverFee, setCoverFee] =
-    useState(false);
+  const [
+    coverFee,
+    setCoverFee,
+  ] = useState(false);
 
-  const [step, setStep] =
-    useState<
-      "amount" | "donor"
-    >("amount");
+  const [
+    displayPublicly,
+    setDisplayPublicly,
+  ] = useState(false);
+
+  const [
+    step,
+    setStep,
+  ] =
+    useState<DonationStep>(
+      "amount",
+    );
 
   const [
     firstName,
@@ -80,31 +110,34 @@ export function DonationFlow({
     setLastName,
   ] = useState("");
 
-  const [email, setEmail] =
-    useState("");
-
-  const [phone, setPhone] =
-    useState("");
+  const [
+    email,
+    setEmail,
+  ] = useState("");
 
   const [
-    displayPublicly,
-    setDisplayPublicly,
-  ] = useState(false);
+    phone,
+    setPhone,
+  ] = useState("");
 
   const [
     isLoading,
     setIsLoading,
   ] = useState(false);
 
-  const [error, setError] =
-    useState("");
+  const [
+    error,
+    setError,
+  ] = useState("");
 
   // ============================================
   // MONEY
   // ============================================
 
   const hasValidAmount =
-    Number.isInteger(amount) &&
+    Number.isInteger(
+      amount,
+    ) &&
     amount >= 100;
 
   const fee =
@@ -121,7 +154,7 @@ export function DonationFlow({
       : 0;
 
   // ============================================
-  // SORT OPTIONS
+  // DONATION OPTIONS
   // ============================================
 
   const donationOptions =
@@ -130,8 +163,8 @@ export function DonationFlow({
         ...campaign.donationOptions,
       ].sort(
         (a, b) =>
-          b.amountUsd -
-          a.amountUsd,
+          a.amountUsd -
+          b.amountUsd,
       );
     }, [
       campaign.donationOptions,
@@ -144,7 +177,9 @@ export function DonationFlow({
   function selectAmount(
     amountCents: number,
   ) {
-    setAmount(amountCents);
+    setAmount(
+      amountCents,
+    );
 
     setCustomAmount("");
 
@@ -176,7 +211,8 @@ export function DonationFlow({
     ) {
       setAmount(
         Math.round(
-          dollars * 100,
+          dollars *
+            100,
         ),
       );
     } else {
@@ -185,13 +221,33 @@ export function DonationFlow({
   }
 
   // ============================================
-  // CONTINUE
+  // STEP
   // ============================================
+
+  function goToStep(
+    nextStep: DonationStep,
+  ) {
+    setStep(nextStep);
+
+    onStepChange?.(
+      nextStep,
+    );
+
+    if (!embedded) {
+      window.scrollTo({
+        top: 0,
+        behavior:
+          "smooth",
+      });
+    }
+  }
 
   function continueToDonor() {
     setError("");
 
-    if (!hasValidAmount) {
+    if (
+      !hasValidAmount
+    ) {
       setError(
         "Please select a donation amount.",
       );
@@ -199,12 +255,9 @@ export function DonationFlow({
       return;
     }
 
-    setStep("donor");
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    goToStep(
+      "donor",
+    );
   }
 
   // ============================================
@@ -214,24 +267,33 @@ export function DonationFlow({
   async function handleCheckout() {
     setError("");
 
-    if (!firstName.trim()) {
+    if (
+      !firstName.trim()
+    ) {
       setError(
         "Please enter your first name.",
       );
+
       return;
     }
 
-    if (!lastName.trim()) {
+    if (
+      !lastName.trim()
+    ) {
       setError(
         "Please enter your last name.",
       );
+
       return;
     }
 
-    if (!email.trim()) {
+    if (
+      !email.trim()
+    ) {
       setError(
         "Please enter your email address.",
       );
+
       return;
     }
 
@@ -246,13 +308,17 @@ export function DonationFlow({
       setError(
         "Please enter a valid email address.",
       );
+
       return;
     }
 
-    if (!hasValidAmount) {
+    if (
+      !hasValidAmount
+    ) {
       setError(
         "Please choose a valid donation amount.",
       );
+
       return;
     }
 
@@ -263,54 +329,62 @@ export function DonationFlow({
         await fetch(
           "/api/stripe/checkout",
           {
-            method: "POST",
+            method:
+              "POST",
 
             headers: {
               "Content-Type":
                 "application/json",
             },
 
-            body: JSON.stringify({
-              campaignId:
-                campaign.id,
+            body:
+              JSON.stringify(
+                {
+                  campaignId:
+                    campaign.id,
 
-              amountCents:
-                amount,
+                  amountCents:
+                    amount,
 
-              coverFee,
+                  coverFee,
 
-              frequency,
+                  frequency,
 
-              donor: {
-                firstName:
-                  firstName.trim(),
+                  donor: {
+                    firstName:
+                      firstName.trim(),
 
-                lastName:
-                  lastName.trim(),
+                    lastName:
+                      lastName.trim(),
 
-                email:
-                  email.trim(),
+                    email:
+                      email.trim(),
 
-                phone:
-                  phone.trim(),
+                    phone:
+                      phone.trim(),
 
-                displayPublicly,
-              },
-            }),
+                    displayPublicly,
+                  },
+                },
+              ),
           },
         );
 
       const data =
         await response.json();
 
-      if (!response.ok) {
+      if (
+        !response.ok
+      ) {
         throw new Error(
           data.error ??
             "Unable to start checkout.",
         );
       }
 
-      if (!data.url) {
+      if (
+        !data.url
+      ) {
         throw new Error(
           "Stripe checkout URL was not returned.",
         );
@@ -331,7 +405,8 @@ export function DonationFlow({
           "InitiateCheckout",
           {
             value:
-              total / 100,
+              total /
+              100,
 
             currency:
               "USD",
@@ -348,10 +423,13 @@ export function DonationFlow({
         );
       }
 
-      window.setTimeout(() => {
-        window.location.href =
-          data.url;
-      }, 150);
+      window.setTimeout(
+        () => {
+          window.location.href =
+            data.url;
+        },
+        150,
+      );
     } catch (
       checkoutError
     ) {
@@ -367,15 +445,19 @@ export function DonationFlow({
           : "Unable to start checkout.",
       );
 
-      setIsLoading(false);
+      setIsLoading(
+        false,
+      );
     }
   }
 
-  // ============================================
+  // ==========================================================
   // AMOUNT STEP
-  // ============================================
+  // ==========================================================
 
-  if (step === "amount") {
+  if (
+    step === "amount"
+  ) {
     return (
       <section>
         {/* FREQUENCY */}
@@ -385,7 +467,7 @@ export function DonationFlow({
             grid
             grid-cols-2
             gap-1
-            rounded-[14px]
+            rounded-[13px]
             bg-[#eef1ea]
             p-1
           "
@@ -399,70 +481,85 @@ export function DonationFlow({
               "one_time",
               "monthly",
             ] as const
-          ).map((value) => (
-            <label
-              key={value}
-              className="cursor-pointer"
-            >
-              <input
-                className="peer sr-only"
-                type="radio"
-                name="frequency"
-                value={value}
-                checked={
-                  frequency === value
+          ).map(
+            (
+              value,
+            ) => (
+              <label
+                key={
+                  value
                 }
-                onChange={() => {
-                  setFrequency(value);
-                }}
-              />
-
-              <span
                 className="
-                  flex
-                  min-h-[44px]
-                  items-center
-                  justify-center
-                  gap-2
-                  rounded-[11px]
-                  px-4
-                  text-sm
-                  font-semibold
-                  text-[#6d766f]
-                  transition
-
-                  peer-checked:bg-white
-                  peer-checked:text-[#173e2a]
-                  peer-checked:shadow-sm
+                  cursor-pointer
                 "
               >
-                {value ===
-                  "monthly" && (
-                  <Heart
-                    aria-hidden="true"
-                    className="
-                      size-4
-                      fill-current
-                    "
-                  />
-                )}
+                <input
+                  className="
+                    peer
+                    sr-only
+                  "
+                  type="radio"
+                  name="frequency"
+                  value={
+                    value
+                  }
+                  checked={
+                    frequency ===
+                    value
+                  }
+                  onChange={() =>
+                    setFrequency(
+                      value,
+                    )
+                  }
+                />
 
-                {value ===
-                "one_time"
-                  ? "Give once"
-                  : "Monthly"}
-              </span>
-            </label>
-          ))}
+                <span
+                  className="
+                    flex
+                    min-h-[42px]
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-[10px]
+                    px-3
+                    text-[13px]
+                    font-semibold
+                    text-[#6d766f]
+                    transition
+
+                    peer-checked:bg-white
+                    peer-checked:text-[#173e2a]
+                    peer-checked:shadow-sm
+                  "
+                >
+                  {value ===
+                    "monthly" && (
+                    <Heart
+                      aria-hidden="true"
+                      className="
+                        size-3.5
+                        fill-current
+                      "
+                    />
+                  )}
+
+                  {value ===
+                  "one_time"
+                    ? "Give once"
+                    : "Monthly"}
+                </span>
+              </label>
+            ),
+          )}
         </fieldset>
 
         {/* TITLE */}
 
         <h2
           className="
-            mt-7
-            text-left
-            text-[17px]
+            mt-4
+            text-[16px]
             font-bold
             text-[#171717]
           "
@@ -470,14 +567,14 @@ export function DonationFlow({
           Choose your gift
         </h2>
 
-        {/* OPTIONS */}
+        {/* AMOUNTS */}
 
         <fieldset
           className="
-            mt-4
+            mt-3
             grid
-            grid-cols-2
-            gap-3
+            grid-cols-3
+            gap-2
           "
         >
           <legend className="sr-only">
@@ -485,7 +582,9 @@ export function DonationFlow({
           </legend>
 
           {donationOptions.map(
-            (option) => {
+            (
+              option,
+            ) => {
               const selected =
                 amount ===
                   option.amountUsd &&
@@ -497,14 +596,20 @@ export function DonationFlow({
                     option.amountUsd
                   }
                   className="
+                    min-w-0
                     cursor-pointer
                   "
                 >
                   <input
                     type="radio"
                     name="amount"
-                    className="peer sr-only"
-                    checked={selected}
+                    className="
+                      peer
+                      sr-only
+                    "
+                    checked={
+                      selected
+                    }
                     onChange={() =>
                       selectAmount(
                         option.amountUsd,
@@ -516,18 +621,16 @@ export function DonationFlow({
                     className="
                       relative
                       flex
-                      min-h-[66px]
+                      min-h-[56px]
                       items-center
                       justify-center
                       rounded-[12px]
                       border
                       border-[#d5d8d2]
                       bg-white
-                      px-3
+                      px-1
                       text-center
                       transition
-
-                      hover:border-[#78947f]
 
                       peer-checked:border-[#1f6a47]
                       peer-checked:bg-[#f4faef]
@@ -539,7 +642,8 @@ export function DonationFlow({
                       <strong
                         className="
                           block
-                          text-[19px]
+                          whitespace-nowrap
+                          text-[18px]
                           font-extrabold
                           leading-none
                           text-[#161616]
@@ -558,7 +662,8 @@ export function DonationFlow({
                           className="
                             mt-1
                             block
-                            text-[10px]
+                            whitespace-nowrap
+                            text-[8px]
                             font-bold
                             leading-none
                             text-[#1d6b46]
@@ -573,10 +678,10 @@ export function DonationFlow({
                       <span
                         className="
                           absolute
-                          right-2
-                          top-2
+                          right-1.5
+                          top-1.5
                           grid
-                          size-4
+                          size-[14px]
                           place-items-center
                           rounded-full
                           bg-[#1f6a47]
@@ -585,7 +690,9 @@ export function DonationFlow({
                       >
                         <Check
                           aria-hidden="true"
-                          className="size-3"
+                          className="
+                            size-[9px]
+                          "
                         />
                       </span>
                     )}
@@ -596,11 +703,11 @@ export function DonationFlow({
           )}
         </fieldset>
 
-        {/* CUSTOM */}
+        {/* OTHER AMOUNT */}
 
         <div
           className="
-            mt-5
+            mt-3
             text-center
           "
         >
@@ -612,12 +719,16 @@ export function DonationFlow({
                   true,
                 );
 
-                setAmount(0);
+                setAmount(
+                  0,
+                );
 
-                setCustomAmount("");
+                setCustomAmount(
+                  "",
+                );
               }}
               className="
-                text-sm
+                text-[13px]
                 font-medium
                 text-[#17593c]
                 underline
@@ -627,26 +738,17 @@ export function DonationFlow({
               Other amounts
             </button>
           ) : (
-            <div
-              className="
-                mx-auto
-                max-w-[360px]
-              "
-            >
+            <div>
               <label
                 className="
                   flex
-                  min-h-[52px]
+                  min-h-[46px]
                   items-center
-                  rounded-[12px]
+                  rounded-[11px]
                   border
                   border-[#cfd5cf]
                   bg-white
-                  px-4
-
-                  focus-within:border-[#1e6c49]
-                  focus-within:ring-1
-                  focus-within:ring-[#1e6c49]
+                  px-3
                 "
               >
                 <span
@@ -665,10 +767,15 @@ export function DonationFlow({
                   step="1"
                   inputMode="decimal"
                   placeholder="Enter amount"
-                  value={customAmount}
-                  onChange={(event) =>
+                  value={
+                    customAmount
+                  }
+                  onChange={(
+                    event,
+                  ) =>
                     chooseCustom(
-                      event.target
+                      event
+                        .target
                         .value,
                     )
                   }
@@ -676,44 +783,101 @@ export function DonationFlow({
                     min-w-0
                     flex-1
                     bg-transparent
-                    px-3
-                    py-3
+                    px-2
+                    py-2
                     outline-none
                   "
                 />
 
                 <span
                   className="
-                    text-sm
+                    text-xs
                     text-[#6a766f]
                   "
                 >
                   USD
                 </span>
               </label>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCustom(
-                    false,
-                  );
-
-                  setCustomAmount("");
-                  setAmount(0);
-                }}
-                className="
-                  mt-3
-                  text-xs
-                  text-[#68736c]
-                  underline
-                "
-              >
-                Back to suggested amounts
-              </button>
             </div>
           )}
         </div>
+
+        {/* COMPACT OPTIONS */}
+
+        <div
+          className="
+            mt-3
+            space-y-1
+          "
+        >
+          <CompactCheck
+            checked={
+              displayPublicly
+            }
+            onChange={
+              setDisplayPublicly
+            }
+          >
+            Display my name publicly
+          </CompactCheck>
+
+          <CompactCheck
+            checked={
+              coverFee
+            }
+            onChange={
+              setCoverFee
+            }
+          >
+            {hasValidAmount
+              ? `Add ${formatUsd(
+                  calculateFeeContribution(
+                    amount,
+                  ),
+                )} to cover processing fees`
+              : "Cover processing fees"}
+          </CompactCheck>
+        </div>
+
+        {/* TOTAL */}
+
+        {hasValidAmount && (
+          <div
+            className="
+              mt-3
+              flex
+              items-center
+              justify-between
+              border-t
+              border-[#e7eae6]
+              pt-3
+            "
+          >
+            <span
+              className="
+                text-[13px]
+                font-semibold
+                text-[#4f5d55]
+              "
+            >
+              {frequency ===
+              "monthly"
+                ? "Total per month"
+                : "Total"}
+            </span>
+
+            <strong
+              className="
+                text-[15px]
+                text-[#12233d]
+              "
+            >
+              {formatUsd(
+                total,
+              )}
+            </strong>
+          </div>
+        )}
 
         {/* ERROR */}
 
@@ -721,13 +885,12 @@ export function DonationFlow({
           <p
             role="alert"
             className="
-              mt-5
-              rounded-xl
+              mt-2
+              rounded-lg
               bg-red-50
-              px-4
-              py-3
-              text-center
-              text-sm
+              px-3
+              py-2
+              text-[12px]
               text-red-700
             "
           >
@@ -746,85 +909,84 @@ export function DonationFlow({
             continueToDonor
           }
           className="
-            mt-6
+            group
+            mt-3
             flex
-            min-h-[52px]
+            min-h-[50px]
             w-full
             items-center
             justify-center
-            rounded-[12px]
-            bg-[#1f5b3d]
-            px-5
-            font-semibold
+            gap-2
+            rounded-[14px]
+            bg-[#24543d]
+            px-4
+            text-[15px]
+            font-bold
             text-white
+            shadow-[0_7px_18px_rgba(36,84,61,.18)]
             transition
 
-            hover:bg-[#184c33]
+            hover:bg-[#1f4d38]
 
             disabled:cursor-not-allowed
-            disabled:bg-[#edf0f3]
-            disabled:text-[#9ca4af]
+            disabled:bg-[#eef1ed]
+            disabled:text-[#a0a8a2]
+            disabled:shadow-none
           "
         >
           {hasValidAmount
             ? `Continue with ${formatUsd(
-                amount,
+                total,
               ).replace(
                 ".00",
                 "",
               )}`
             : "Select an amount to continue"}
+
+          {hasValidAmount && (
+            <ArrowRight
+              aria-hidden="true"
+              className="
+                size-4
+              "
+            />
+          )}
         </button>
 
-        {/* SMALL SECURE */}
-
-        <p
-          className="
-            mt-4
-            flex
-            items-center
-            justify-center
-            gap-1.5
-            text-[11px]
-            text-[#65736b]
-          "
-        >
-          <LockKeyhole
-            aria-hidden="true"
-            className="
-              size-3.5
-              text-[#177052]
-            "
-          />
-
+        <SecureText>
           Secure payment by Stripe
-        </p>
+        </SecureText>
       </section>
     );
   }
 
-  // ============================================
+  // ==========================================================
   // DONOR STEP
-  // ============================================
+  // ==========================================================
 
   return (
     <section>
-      {/* BACK */}
+      {/* BACK + TITLE SAME AREA */}
 
       <button
         type="button"
-        disabled={isLoading}
+        disabled={
+          isLoading
+        }
         onClick={() => {
           setError("");
-          setStep("amount");
+
+          goToStep(
+            "amount",
+          );
         }}
         className="
           inline-flex
-          min-h-10
+          min-h-[30px]
           items-center
-          gap-2
-          text-sm
-          font-semibold
+          gap-1.5
+          text-[13px]
+          font-medium
           text-[#56675e]
 
           disabled:opacity-50
@@ -832,57 +994,63 @@ export function DonationFlow({
       >
         <ArrowLeft
           aria-hidden="true"
-          className="size-4"
+          className="size-3.5"
         />
 
         Back
       </button>
 
-      {/* TITLE */}
-
-      <h2
+      <div
         className="
-          mt-3
-          text-[24px]
-          font-bold
-          tracking-[-0.02em]
-          text-[#161616]
+          mt-1
         "
       >
-        Your information
-      </h2>
+        <h2
+          className="
+            text-[22px]
+            font-bold
+            tracking-[-0.025em]
+            text-[#161616]
+          "
+        >
+          Your information
+        </h2>
 
-      <p
-        className="
-          mt-2
-          text-sm
-          leading-6
-          text-[#66736b]
-        "
-      >
-        Enter your details before
-        continuing to our secure
-        Stripe checkout.
-      </p>
+        <p
+          className="
+            mt-1
+            text-[12px]
+            leading-4
+            text-[#66736b]
+          "
+        >
+          Enter your details to continue to secure checkout.
+        </p>
+      </div>
 
-      {/* NAME */}
+      {/* FIRST + LAST SAME ROW */}
 
       <div
         className="
-          mt-6
+          mt-4
           grid
-          gap-4
-
-          sm:grid-cols-2
+          grid-cols-2
+          gap-2.5
         "
       >
         <FormField
           label="First name"
           name="firstName"
           autoComplete="given-name"
-          value={firstName}
-          onChange={setFirstName}
-          disabled={isLoading}
+          value={
+            firstName
+          }
+          onChange={
+            setFirstName
+          }
+          disabled={
+            isLoading
+          }
           required
         />
 
@@ -890,19 +1058,24 @@ export function DonationFlow({
           label="Last name"
           name="lastName"
           autoComplete="family-name"
-          value={lastName}
-          onChange={setLastName}
-          disabled={isLoading}
+          value={
+            lastName
+          }
+          onChange={
+            setLastName
+          }
+          disabled={
+            isLoading
+          }
           required
         />
       </div>
 
-      {/* EMAIL + PHONE */}
+      {/* EMAIL */}
 
       <div
         className="
-          mt-4
-          space-y-4
+          mt-2.5
         "
       >
         <FormField
@@ -910,204 +1083,107 @@ export function DonationFlow({
           name="email"
           type="email"
           autoComplete="email"
-          value={email}
-          onChange={setEmail}
-          disabled={isLoading}
+          value={
+            email
+          }
+          onChange={
+            setEmail
+          }
+          disabled={
+            isLoading
+          }
           required
         />
+      </div>
 
+      {/* PHONE */}
+
+      <div
+        className="
+          mt-2.5
+        "
+      >
         <FormField
           label="Phone number (optional)"
           name="phone"
           type="tel"
           autoComplete="tel"
-          value={phone}
-          onChange={setPhone}
-          disabled={isLoading}
+          value={
+            phone
+          }
+          onChange={
+            setPhone
+          }
+          disabled={
+            isLoading
+          }
         />
       </div>
 
-      {/* PUBLIC */}
-
-      <label
-        className="
-          mt-5
-          flex
-          cursor-pointer
-          items-start
-          gap-3
-          text-sm
-          leading-5
-          text-[#66736b]
-        "
-      >
-        <input
-          type="checkbox"
-          checked={
-            displayPublicly
-          }
-          disabled={isLoading}
-          onChange={(event) =>
-            setDisplayPublicly(
-              event.target.checked,
-            )
-          }
-          className="
-            mt-0.5
-            size-4
-            accent-[#1f6a47]
-          "
-        />
-
-        <span>
-          <strong
-            className="
-              text-[#222]
-            "
-          >
-            Display my name publicly
-          </strong>
-
-          <br />
-
-          Leave unchecked to
-          appear as Anonymous.
-        </span>
-      </label>
-
-      {/* COVER FEE */}
-
-      <label
-        className="
-          mt-4
-          flex
-          cursor-pointer
-          items-start
-          gap-3
-          text-sm
-          leading-5
-          text-[#66736b]
-        "
-      >
-        <input
-          type="checkbox"
-          checked={coverFee}
-          disabled={isLoading}
-          onChange={(event) =>
-            setCoverFee(
-              event.target.checked,
-            )
-          }
-          className="
-            mt-0.5
-            size-4
-            accent-[#1f6a47]
-          "
-        />
-
-        <span>
-          <strong
-            className="
-              text-[#222]
-            "
-          >
-            Cover transaction costs
-          </strong>
-
-          <br />
-
-          Add an estimated 2.9% +
-          $0.30 so more of your
-          gift supports the
-          campaign.
-        </span>
-      </label>
-
-      {/* SUMMARY */}
+      {/* COMPACT SUMMARY */}
 
       <div
         className="
-          mt-6
-          rounded-[14px]
+          mt-3
+          flex
+          min-h-[46px]
+          items-center
+          justify-between
+          gap-3
+          rounded-[12px]
           border
-          border-[#d9ddd7]
-          bg-white
-          p-4
+          border-[#dfe4de]
+          bg-[#fbfcf9]
+          px-3
         "
       >
         <div
           className="
-            flex
-            items-center
-            justify-between
-            gap-4
+            min-w-0
           "
         >
-          <span
+          <p
             className="
-              text-sm
-              text-[#68746d]
+              text-[11px]
+              text-[#778079]
             "
           >
             {frequency ===
             "monthly"
               ? "Monthly gift"
               : "One-time gift"}
-          </span>
+          </p>
 
-          <strong
-            className="
-              text-lg
-              text-[#171717]
-            "
-          >
-            {formatUsd(total)}
-
-            {frequency ===
-              "monthly" &&
-              "/month"}
-          </strong>
+          {coverFee && (
+            <p
+              className="
+                text-[10px]
+                text-[#859087]
+              "
+            >
+              Includes{" "}
+              {formatUsd(
+                fee,
+              )} fee
+            </p>
+          )}
         </div>
 
-        {coverFee && (
-          <>
-            <div
-              className="
-                mt-3
-                flex
-                justify-between
-                text-xs
-                text-[#748078]
-              "
-            >
-              <span>
-                Donation
-              </span>
+        <strong
+          className="
+            shrink-0
+            text-[16px]
+            text-[#182136]
+          "
+        >
+          {formatUsd(
+            total,
+          )}
 
-              <span>
-                {formatUsd(amount)}
-              </span>
-            </div>
-
-            <div
-              className="
-                mt-1.5
-                flex
-                justify-between
-                text-xs
-                text-[#748078]
-              "
-            >
-              <span>
-                Transaction costs
-              </span>
-
-              <span>
-                {formatUsd(fee)}
-              </span>
-            </div>
-          </>
-        )}
+          {frequency ===
+            "monthly" &&
+            "/mo"}
+        </strong>
       </div>
 
       {/* ERROR */}
@@ -1116,12 +1192,12 @@ export function DonationFlow({
         <p
           role="alert"
           className="
-            mt-4
-            rounded-xl
+            mt-2
+            rounded-lg
             bg-red-50
-            px-4
-            py-3
-            text-sm
+            px-3
+            py-2
+            text-[12px]
             text-red-700
           "
         >
@@ -1133,73 +1209,156 @@ export function DonationFlow({
 
       <button
         type="button"
-        disabled={isLoading}
+        disabled={
+          isLoading
+        }
         onClick={
           handleCheckout
         }
         className="
-          mt-5
+          mt-3
           flex
-          min-h-[52px]
+          min-h-[50px]
           w-full
           items-center
           justify-center
-          rounded-[12px]
-          bg-[#1f5b3d]
-          px-5
-          font-semibold
+          rounded-[14px]
+          bg-[#24543d]
+          px-4
+          text-[14px]
+          font-bold
           text-white
+          shadow-[0_7px_18px_rgba(36,84,61,.16)]
           transition
 
-          hover:bg-[#184c33]
+          hover:bg-[#1f4d38]
 
           disabled:cursor-not-allowed
           disabled:opacity-60
         "
       >
         {isLoading
-          ? "Opening secure checkout..."
-          : frequency ===
-              "monthly"
-            ? "Continue to monthly checkout"
-            : "Continue to secure checkout"}
+          ? "Opening checkout..."
+          : "Continue to secure checkout"}
       </button>
 
-      <p
-        className="
-          mt-4
-          flex
-          items-center
-          justify-center
-          gap-1.5
-          text-[11px]
-          text-[#65736b]
-        "
-      >
-        <LockKeyhole
-          aria-hidden="true"
-          className="
-            size-3.5
-            text-[#177052]
-          "
-        />
-
-        Payment will be processed
-        securely by Stripe.
-      </p>
+      <SecureText>
+        Payment processed securely by Stripe
+      </SecureText>
     </section>
   );
 }
 
-// ==============================================
+// ==========================================================
+// COMPACT CHECKBOX
+// ==========================================================
+
+function CompactCheck({
+  checked,
+  onChange,
+  children,
+}: {
+  checked: boolean;
+
+  onChange: (
+    checked: boolean,
+  ) => void;
+
+  children:
+    React.ReactNode;
+}) {
+  return (
+    <label
+      className="
+        flex
+        min-h-[28px]
+        cursor-pointer
+        items-center
+        gap-2
+      "
+    >
+      <input
+        type="checkbox"
+        checked={
+          checked
+        }
+        onChange={(
+          event,
+        ) =>
+          onChange(
+            event.target
+              .checked,
+          )
+        }
+        className="
+          size-[16px]
+          shrink-0
+          cursor-pointer
+          accent-[#24543d]
+        "
+      />
+
+      <span
+        className="
+          text-[12px]
+          font-medium
+          leading-4
+          text-[#46534b]
+        "
+      >
+        {children}
+      </span>
+    </label>
+  );
+}
+
+// ==========================================================
+// SECURE TEXT
+// ==========================================================
+
+function SecureText({
+  children,
+}: {
+  children:
+    React.ReactNode;
+}) {
+  return (
+    <p
+      className="
+        mt-2
+        flex
+        items-center
+        justify-center
+        gap-1.5
+        text-[10px]
+        text-[#65736b]
+      "
+    >
+      <LockKeyhole
+        aria-hidden="true"
+        className="
+          size-3
+          text-[#177052]
+        "
+      />
+
+      {children}
+    </p>
+  );
+}
+
+// ==========================================================
 // FORM FIELD
-// ==============================================
+// ==========================================================
 
 type FormFieldProps = {
   label: string;
   name: string;
+
   type?: string;
+
   autoComplete: string;
+
   value: string;
 
   onChange: (
@@ -1221,10 +1380,17 @@ function FormField({
   required = false,
 }: FormFieldProps) {
   return (
-    <label className="block">
+    <label
+      className="
+        block
+        min-w-0
+      "
+    >
       <span
         className="
-          text-sm
+          block
+          truncate
+          text-[12px]
           font-medium
           text-[#252525]
         "
@@ -1234,7 +1400,7 @@ function FormField({
         {required && (
           <span
             className="
-              ml-1
+              ml-0.5
               text-red-500
             "
           >
@@ -1249,23 +1415,33 @@ function FormField({
         autoComplete={
           autoComplete
         }
-        value={value}
-        required={required}
-        disabled={disabled}
-        onChange={(event) =>
+        value={
+          value
+        }
+        required={
+          required
+        }
+        disabled={
+          disabled
+        }
+        onChange={(
+          event,
+        ) =>
           onChange(
-            event.target.value,
+            event.target
+              .value,
           )
         }
         className="
-          mt-2
-          min-h-[50px]
+          mt-1.5
+          h-[44px]
           w-full
-          rounded-[12px]
+          rounded-[11px]
           border
           border-[#d4d9d4]
           bg-white
-          px-4
+          px-3
+          text-[14px]
           outline-none
           transition
 

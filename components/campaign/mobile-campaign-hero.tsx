@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-
+// import Link from "next/link";
+import {
+  DonationModal,
+} from "@/components/donation/donation-modal";
 import {
   BadgeCheck,
   Heart,
@@ -424,36 +426,31 @@ export function MobileCampaignHero({
           </div>
         </div>
 
-        <Link
-          href="/gaza-food/donate"
-          className="
-            mt-3
-            flex
-            min-h-[50px]
-            w-full
-            items-center
-            justify-center
-            gap-2
-            rounded-full
-            bg-[#bcf778]
-            px-5
-            text-[17px]
-            font-semibold
-            text-[#194e29]
-            shadow-[0_4px_12px_rgba(100,170,50,.13)]
-            transition
+<div className="mt-3">
+  <DonationModal
+    campaign={campaign}
+    content={content}
+    triggerClassName="
+      flex
+      min-h-[50px]
+      w-full
+      items-center
+      justify-center
+      gap-2
+      rounded-full
+      bg-[#bcf778]
+      px-5
+      text-[17px]
+      font-semibold
+      text-[#194e29]
+      shadow-[0_4px_12px_rgba(100,170,50,.13)]
+      transition
 
-            hover:bg-[#afe96e]
-            active:scale-[0.99]
-          "
-        >
-          <Heart
-            aria-hidden="true"
-            className="size-[18px]"
-          />
-
-          Donate
-        </Link>
+      hover:bg-[#afe96e]
+      active:scale-[0.99]
+    "
+  />
+</div>
 
         <div
           className="

@@ -1,11 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
-import {
-  Heart,
-} from "lucide-react";
-
 import {
   useEffect,
   useState,
@@ -14,6 +8,10 @@ import {
 import type {
   Campaign,
 } from "@/lib/sample-data";
+
+import type {
+  SanityCampaign,
+} from "@/sanity/types/campaign";
 
 import {
   formatUsd,
@@ -24,15 +22,23 @@ import {
   ShareMenu,
 } from "@/components/share/share-menu";
 
+import {
+  DonationModal,
+} from "@/components/donation/donation-modal";
+
 type MobileDonateBarProps = {
   campaign: Campaign;
+  content: SanityCampaign;
 };
 
 export function MobileDonateBar({
   campaign,
+  content,
 }: MobileDonateBarProps) {
-  const [visible, setVisible] =
-    useState(false);
+  const [
+    visible,
+    setVisible,
+  ] = useState(false);
 
   const progress =
     progressPercent(
@@ -115,6 +121,8 @@ export function MobileDonateBar({
           shadow-[0_-8px_28px_rgba(15,30,40,0.14)]
         "
       >
+        {/* PROGRESS */}
+
         <div
           className="
             flex
@@ -149,6 +157,7 @@ export function MobileDonateBar({
                   latestDonation.displayName
                 }{" "}
                 donated{" "}
+
                 {formatUsd(
                   latestDonation.amountUsd,
                 ).replace(
@@ -161,6 +170,8 @@ export function MobileDonateBar({
           </div>
         </div>
 
+        {/* ACTIONS */}
+
         <div
           className="
             mt-4
@@ -169,11 +180,13 @@ export function MobileDonateBar({
             gap-3
           "
         >
-          <Link
-            href="/gaza-food/donate"
-            className="
+          <DonationModal
+            campaign={campaign}
+            content={content}
+            triggerClassName="
               flex
               min-h-[50px]
+              w-full
               items-center
               justify-center
               gap-2
@@ -184,18 +197,11 @@ export function MobileDonateBar({
               font-bold
               text-[#194d29]
             "
-          >
-            <Heart
-              aria-hidden="true"
-              className="size-[17px]"
-            />
-
-            Donate
-          </Link>
+          />
 
           <ShareMenu
             title={
-              campaign.title
+              content.title
             }
             triggerVariant="solid"
           />
@@ -272,6 +278,7 @@ function RaisedText({
         campaign.raisedAmountUsd,
       )}{" "}
       raised{" "}
+
       <span
         className="
           font-normal
