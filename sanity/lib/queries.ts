@@ -76,6 +76,20 @@ export const CAMPAIGN_QUERY =
       },
 
       // =====================================
+      // FUND USAGE
+      // =====================================
+
+      fundUsageTitle,
+      fundUsageSubtitle,
+
+      fundUsageItems[] {
+        _key,
+        amount,
+        title,
+        description
+      },
+
+      // =====================================
       // FOOTER
       // =====================================
 

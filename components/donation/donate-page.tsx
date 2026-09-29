@@ -28,30 +28,41 @@ export function DonatePage({
   campaign,
   content,
 }: DonatePageProps) {
-  const logoUrl =
-    content.organizationLogo
+  // ===========================================================
+  // CAMPAIGN IMAGE
+  // ===========================================================
+
+  const heroUrl =
+    content.heroImage
       ?.asset?.url;
 
-  const logoWidth =
-    content.organizationLogo
+  const heroWidth =
+    content.heroImage
       ?.asset
       ?.metadata
       ?.dimensions
-      ?.width ?? 120;
+      ?.width ?? 1200;
 
-  const logoHeight =
-    content.organizationLogo
+  const heroHeight =
+    content.heroImage
       ?.asset
       ?.metadata
       ?.dimensions
-      ?.height ?? 80;
+      ?.height ?? 760;
 
-  const logoAlt =
-    content.organizationLogo
+  const heroAlt =
+    content.heroImage
       ?.alt ||
+    content.title ||
+    campaign.title;
+
+  // ===========================================================
+  // ORGANIZATION
+  // ===========================================================
+
+  const organizationName =
     content.organizationName ||
-    campaign.organizationName ||
-    "Organization logo";
+    campaign.organizationName;
 
   return (
     <main
@@ -59,11 +70,11 @@ export function DonatePage({
         min-h-screen
         bg-[#fbfcf8]
         px-4
-        py-8
+        py-6
         text-[#131313]
 
         sm:px-6
-        sm:py-10
+        sm:py-8
       "
     >
       <div
@@ -73,9 +84,9 @@ export function DonatePage({
           max-w-[540px]
         "
       >
-        {/* ============================================
+        {/* =====================================================
             BACK
-        ============================================= */}
+        ====================================================== */}
 
         <div>
           <Link
@@ -102,89 +113,161 @@ export function DonatePage({
           </Link>
         </div>
 
-        {/* ============================================
-            HEADER
-        ============================================= */}
+        {/* =====================================================
+            INTRO
+        ====================================================== */}
 
         <header
           className="
-            mt-5
-            text-center
+            mt-4
           "
         >
-          {/* LOGO */}
+          <h1
+            className="
+              text-[24px]
+              font-bold
+              leading-[1.15]
+              tracking-[-0.025em]
+              text-[#151515]
+
+              sm:text-[28px]
+            "
+          >
+            Make your donation
+          </h1>
+
+          <p
+            className="
+              mt-1
+              text-[13px]
+              leading-5
+              text-[#6d776f]
+            "
+          >
+            Every gift goes to work right away.
+          </p>
+        </header>
+
+        {/* =====================================================
+            CAMPAIGN SUMMARY
+        ====================================================== */}
+
+        <section
+          className="
+            mt-5
+            flex
+            items-center
+            gap-3
+            rounded-[18px]
+            border
+            border-[#e7e9e5]
+            bg-[#f8f6f2]
+            p-3
+          "
+        >
+          {/* CAMPAIGN IMAGE */}
 
           <div
             className="
-              flex
-              justify-center
+              relative
+              h-[66px]
+              w-[66px]
+              shrink-0
+              overflow-hidden
+              rounded-[12px]
+              bg-[#eceee9]
             "
           >
-            {logoUrl ? (
+            {heroUrl ? (
               <Image
-                src={logoUrl}
-                alt={logoAlt}
-                width={logoWidth}
-                height={logoHeight}
+                src={heroUrl}
+                alt={heroAlt}
+                width={heroWidth}
+                height={heroHeight}
                 priority
                 className="
-                  h-auto
-                  max-h-[56px]
-                  w-auto
-                  max-w-[190px]
-                  object-contain
+                  h-full
+                  w-full
+                  object-cover
                 "
               />
             ) : (
-              <Image
-                src="/sample-logo.svg"
-                alt={logoAlt}
-                width={140}
-                height={56}
-                priority
+              <div
                 className="
-                  h-auto
-                  max-h-[56px]
-                  w-auto
-                  object-contain
+                  grid
+                  h-full
+                  w-full
+                  place-items-center
+                  bg-[#24543d]
+                  px-2
+                  text-center
+                  text-[10px]
+                  font-bold
+                  text-white
                 "
-              />
+              >
+                Donation
+              </div>
             )}
           </div>
 
-          {/* TITLE */}
+          {/* TEXT */}
 
-          <h1
+          <div
             className="
-              mx-auto
-              mt-7
-              max-w-[500px]
-              text-[30px]
-              font-extrabold
-              leading-[1.08]
-              tracking-[-0.035em]
-              text-[#161616]
-
-              sm:text-[36px]
+              min-w-0
+              flex-1
             "
           >
-            {content.title}
-          </h1>
-        </header>
+            <h2
+              className="
+                line-clamp-2
+                text-[14px]
+                font-semibold
+                leading-[1.35]
+                text-[#151515]
 
-        {/* ============================================
+                sm:text-[15px]
+              "
+            >
+              {content.title}
+            </h2>
+
+            <p
+              className="
+                mt-1
+                truncate
+                text-[11px]
+                leading-4
+                text-[#777f78]
+              "
+            >
+              Organized by{" "}
+              <span
+                className="
+                  font-medium
+                  text-[#566159]
+                "
+              >
+                {organizationName}
+              </span>
+            </p>
+          </div>
+        </section>
+
+        {/* =====================================================
             DONATION FLOW
-        ============================================= */}
+        ====================================================== */}
 
-        <div className="mt-8">
+        <div className="mt-4">
           <DonationFlow
             campaign={campaign}
           />
         </div>
 
-        {/* ============================================
+        {/* =====================================================
             TRUST AREA
-        ============================================= */}
+        ====================================================== */}
 
         <footer
           className="
@@ -250,8 +333,7 @@ export function DonatePage({
               text-[#6d7c75]
             "
           >
-            {content.organizationName ||
-              campaign.organizationName}
+            {organizationName}
           </p>
         </footer>
       </div>

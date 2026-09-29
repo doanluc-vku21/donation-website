@@ -8,6 +8,7 @@ import {
 
 import {
   ChevronDown,
+  HeartHandshake,
   X,
 } from "lucide-react";
 
@@ -22,11 +23,6 @@ import type {
 type RecentDonationsProps = {
   donations: RecentDonation[];
   className?: string;
-
-  /**
-   * Số contribution hiển thị ngoài trang.
-   * Reference đang hiển thị 4.
-   */
   previewLimit?: number;
 };
 
@@ -52,19 +48,11 @@ export function RecentDonations({
       "recent",
     );
 
-  // =============================================
-  // PREVIEW
-  // =============================================
-
   const previewDonations =
     donations.slice(
       0,
       previewLimit,
     );
-
-  // =============================================
-  // SORTED MODAL LIST
-  // =============================================
 
   const sortedDonations =
     useMemo(() => {
@@ -83,19 +71,11 @@ export function RecentDonations({
         );
       }
 
-      /*
-       * Với "recent" không cần sort lại vì
-       * RPC hiện đã trả donation mới nhất trước.
-       */
       return result;
     }, [
       donations,
       sortMode,
     ]);
-
-  // =============================================
-  // LOCK BODY WHEN MODAL OPEN
-  // =============================================
 
   useEffect(() => {
     if (!modalOpen) {
@@ -159,66 +139,121 @@ export function RecentDonations({
 
         <div
           className="
-            flex
-            items-center
-            justify-between
-            gap-4
             border-t
-            border-[#e3e8ee]
+            border-[#e4e8e3]
             pt-8
           "
         >
-          <h2
-            id="contributions-title"
+          <div
             className="
-              text-[26px]
-              font-bold
-              tracking-[-0.03em]
-              text-[#07152d]
+              flex
+              items-end
+              justify-between
+              gap-4
             "
           >
-            Contributions
-          </h2>
+            <div
+              className="
+                min-w-0
+              "
+            >
+              <p
+                className="
+                  text-[11px]
+                  font-bold
+                  uppercase
+                  tracking-[0.16em]
+                  text-[#24543d]
+                "
+              >
+                Community support
+              </p>
 
-          <span
+              <h2
+                id="contributions-title"
+                className="
+                  mt-1.5
+                  text-[26px]
+                  font-bold
+                  leading-tight
+                  tracking-[-0.035em]
+                  text-[#12233d]
+
+                  sm:text-[30px]
+                "
+              >
+                Contributions
+              </h2>
+            </div>
+
+            <span
+              className="
+                mb-1
+                shrink-0
+                rounded-full
+                bg-[#f4f7f2]
+                px-3
+                py-1.5
+                text-[12px]
+                font-medium
+                text-[#6f7a86]
+              "
+            >
+              {donations.length.toLocaleString(
+                "en-US",
+              )}{" "}
+              {donations.length ===
+              1
+                ? "contribution"
+                : "contributions"}
+            </span>
+          </div>
+
+          <p
             className="
-              shrink-0
+              mt-2
+              max-w-[520px]
               text-[14px]
-              text-[#718096]
+              leading-6
+              text-[#6f7a86]
             "
           >
-            {donations.length.toLocaleString(
-              "en-US",
-            )}{" "}
-            {donations.length ===
-            1
-              ? "contribution"
-              : "contributions"}
-          </span>
+            Recent support from people helping move this campaign forward.
+          </p>
         </div>
 
-        {/* LIST */}
+        {/* CONTRIBUTION CARD */}
 
-        <ul
+        <div
           className="
             mt-5
-            divide-y
-            divide-[#e7ebef]
+            overflow-hidden
+            rounded-[18px]
+            border
+            border-[#e4e7e2]
+            bg-white
           "
         >
-          {previewDonations.map(
-            (donation) => (
-              <ContributionRow
-                key={
-                  donation.id
-                }
-                donation={
-                  donation
-                }
-              />
-            ),
-          )}
-        </ul>
+          <ul
+            className="
+              divide-y
+              divide-[#edf0ec]
+            "
+          >
+            {previewDonations.map(
+              (donation) => (
+                <ContributionRow
+                  key={
+                    donation.id
+                  }
+                  donation={
+                    donation
+                  }
+                />
+              ),
+            )}
+          </ul>
+        </div>
 
         {/* SEE ALL */}
 
@@ -236,27 +271,30 @@ export function RecentDonations({
               );
             }}
             className="
-              mt-5
+              mt-4
               flex
-              min-h-[46px]
+              min-h-[48px]
               w-full
               items-center
               justify-center
               rounded-full
               border
-              border-[#d9e0e7]
+              border-[#dfe4de]
               bg-white
               px-5
               text-[14px]
-              font-medium
-              text-[#101828]
-              shadow-[0_2px_4px_rgba(15,23,42,.08)]
+              font-semibold
+              text-[#24543d]
+              shadow-[0_2px_8px_rgba(20,50,35,.04)]
               transition
 
-              hover:border-[#aeb8c5]
+              hover:border-[#bfcabf]
+              hover:bg-[#fafbf9]
+
+              active:scale-[0.995]
             "
           >
-            See all
+            See all contributions
           </button>
         )}
       </section>
@@ -274,8 +312,9 @@ export function RecentDonations({
             flex
             items-center
             justify-center
-            bg-black/60
+            bg-black/45
             p-4
+            backdrop-blur-[2px]
           "
           onMouseDown={(
             event,
@@ -296,26 +335,32 @@ export function RecentDonations({
             aria-labelledby="contributions-modal-title"
             className="
               flex
-              max-h-[82vh]
+              max-h-[84vh]
               w-full
               max-w-[520px]
               flex-col
               overflow-hidden
-              rounded-[20px]
+              rounded-[22px]
+              border
+              border-[#e3e7e2]
               bg-white
-              shadow-[0_24px_80px_rgba(0,0,0,.28)]
+              shadow-[0_24px_70px_rgba(0,0,0,.22)]
             "
           >
-            {/* ================================
-                MODAL HEADER
-            ================================= */}
+            {/* HEADER */}
 
             <div
               className="
                 shrink-0
-                px-6
-                pb-4
-                pt-6
+                border-b
+                border-[#edf0ec]
+                bg-white
+                px-5
+                pb-5
+                pt-5
+
+                sm:px-6
+                sm:pt-6
               "
             >
               <div
@@ -327,12 +372,26 @@ export function RecentDonations({
                 "
               >
                 <div>
+                  <p
+                    className="
+                      text-[11px]
+                      font-bold
+                      uppercase
+                      tracking-[0.15em]
+                      text-[#24543d]
+                    "
+                  >
+                    Community support
+                  </p>
+
                   <h2
                     id="contributions-modal-title"
                     className="
-                      text-[20px]
+                      mt-1.5
+                      text-[22px]
                       font-bold
-                      text-[#111827]
+                      tracking-[-0.025em]
+                      text-[#12233d]
                     "
                   >
                     Contributions
@@ -340,14 +399,13 @@ export function RecentDonations({
 
                   <p
                     className="
-                      mt-3
-                      text-[14px]
-                      text-[#66758a]
+                      mt-2
+                      text-[13px]
+                      leading-5
+                      text-[#6f7a86]
                     "
                   >
-                    Contributions
-                    available for this
-                    campaign.
+                    Browse the latest donations made to this campaign.
                   </p>
                 </div>
 
@@ -360,18 +418,21 @@ export function RecentDonations({
                     )
                   }
                   className="
-                    -mr-2
-                    -mt-2
+                    -mr-1
+                    -mt-1
                     grid
                     size-10
                     shrink-0
                     place-items-center
                     rounded-full
-                    text-[#637083]
+                    border
+                    border-transparent
+                    text-[#6f7a86]
                     transition
 
-                    hover:bg-[#f3f5f7]
-                    hover:text-[#111827]
+                    hover:border-[#e1e5e0]
+                    hover:bg-[#f7f9f6]
+                    hover:text-[#12233d]
                   "
                 >
                   <X
@@ -392,9 +453,9 @@ export function RecentDonations({
                 <span
                   className="
                     block
-                    text-[14px]
-                    font-medium
-                    text-[#111827]
+                    text-[13px]
+                    font-semibold
+                    text-[#12233d]
                   "
                 >
                   Sort by
@@ -419,21 +480,24 @@ export function RecentDonations({
                       )
                     }
                     className="
-                      min-h-[50px]
+                      min-h-[48px]
                       w-full
                       appearance-none
                       rounded-[12px]
                       border
-                      border-[#0e6c48]
-                      bg-white
+                      border-[#dce2dc]
+                      bg-[#fbfcfa]
                       px-4
                       pr-11
                       text-[14px]
-                      text-[#111827]
+                      font-medium
+                      text-[#12233d]
                       outline-none
+                      transition
 
+                      focus:border-[#24543d]
                       focus:ring-2
-                      focus:ring-[#ccebdd]
+                      focus:ring-[#dcebdc]
                     "
                   >
                     <option value="recent">
@@ -454,32 +518,31 @@ export function RecentDonations({
                       top-1/2
                       size-4
                       -translate-y-1/2
-                      text-[#111827]
+                      text-[#53665a]
                     "
                   />
                 </div>
               </label>
             </div>
 
-            {/* ================================
-                SCROLLABLE LIST
-            ================================= */}
+            {/* LIST */}
 
             <div
               className="
                 min-h-0
                 flex-1
                 overflow-y-auto
-                px-6
-                pb-6
+                bg-[#fcfdfb]
+                px-4
+                py-2
 
-                [scrollbar-width:thin]
+                sm:px-5
               "
             >
               <ul
                 className="
                   divide-y
-                  divide-[#e7ebef]
+                  divide-[#edf0ec]
                 "
               >
                 {sortedDonations.map(
@@ -493,6 +556,7 @@ export function RecentDonations({
                       donation={
                         donation
                       }
+                      modal
                     />
                   ),
                 )}
@@ -511,8 +575,10 @@ export function RecentDonations({
 
 function ContributionRow({
   donation,
+  modal = false,
 }: {
   donation: RecentDonation;
+  modal?: boolean;
 }) {
   const initials =
     getInitials(
@@ -521,27 +587,38 @@ function ContributionRow({
 
   return (
     <li
-      className="
+      className={`
+        group
         flex
-        min-h-[72px]
         items-center
         gap-3
-        py-4
-      "
+        transition
+
+        ${
+          modal
+            ? "px-2 py-4"
+            : "px-4 py-4 sm:px-5"
+        }
+
+        hover:bg-[#fbfcfa]
+      `}
     >
       {/* AVATAR */}
 
       <span
         className="
           grid
-          size-10
+          size-11
           shrink-0
           place-items-center
           rounded-full
-          bg-[#e7f6d7]
+          bg-[#edf7df]
           text-[12px]
-          font-medium
-          text-[#09633f]
+          font-semibold
+          text-[#24543d]
+          ring-1
+          ring-inset
+          ring-[#e2efcf]
         "
       >
         {initials}
@@ -555,23 +632,54 @@ function ContributionRow({
           flex-1
         "
       >
-        <p
+        <div
           className="
-            truncate
-            text-[14px]
-            font-semibold
-            text-[#07152d]
+            flex
+            min-w-0
+            items-center
+            gap-2
           "
         >
-          {donation.displayName}
-        </p>
+          <p
+            className="
+              truncate
+              text-[14px]
+              font-semibold
+              text-[#12233d]
+
+              sm:text-[15px]
+            "
+          >
+            {donation.displayName}
+          </p>
+
+          {donation.frequency ===
+            "monthly" && (
+            <span
+              className="
+                shrink-0
+                rounded-full
+                bg-[#f1f6ee]
+                px-2
+                py-0.5
+                text-[9px]
+                font-bold
+                uppercase
+                tracking-[0.08em]
+                text-[#426a4f]
+              "
+            >
+              Monthly
+            </span>
+          )}
+        </div>
 
         <p
           className="
-            mt-0.5
+            mt-1
             truncate
             text-[12px]
-            text-[#6480a0]
+            text-[#718096]
           "
         >
           {donation.relativeTime}
@@ -580,25 +688,34 @@ function ContributionRow({
 
       {/* AMOUNT */}
 
-      <strong
+      <div
         className="
           shrink-0
-          rounded-full
-          bg-[#edf6e7]
-          px-3
-          py-1.5
-          text-[14px]
-          font-semibold
-          text-[#006341]
         "
       >
-        {formatUsd(
-          donation.amountUsd,
-        ).replace(
-          ".00",
-          "",
-        )}
-      </strong>
+        <strong
+          className="
+            inline-flex
+            min-w-[48px]
+            items-center
+            justify-center
+            rounded-full
+            bg-[#eef6e8]
+            px-3
+            py-2
+            text-[14px]
+            font-bold
+            text-[#14623f]
+          "
+        >
+          {formatUsd(
+            donation.amountUsd,
+          ).replace(
+            ".00",
+            "",
+          )}
+        </strong>
+      </div>
     </li>
   );
 }

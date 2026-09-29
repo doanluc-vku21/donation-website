@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import {
+  BadgeCheck,
   Check,
   Heart,
   Share2,
@@ -83,6 +84,10 @@ export function MobileCampaignHero({
       ?.dimensions
       ?.height ?? 100;
 
+  const organizationName =
+    content.organizationName ||
+    campaign.organizationName;
+
   async function handleShare() {
     const url =
       window.location.href;
@@ -124,9 +129,7 @@ export function MobileCampaignHero({
         return;
       }
 
-      console.error(
-        error,
-      );
+      console.error(error);
     }
   }
 
@@ -187,107 +190,141 @@ export function MobileCampaignHero({
           />
         )}
 
-        {/* DARK GRADIENT */}
+        {/* ==========================================
+            IMAGE OVERLAY
+        =========================================== */}
 
         <div
           className="
             absolute
             inset-0
             bg-gradient-to-b
-            from-black/25
+            from-black/30
             via-black/5
-            to-black/70
+            to-black/75
           "
         />
 
-        {/* ORGANIZATION */}
+        {/* ==========================================
+            ORGANIZATION BADGE
+        =========================================== */}
 
         <div
           className="
             absolute
-            left-5
-            right-5
-            top-5
+            left-4
+            right-4
+            top-4
             z-10
-            flex
-            items-center
-            gap-2.5
-            text-white
           "
         >
-          <span
+          <div
             className="
-              grid
-              size-9
-              shrink-0
-              place-items-center
-              overflow-hidden
+              inline-flex
+              max-w-full
+              items-center
+              gap-2.5
               rounded-full
-              border-2
-              border-white
-              bg-white
-            "
-          >
-            {logoUrl ? (
-              <Image
-                src={logoUrl}
-                alt={
-                  content.organizationName ||
-                  campaign.organizationName
-                }
-                width={logoWidth}
-                height={logoHeight}
-                className="
-                  h-full
-                  w-full
-                  object-contain
-                "
-              />
-            ) : (
-              <Image
-                src="/sample-logo.svg"
-                alt={
-                  campaign.organizationName
-                }
-                width={40}
-                height={40}
-                className="
-                  h-full
-                  w-full
-                  object-contain
-                "
-              />
-            )}
-          </span>
-
-          <strong
-            className="
-              text-[13px]
-              font-semibold
-              drop-shadow
-            "
-          >
-            {content.organizationName ||
-              campaign.organizationName}
-          </strong>
-
-          <span
-            className="
-              grid
-              size-[15px]
-              place-items-center
-              rounded-full
-              bg-[#2879f4]
-              text-[9px]
-              font-bold
+              border
+              border-white/15
+              bg-black/30
+              py-1.5
+              pl-1.5
+              pr-3
               text-white
+              shadow-[0_4px_18px_rgba(0,0,0,.18)]
+              backdrop-blur-md
             "
           >
-            ✓
-          </span>
+            {/* LOGO */}
+
+            <span
+              className="
+                grid
+                size-[38px]
+                shrink-0
+                place-items-center
+                overflow-hidden
+                rounded-full
+                border
+                border-white/70
+                bg-white
+                shadow-sm
+              "
+            >
+              {logoUrl ? (
+                <Image
+                  src={logoUrl}
+                  alt={organizationName}
+                  width={logoWidth}
+                  height={logoHeight}
+                  className="
+                    h-full
+                    w-full
+                    object-contain
+                    p-[2px]
+                  "
+                />
+              ) : (
+                <Image
+                  src="/sample-logo.svg"
+                  alt={organizationName}
+                  width={40}
+                  height={40}
+                  className="
+                    h-full
+                    w-full
+                    object-contain
+                    p-[2px]
+                  "
+                />
+              )}
+            </span>
+
+            {/* ORGANIZATION NAME */}
+
+            <span
+              className="
+                min-w-0
+                truncate
+                text-[13px]
+                font-semibold
+                leading-none
+                tracking-[-0.01em]
+                text-white
+              "
+            >
+              {organizationName}
+            </span>
+
+            {/* VERIFIED ICON */}
+
+            <span
+              className="
+                inline-flex
+                shrink-0
+                items-center
+                justify-center
+                text-[#5aa2ff]
+              "
+              aria-label="Verified organization"
+              title="Verified organization"
+            >
+              <BadgeCheck
+                aria-hidden="true"
+                className="
+                  size-[18px]
+                  fill-[#2f7df4]
+                  text-white
+                "
+              />
+            </span>
+          </div>
         </div>
 
-        {/* TITLE */}
+        {/* ==========================================
+            CAMPAIGN TITLE
+        =========================================== */}
 
         <div
           className="
@@ -312,22 +349,26 @@ export function MobileCampaignHero({
             {content.title}
           </h1>
         </div>
-        {/* CURVED WHITE BOTTOM */}
-<div
-  aria-hidden="true"
-  className="
-    pointer-events-none
-    absolute
-    -bottom-[1px]
-    left-1/2
-    z-20
-    h-[30px]
-    w-[120%]
-    -translate-x-1/2
-    rounded-[50%_50%_0_0/100%_100%_0_0]
-    bg-white
-  "
-/>
+
+        {/* ==========================================
+            CURVED WHITE BOTTOM
+        =========================================== */}
+
+        <div
+          aria-hidden="true"
+          className="
+            pointer-events-none
+            absolute
+            -bottom-[1px]
+            left-1/2
+            z-20
+            h-[30px]
+            w-[120%]
+            -translate-x-1/2
+            rounded-[50%_50%_0_0/100%_100%_0_0]
+            bg-white
+          "
+        />
       </section>
 
       {/* ==========================================
@@ -335,22 +376,22 @@ export function MobileCampaignHero({
       =========================================== */}
 
       <section
-  id="mobile-inline-donate"
-  className="
-    relative
-    z-20
-    -mt-[1px]
-    rounded-b-[20px]
-    border-x
-    border-b
-    border-[#e6e9e4]
-    bg-white
-    px-5
-    pb-3
-    pt-3
-    shadow-[0_5px_18px_rgba(0,0,0,.04)]
-  "
->
+        id="mobile-inline-donate"
+        className="
+          relative
+          z-20
+          -mt-[1px]
+          rounded-b-[20px]
+          border-x
+          border-b
+          border-[#e6e9e4]
+          bg-white
+          px-5
+          pb-3
+          pt-3
+          shadow-[0_5px_18px_rgba(0,0,0,.04)]
+        "
+      >
         {/* MONEY */}
 
         <div
@@ -391,6 +432,7 @@ export function MobileCampaignHero({
                 className="
                   text-[14px]
                   font-bold
+                  text-[#15233a]
                 "
               >
                 {progress}%
@@ -484,6 +526,10 @@ export function MobileCampaignHero({
             font-semibold
             text-[#194e29]
             shadow-[0_4px_12px_rgba(100,170,50,.13)]
+            transition
+
+            hover:bg-[#afe96e]
+            active:scale-[0.99]
           "
         >
           <Heart

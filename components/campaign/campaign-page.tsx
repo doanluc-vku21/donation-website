@@ -13,10 +13,6 @@ import type {
 } from "@/sanity/types/campaign";
 
 import {
-  ProgressCard,
-} from "./progress-card";
-
-import {
   CampaignStory,
 } from "./campaign-story";
 
@@ -43,9 +39,14 @@ import {
 import {
   CampaignDonateCard,
 } from "./campaign-donate-card";
+
 import {
   MobileCampaignHero,
 } from "./mobile-campaign-hero";
+
+import {
+  FundUsage,
+} from "./fund-usage";
 
 export function CampaignPage({
   campaign,
@@ -54,10 +55,6 @@ export function CampaignPage({
   campaign: Campaign;
   content: SanityCampaign;
 }) {
-  // ===========================================================
-  // ORGANIZATION LOGO
-  // ===========================================================
-
   const logoUrl =
     content.organizationLogo
       ?.asset?.url;
@@ -83,10 +80,6 @@ export function CampaignPage({
     campaign.organizationName ||
     "Organization logo";
 
-  // ===========================================================
-  // HERO IMAGE
-  // ===========================================================
-
   const heroUrl =
     content.heroImage
       ?.asset?.url;
@@ -105,18 +98,30 @@ export function CampaignPage({
       ?.dimensions
       ?.height ?? 760;
 
+  const campaignWithGoal = {
+    ...campaign,
+
+    goalAmountUsd:
+      content.goalAmount != null
+        ? Math.round(
+            content.goalAmount *
+              100,
+          )
+        : campaign.goalAmountUsd,
+  };
+
   return (
     <main
-  className="
-    min-h-screen
-    w-full
-    overflow-x-hidden
-    bg-white
+      className="
+        min-h-screen
+        w-full
+        overflow-x-hidden
+        bg-white
+        pb-[140px]
 
-    pb-[140px]
-    lg:pb-0
-  "
->
+        lg:pb-0
+      "
+    >
       <div
         className="
           mx-auto
@@ -137,21 +142,20 @@ export function CampaignPage({
         "
       >
         {/* =====================================================
+            MOBILE HERO
+        ====================================================== */}
+
+        <MobileCampaignHero
+          campaign={
+            campaignWithGoal
+          }
+          content={content}
+        />
+
+        {/* =====================================================
             LEFT COLUMN
         ====================================================== */}
-        <MobileCampaignHero
-  campaign={{
-    ...campaign,
 
-    goalAmountUsd:
-      content.goalAmount != null
-        ? Math.round(
-            content.goalAmount * 100,
-          )
-        : campaign.goalAmountUsd,
-  }}
-  content={content}
-/>
         <div
           className="
             w-full
@@ -159,19 +163,19 @@ export function CampaignPage({
           "
         >
           {/* ===================================================
-              TITLE
+              DESKTOP HEADER + HERO
           ==================================================== */}
 
           <section
-  id="top"
-  className="
-    hidden
-    w-full
-    min-w-0
+            id="top"
+            className="
+              hidden
+              w-full
+              min-w-0
 
-    lg:block
-  "
->
+              lg:block
+            "
+          >
             {content.eyebrow && (
               <p
                 className="
@@ -219,10 +223,6 @@ export function CampaignPage({
               {content.title}
             </h1>
 
-            {/* ===============================================
-                ORGANIZER
-            ================================================ */}
-
             <div
               className="
                 mt-5
@@ -264,6 +264,7 @@ export function CampaignPage({
                 "
               >
                 Organized by{" "}
+
                 <strong
                   className="
                     font-semibold
@@ -279,10 +280,6 @@ export function CampaignPage({
                 <ShareMenu />
               </div>
             </div>
-
-            {/* ===============================================
-                HERO
-            ================================================ */}
 
             <figure
               className="
@@ -328,12 +325,6 @@ export function CampaignPage({
           </section>
 
           {/* =================================================
-              MOBILE PROGRESS
-          ================================================== */}
-
-          
-
-          {/* =================================================
               MOBILE STORY
           ================================================== */}
 
@@ -352,7 +343,21 @@ export function CampaignPage({
           </div>
 
           {/* =================================================
-              DESKTOP STORY
+              MOBILE FUND USAGE
+          ================================================== */}
+
+          <div
+            className="
+              lg:hidden
+            "
+          >
+            <FundUsage
+              content={content}
+            />
+          </div>
+
+          {/* =================================================
+              DESKTOP CONTENT
           ================================================== */}
 
           <div
@@ -368,6 +373,10 @@ export function CampaignPage({
               content={content}
             />
 
+            <FundUsage
+              content={content}
+            />
+
             <RecentDonations
               donations={
                 campaign.recentDonations
@@ -380,7 +389,7 @@ export function CampaignPage({
           </div>
 
           {/* =================================================
-              MOBILE RECENT
+              MOBILE CONTRIBUTIONS
           ================================================== */}
 
           <div
@@ -434,17 +443,9 @@ export function CampaignPage({
             "
           >
             <CampaignDonateCard
-              campaign={{
-                ...campaign,
-
-                goalAmountUsd:
-                  content.goalAmount != null
-                    ? Math.round(
-                        content.goalAmount *
-                          100,
-                      )
-                    : campaign.goalAmountUsd,
-              }}
+              campaign={
+                campaignWithGoal
+              }
               donateHref="/gaza-food/donate"
             />
           </div>
@@ -452,18 +453,10 @@ export function CampaignPage({
       </div>
 
       <MobileDonateBar
-  campaign={{
-    ...campaign,
-
-    goalAmountUsd:
-      content.goalAmount != null
-        ? Math.round(
-            content.goalAmount *
-              100,
-          )
-        : campaign.goalAmountUsd,
-  }}
-/>
+        campaign={
+          campaignWithGoal
+        }
+      />
     </main>
   );
 }

@@ -9,6 +9,13 @@ export type FooterPopupContent = {
   content?: any[];
 };
 
+export type FundUsageItem = {
+  _key: string;
+  amount?: number;
+  title?: string;
+  description?: string;
+};
+
 export type SanityImage = {
   asset?: {
     _id: string;
@@ -58,18 +65,21 @@ export type SanityCampaign = {
 
   story?: any[];
 
-  /*
-   * Giữ lại 3 field này để tương thích với
-   * test/schema cũ.
-   *
-   * CampaignStory hiện tại có thể không render
-   * chúng nhưng vẫn giữ type để build không lỗi.
-   */
   nourishmentCard?: StoryCardContent;
 
   learningCard?: StoryCardContent;
 
   steadyCareCard?: StoryCardContent;
+
+  // =========================================
+  // FUND USAGE
+  // =========================================
+
+  fundUsageTitle?: string;
+
+  fundUsageSubtitle?: string;
+
+  fundUsageItems?: FundUsageItem[];
 
   // =========================================
   // FOOTER

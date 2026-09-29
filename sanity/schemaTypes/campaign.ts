@@ -14,6 +14,10 @@ export const campaignType = defineType({
       title: "Story",
     },
     {
+      name: "fundUsage",
+      title: "Fund Usage",
+    },
+    {
       name: "footer",
       title: "Footer",
     },
@@ -49,10 +53,6 @@ export const campaignType = defineType({
       title: "Organization name",
       type: "string",
     }),
-
-    // =========================================================
-    // ORGANIZATION LOGO
-    // =========================================================
 
     defineField({
       name: "organizationLogo",
@@ -107,7 +107,7 @@ export const campaignType = defineType({
     }),
 
     // =========================================================
-    // STORY TAB
+    // STORY
     // =========================================================
 
     defineField({
@@ -142,10 +142,6 @@ export const campaignType = defineType({
         },
       ],
     }),
-
-    // =========================================================
-    // KEEP OLD STORY CARDS
-    // =========================================================
 
     defineField({
       name: "nourishmentCard",
@@ -268,7 +264,110 @@ export const campaignType = defineType({
     }),
 
     // =========================================================
-    // FOOTER TAB
+    // FUND USAGE
+    // =========================================================
+
+    defineField({
+      name: "fundUsageTitle",
+      title: "Section title",
+      type: "string",
+      group: "fundUsage",
+
+      initialValue:
+        "How the funds will be used",
+    }),
+
+    defineField({
+      name: "fundUsageSubtitle",
+      title: "Section subtitle",
+      type: "string",
+      group: "fundUsage",
+
+      initialValue:
+        "The organizer’s plan for the campaign goal.",
+    }),
+
+    defineField({
+      name: "fundUsageItems",
+      title: "Fund usage items",
+      type: "array",
+      group: "fundUsage",
+
+      of: [
+        {
+          type: "object",
+          name: "fundUsageItem",
+          title: "Fund usage item",
+
+          fields: [
+            defineField({
+              name: "amount",
+              title: "Amount",
+              type: "number",
+
+              description:
+                "Enter amount in dollars. Example: 3000",
+
+              validation: (rule) =>
+                rule
+                  .required()
+                  .min(0),
+            }),
+
+            defineField({
+              name: "title",
+              title: "Title",
+              type: "string",
+
+              validation: (rule) =>
+                rule.required(),
+            }),
+
+            defineField({
+              name: "description",
+              title: "Description",
+              type: "text",
+              rows: 6,
+
+              description:
+                "Put each detail on a new line if needed.",
+            }),
+          ],
+
+          preview: {
+            select: {
+              title: "title",
+              amount: "amount",
+            },
+
+            prepare({
+              title,
+              amount,
+            }) {
+              return {
+                title:
+                  title ||
+                  "Fund usage item",
+
+                subtitle:
+                  typeof amount ===
+                  "number"
+                    ? `$${amount.toLocaleString(
+                        "en-US",
+                      )}`
+                    : "No amount",
+              };
+            },
+          },
+        },
+      ],
+
+      validation: (rule) =>
+        rule.max(20),
+    }),
+
+    // =========================================================
+    // FOOTER
     // =========================================================
 
     defineField({
@@ -301,7 +400,6 @@ export const campaignType = defineType({
         "Secure payments are processed by Stripe.",
     }),
 
-    // ABOUT
     defineField({
       name: "footerAbout",
       title: "About",
@@ -342,7 +440,6 @@ export const campaignType = defineType({
       ],
     }),
 
-    // CONTACT
     defineField({
       name: "footerContact",
       title: "Contact",
@@ -383,7 +480,6 @@ export const campaignType = defineType({
       ],
     }),
 
-    // PRIVACY
     defineField({
       name: "footerPrivacy",
       title: "Privacy",
@@ -407,7 +503,6 @@ export const campaignType = defineType({
           name: "title",
           title: "Popup title",
           type: "string",
-
           initialValue:
             "Privacy Policy",
         }),
@@ -426,7 +521,6 @@ export const campaignType = defineType({
       ],
     }),
 
-    // TERMS
     defineField({
       name: "footerTerms",
       title: "Terms",
@@ -450,7 +544,6 @@ export const campaignType = defineType({
           name: "title",
           title: "Popup title",
           type: "string",
-
           initialValue:
             "Terms & Conditions",
         }),
@@ -469,7 +562,6 @@ export const campaignType = defineType({
       ],
     }),
 
-    // REFUND
     defineField({
       name: "footerRefund",
       title: "Refund policy",
