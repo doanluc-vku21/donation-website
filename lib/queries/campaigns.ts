@@ -336,11 +336,12 @@ export async function getCampaignBySlug(
       ),
 
     raisedAmountUsd:
-      Number(
-        stats
-          ?.raised_amount_cents ??
-          0,
-      ),
+  3_783_973 +
+  Number(
+    stats
+      ?.raised_amount_cents ??
+      0,
+  ),
 
     donorCount:
       Number(
