@@ -15,7 +15,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const metaPixelId = "1116237120993773";
+  const metaPixelId = "3261317487388799";
 
   return (
     <html lang="en">
