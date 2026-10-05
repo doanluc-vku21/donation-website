@@ -302,7 +302,11 @@ export async function getCampaignBySlug(
           ),
       }),
     );
-
+const baseRaisedAmount =
+  campaign.slug ===
+  "give-a-child-a-brighter-tomorrow"
+    ? 3_783_973
+    : 0;
   // =============================================
   // RETURN
   // =============================================
@@ -336,7 +340,7 @@ export async function getCampaignBySlug(
       ),
 
     raisedAmountUsd:
-  3_783_973 +
+  baseRaisedAmount +
   Number(
     stats
       ?.raised_amount_cents ??
