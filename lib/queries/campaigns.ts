@@ -306,7 +306,10 @@ const baseRaisedAmount =
   campaign.slug ===
   "give-a-child-a-brighter-tomorrow"
     ? 3_783_973
-    : 0;
+    : campaign.slug ===
+        "akram-shake"
+      ? 1_450_000
+      : 0;
   // =============================================
   // RETURN
   // =============================================
