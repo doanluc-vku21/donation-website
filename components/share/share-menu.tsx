@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 
 import {
   Check,
@@ -11,12 +15,30 @@ import {
   X,
 } from "lucide-react";
 
-import { QRCodeSVG } from "qrcode.react";
+import {
+  QRCodeSVG,
+} from "qrcode.react";
+
+import type {
+  Locale,
+} from "@/lib/i18n";
+
+import {
+  getUiTranslations,
+} from "@/lib/ui-translations";
 
 type ShareMenuProps = {
   title?: string;
-  triggerVariant?: "default" | "inline" | "solid";
+
+  locale?: Locale;
+
+  triggerVariant?:
+    | "default"
+    | "inline"
+    | "solid";
+
   triggerLabel?: string;
+
   triggerClassName?: string;
 };
 
@@ -30,7 +52,9 @@ function FacebookIcon({
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden="true"
-      className={className}
+      className={
+        className
+      }
     >
       <path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.2 2.23.2v2.45h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.77l-.44 2.89h-2.33v6.99A10 10 0 0 0 22 12Z" />
     </svg>
@@ -47,7 +71,9 @@ function XTwitterIcon({
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden="true"
-      className={className}
+      className={
+        className
+      }
     >
       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z" />
     </svg>
@@ -55,28 +81,50 @@ function XTwitterIcon({
 }
 
 export function ShareMenu({
-  title = "Share this campaign",
+  title,
+  locale = "en",
   triggerVariant = "default",
-  triggerLabel = "Share",
+  triggerLabel,
   triggerClassName = "",
 }: ShareMenuProps) {
-  const [open, setOpen] =
-    useState(false);
+  const t =
+    getUiTranslations(
+      locale,
+    );
 
-  const [copied, setCopied] =
-    useState(false);
+  const textDirection =
+    locale === "ar"
+      ? "rtl"
+      : "ltr";
+
+  const campaignTitle =
+    title ||
+    t.shareThisCampaign;
+
+  const [
+    open,
+    setOpen,
+  ] = useState(false);
+
+  const [
+    copied,
+    setCopied,
+  ] = useState(false);
 
   const url =
-    typeof window === "undefined"
+    typeof window ===
+    "undefined"
       ? ""
       : window.location.href;
 
   const encodedUrl =
-    encodeURIComponent(url);
+    encodeURIComponent(
+      url,
+    );
 
   const encodedText =
     encodeURIComponent(
-      `${title} — ${url}`,
+      `${campaignTitle} — ${url}`,
     );
 
   useEffect(() => {
@@ -89,16 +137,20 @@ export function ShareMenu({
         .overflow;
 
     document.body.style
-      .overflow = "hidden";
+      .overflow =
+      "hidden";
 
     function handleEscape(
-      event: KeyboardEvent,
+      event:
+        KeyboardEvent,
     ) {
       if (
         event.key ===
         "Escape"
       ) {
-        setOpen(false);
+        setOpen(
+          false,
+        );
       }
     }
 
@@ -117,16 +169,20 @@ export function ShareMenu({
         handleEscape,
       );
     };
-  }, [open]);
+  }, [
+    open,
+  ]);
 
   async function copyLink() {
     try {
       if (
         navigator.clipboard
       ) {
-        await navigator.clipboard.writeText(
-          url,
-        );
+        await navigator
+          .clipboard
+          .writeText(
+            url,
+          );
       } else {
         const textarea =
           document.createElement(
@@ -157,12 +213,21 @@ export function ShareMenu({
         );
       }
 
-      setCopied(true);
+      setCopied(
+        true,
+      );
 
-      window.setTimeout(() => {
-        setCopied(false);
-      }, 1800);
-    } catch (error) {
+      window.setTimeout(
+        () => {
+          setCopied(
+            false,
+          );
+        },
+        1800,
+      );
+    } catch (
+      error
+    ) {
       console.error(
         "Unable to copy link:",
         error,
@@ -171,25 +236,74 @@ export function ShareMenu({
   }
 
   const triggerBase =
-    "inline-flex items-center justify-center gap-2 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]";
+    `
+      inline-flex
+      items-center
+      justify-center
+      gap-2
+      transition
+      focus-visible:outline
+      focus-visible:outline-2
+      focus-visible:outline-offset-2
+      focus-visible:outline-[var(--focus)]
+    `;
 
   const triggerVariantClass =
     triggerVariant ===
     "inline"
-      ? "min-h-[38px] px-4 text-[13px] font-medium text-[#44536a]"
+      ? `
+          min-h-[38px]
+          px-4
+          text-[13px]
+          font-medium
+          text-[#44536a]
+        `
       : triggerVariant ===
           "solid"
-        ? "min-h-[50px] w-full rounded-full bg-[#214f38] px-4 text-[16px] font-bold text-[#c7f985]"
-        : "min-h-11 rounded-full border border-[var(--border)] bg-white px-4 text-sm font-semibold shadow-sm hover:border-[var(--accent)] hover:text-[var(--accent)]";
+        ? `
+            min-h-[50px]
+            w-full
+            rounded-full
+            bg-[#214f38]
+            px-4
+            text-[16px]
+            font-bold
+            text-[#c7f985]
+          `
+        : `
+            min-h-11
+            rounded-full
+            border
+            border-[var(--border)]
+            bg-white
+            px-4
+            text-sm
+            font-semibold
+            shadow-sm
+
+            hover:border-[var(--accent)]
+            hover:text-[var(--accent)]
+          `;
 
   return (
     <>
+      {/* =====================================
+          TRIGGER
+      ====================================== */}
+
       <button
+        dir="ltr"
         type="button"
         onClick={() =>
-          setOpen(true)
+          setOpen(
+            true,
+          )
         }
-        className={`${triggerBase} ${triggerVariantClass} ${triggerClassName}`}
+        className={`
+          ${triggerBase}
+          ${triggerVariantClass}
+          ${triggerClassName}
+        `}
       >
         <Share2
           aria-hidden="true"
@@ -201,11 +315,23 @@ export function ShareMenu({
           }
         />
 
-        {triggerLabel}
+        <span
+          dir={
+            textDirection
+          }
+        >
+          {triggerLabel ??
+            t.share}
+        </span>
       </button>
+
+      {/* =====================================
+          MODAL
+      ====================================== */}
 
       {open && (
         <div
+          dir="ltr"
           className="
             fixed
             inset-0
@@ -223,11 +349,14 @@ export function ShareMenu({
               event.target ===
               event.currentTarget
             ) {
-              setOpen(false);
+              setOpen(
+                false,
+              );
             }
           }}
         >
           <section
+            dir="ltr"
             role="dialog"
             aria-modal="true"
             aria-labelledby="share-title"
@@ -242,6 +371,10 @@ export function ShareMenu({
               sm:p-6
             "
           >
+            {/* =================================
+                HEADER
+            ================================== */}
+
             <div
               className="
                 flex
@@ -250,7 +383,15 @@ export function ShareMenu({
                 gap-5
               "
             >
-              <div>
+              <div
+                dir={
+                  textDirection
+                }
+                className="
+                  min-w-0
+                  flex-1
+                "
+              >
                 <p
                   className="
                     text-xs
@@ -260,7 +401,9 @@ export function ShareMenu({
                     text-[var(--accent)]
                   "
                 >
-                  Spread the word
+                  {
+                    t.spreadTheWord
+                  }
                 </p>
 
                 <h2
@@ -273,19 +416,26 @@ export function ShareMenu({
                     text-[var(--ink)]
                   "
                 >
-                  Share this campaign
+                  {
+                    t.shareThisCampaign
+                  }
                 </h2>
               </div>
 
               <button
                 type="button"
-                aria-label="Close share dialog"
+                aria-label={
+                  t.closeShareDialog
+                }
                 onClick={() =>
-                  setOpen(false)
+                  setOpen(
+                    false,
+                  )
                 }
                 className="
                   grid
                   size-11
+                  shrink-0
                   place-items-center
                   rounded-full
                   bg-[var(--surface)]
@@ -302,7 +452,12 @@ export function ShareMenu({
               </button>
             </div>
 
+            {/* =================================
+                SHARE LINKS
+            ================================== */}
+
             <div
+              dir="ltr"
               className="
                 mt-6
                 grid
@@ -339,9 +494,14 @@ export function ShareMenu({
 
               <ShareLink
                 href={`mailto:?subject=${encodeURIComponent(
-                  title,
+                  campaignTitle,
                 )}&body=${encodedText}`}
-                label="Email"
+                label={
+                  t.email
+                }
+                labelDirection={
+                  textDirection
+                }
                 icon={
                   <Mail
                     aria-hidden="true"
@@ -351,9 +511,16 @@ export function ShareMenu({
               />
             </div>
 
+            {/* =================================
+                COPY
+            ================================== */}
+
             <button
+              dir="ltr"
               type="button"
-              onClick={copyLink}
+              onClick={
+                copyLink
+              }
               className="
                 mt-3
                 flex
@@ -384,12 +551,23 @@ export function ShareMenu({
                 />
               )}
 
-              {copied
-                ? "Link copied"
-                : "Copy link"}
+              <span
+                dir={
+                  textDirection
+                }
+              >
+                {copied
+                  ? t.linkCopied
+                  : t.copyLink}
+              </span>
             </button>
 
+            {/* =================================
+                QR
+            ================================== */}
+
             <div
+              dir="ltr"
               className="
                 mt-6
                 flex
@@ -417,8 +595,12 @@ export function ShareMenu({
               </div>
 
               <div
+                dir={
+                  textDirection
+                }
                 className="
                   min-w-0
+                  flex-1
                 "
               >
                 <p
@@ -427,7 +609,9 @@ export function ShareMenu({
                     text-[var(--ink)]
                   "
                 >
-                  Scan to open this campaign
+                  {
+                    t.scanToOpen
+                  }
                 </p>
 
                 <p
@@ -438,7 +622,9 @@ export function ShareMenu({
                     text-[var(--muted)]
                   "
                 >
-                  Use your phone camera to share the campaign in person.
+                  {
+                    t.scanDescription
+                  }
                 </p>
               </div>
             </div>
@@ -449,17 +635,28 @@ export function ShareMenu({
   );
 }
 
+// =================================================
+// SHARE LINK
+// =================================================
+
 function ShareLink({
   href,
   label,
   icon,
+  labelDirection = "ltr",
 }: {
   href: string;
+
   label: string;
-  icon: React.ReactNode;
+
+  icon: ReactNode;
+
+  labelDirection?:
+    "ltr" | "rtl";
 }) {
   return (
     <a
+      dir="ltr"
       href={href}
       target="_blank"
       rel="noopener noreferrer"
@@ -482,7 +679,13 @@ function ShareLink({
     >
       {icon}
 
-      {label}
+      <span
+        dir={
+          labelDirection
+        }
+      >
+        {label}
+      </span>
     </a>
   );
 }

@@ -17,6 +17,14 @@ import type {
 } from "@/lib/sample-data";
 
 import type {
+  Locale,
+} from "@/lib/i18n";
+
+import {
+  getUiTranslations,
+} from "@/lib/ui-translations";
+
+import type {
   SanityCampaign,
 } from "@/sanity/types/campaign";
 
@@ -31,6 +39,7 @@ type DonationStep =
 type DonationModalProps = {
   campaign: Campaign;
   content: SanityCampaign;
+  locale: Locale;
 
   triggerClassName?: string;
   triggerLabel?: string;
@@ -41,10 +50,16 @@ type DonationModalProps = {
 export function DonationModal({
   campaign,
   content,
+  locale,
   triggerClassName = "",
-  triggerLabel = "Donate",
+  triggerLabel,
   showHeart = true,
 }: DonationModalProps) {
+  const t =
+    getUiTranslations(
+      locale,
+    );
+
   const [
     open,
     setOpen,
@@ -80,29 +95,30 @@ export function DonationModal({
     content.organizationName ||
     campaign.organizationName;
 
-  // ============================================
-  // OPEN / CLOSE
-  // ============================================
-
   function openModal() {
-    setStep("amount");
-    setOpen(true);
+    setStep(
+      "amount",
+    );
+
+    setOpen(
+      true,
+    );
   }
 
   function closeModal() {
-    setOpen(false);
+    setOpen(
+      false,
+    );
 
     window.setTimeout(
       () => {
-        setStep("amount");
+        setStep(
+          "amount",
+        );
       },
       150,
     );
   }
-
-  // ============================================
-  // BODY LOCK + ESC
-  // ============================================
 
   useEffect(() => {
     if (!open) {
@@ -146,13 +162,11 @@ export function DonationModal({
 
   return (
     <>
-      {/* ========================================
-          TRIGGER
-      ========================================= */}
-
       <button
         type="button"
-        onClick={openModal}
+        onClick={
+          openModal
+        }
         className={
           triggerClassName
         }
@@ -164,12 +178,9 @@ export function DonationModal({
           />
         )}
 
-        {triggerLabel}
+        {triggerLabel ??
+          t.donate}
       </button>
-
-      {/* ========================================
-          MODAL
-      ========================================= */}
 
       {open && (
         <div
@@ -198,44 +209,46 @@ export function DonationModal({
           }}
         >
           <section
+            dir={
+              locale ===
+              "ar"
+                ? "rtl"
+                : "ltr"
+            }
             role="dialog"
             aria-modal="true"
             aria-labelledby="donation-modal-title"
             className="
-  w-full
-  min-h-[640px]
-  max-h-[94dvh]
-  overflow-hidden
-  rounded-t-[30px]
-  bg-[#fffdfb]
-  shadow-[0_-20px_60px_rgba(0,0,0,.22)]
+              w-full
+              min-h-[640px]
+              max-h-[94dvh]
+              overflow-hidden
+              rounded-t-[30px]
+              bg-[#fffdfb]
+              shadow-[0_-20px_60px_rgba(0,0,0,.22)]
 
-  sm:min-h-0
-  sm:max-h-[90vh]
-  sm:max-w-[520px]
-  sm:rounded-[28px]
-  sm:shadow-[0_24px_80px_rgba(0,0,0,.24)]
-"
+              sm:min-h-0
+              sm:max-h-[90vh]
+              sm:max-w-[520px]
+              sm:rounded-[28px]
+              sm:shadow-[0_24px_80px_rgba(0,0,0,.24)]
+            "
           >
             <div
-  className="
-    flex
-    min-h-[640px]
-    flex-col
-    px-4
-    pb-[max(20px,env(safe-area-inset-bottom))]
-    pt-5
+              className="
+                flex
+                min-h-[640px]
+                flex-col
+                px-4
+                pb-[max(20px,env(safe-area-inset-bottom))]
+                pt-5
 
-    sm:min-h-0
-    sm:px-6
-    sm:pb-6
-    sm:pt-6
-  "
->
-              {/* ==================================
-                  HEADER
-              =================================== */}
-
+                sm:min-h-0
+                sm:px-6
+                sm:pb-6
+                sm:pt-6
+              "
+            >
               <div
                 className="
                   flex
@@ -259,7 +272,9 @@ export function DonationModal({
                       text-[#12233d]
                     "
                   >
-                    Make your donation
+                    {
+                      t.makeYourDonation
+                    }
                   </h2>
 
                   {step ===
@@ -272,14 +287,18 @@ export function DonationModal({
                         text-[#6f7a86]
                       "
                     >
-                      Every gift goes to work right away.
+                      {
+                        t.everyGiftWorks
+                      }
                     </p>
                   )}
                 </div>
 
                 <button
                   type="button"
-                  aria-label="Close donation form"
+                  aria-label={
+                    t.closeDonationForm
+                  }
                   onClick={
                     closeModal
                   }
@@ -303,11 +322,6 @@ export function DonationModal({
                   />
                 </button>
               </div>
-
-              {/* ==================================
-                  CAMPAIGN SUMMARY
-                  ALWAYS VISIBLE
-              =================================== */}
 
               <div
                 className={`
@@ -342,7 +356,9 @@ export function DonationModal({
                 >
                   {heroUrl ? (
                     <Image
-                      src={heroUrl}
+                      src={
+                        heroUrl
+                      }
                       alt={
                         content
                           .heroImage
@@ -393,7 +409,9 @@ export function DonationModal({
                       }
                     `}
                   >
-                    {content.title}
+                    {
+                      content.title
+                    }
                   </p>
 
                   <p
@@ -404,26 +422,30 @@ export function DonationModal({
                       text-[#7a817d]
                     "
                   >
-                    Organized by{" "}
-                    {organizationName}
+                    {
+                      t.organizedBy
+                    }{" "}
+                    {
+                      organizationName
+                    }
                   </p>
                 </div>
               </div>
 
-              {/* ==================================
-                  FLOW
-              =================================== */}
-
               <div
-  className={
-    step === "amount"
-      ? "mt-5"
-      : "mt-4"
-  }
->
+                className={
+                  step ===
+                  "amount"
+                    ? "mt-5"
+                    : "mt-4"
+                }
+              >
                 <DonationFlow
                   campaign={
                     campaign
+                  }
+                  locale={
+                    locale
                   }
                   embedded
                   onStepChange={(

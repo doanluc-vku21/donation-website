@@ -7,6 +7,14 @@ import type {
 } from "@/lib/sample-data";
 
 import type {
+  Locale,
+} from "@/lib/i18n";
+
+import {
+  getUiTranslations,
+} from "@/lib/ui-translations";
+
+import type {
   SanityCampaign,
 } from "@/sanity/types/campaign";
 
@@ -26,12 +34,24 @@ import {
 type CampaignDonateCardProps = {
   campaign: Campaign;
   content: SanityCampaign;
+  locale: Locale;
 };
 
 export function CampaignDonateCard({
   campaign,
   content,
+  locale,
 }: CampaignDonateCardProps) {
+  const t =
+    getUiTranslations(
+      locale,
+    );
+
+  const textDirection =
+    locale === "ar"
+      ? "rtl"
+      : "ltr";
+
   const progress =
     progressPercent(
       campaign.raisedAmountUsd,
@@ -39,10 +59,13 @@ export function CampaignDonateCard({
     );
 
   const latestDonation =
-    campaign.recentDonations?.[0];
+    campaign
+      .recentDonations
+      ?.[0];
 
   return (
     <section
+      dir="ltr"
       className="
         w-full
         rounded-[24px]
@@ -53,7 +76,9 @@ export function CampaignDonateCard({
         shadow-[0_18px_50px_rgba(15,35,60,0.08)]
       "
     >
-      {/* PROGRESS */}
+      {/* =====================================
+          PROGRESS
+      ====================================== */}
 
       <div
         className="
@@ -90,6 +115,7 @@ export function CampaignDonateCard({
             "
           >
             <strong
+              dir="ltr"
               className="
                 text-[15px]
                 font-bold
@@ -101,9 +127,15 @@ export function CampaignDonateCard({
           </div>
         </div>
 
+        {/* TEXT ONLY RTL */}
+
         <div
+          dir={
+            textDirection
+          }
           className="
             min-w-0
+            flex-1
             pt-1
           "
         >
@@ -116,10 +148,17 @@ export function CampaignDonateCard({
               text-[#162338]
             "
           >
-            {formatUsd(
-              campaign.raisedAmountUsd,
-            )}{" "}
-            raised{" "}
+            <span
+              dir="ltr"
+              className="inline-block"
+            >
+              {formatUsd(
+                campaign
+                  .raisedAmountUsd,
+              )}
+            </span>{" "}
+
+            {t.raised}{" "}
 
             <span
               className="
@@ -127,13 +166,15 @@ export function CampaignDonateCard({
                 text-[#6e7a8b]
               "
             >
-              of
+              {t.of}
             </span>
           </p>
 
           <p
+            dir="ltr"
             className="
               mt-1
+              inline-block
               text-[16px]
               text-[#647187]
               underline
@@ -142,7 +183,8 @@ export function CampaignDonateCard({
             "
           >
             {formatUsd(
-              campaign.goalAmountUsd,
+              campaign
+                .goalAmountUsd,
             ).replace(
               ".00",
               "",
@@ -159,27 +201,44 @@ export function CampaignDonateCard({
               "
             >
               {
-                latestDonation.displayName
+                latestDonation
+                  .displayName
               }{" "}
-              donated{" "}
 
-              {formatUsd(
-                latestDonation.amountUsd,
-              ).replace(
-                ".00",
-                "",
-              )}
+              {t.donated}{" "}
+
+              <span
+                dir="ltr"
+                className="inline-block"
+              >
+                {formatUsd(
+                  latestDonation
+                    .amountUsd,
+                ).replace(
+                  ".00",
+                  "",
+                )}
+              </span>
             </p>
           )}
         </div>
       </div>
 
-      {/* DONATE POPUP */}
+      {/* =====================================
+          DONATE
+      ====================================== */}
 
       <div className="mt-6">
         <DonationModal
-          campaign={campaign}
-          content={content}
+          campaign={
+            campaign
+          }
+          content={
+            content
+          }
+          locale={
+            locale
+          }
           triggerClassName="
             flex
             min-h-[52px]
@@ -202,7 +261,9 @@ export function CampaignDonateCard({
         />
       </div>
 
-      {/* SHARE */}
+      {/* =====================================
+          SHARE
+      ====================================== */}
 
       <div
         className="
@@ -215,12 +276,18 @@ export function CampaignDonateCard({
           title={
             content.title
           }
+          locale={
+            locale
+          }
         />
       </div>
 
-      {/* SECURE */}
+      {/* =====================================
+          SECURE
+      ====================================== */}
 
       <div
+        dir="ltr"
         className="
           mt-5
           flex
@@ -237,10 +304,21 @@ export function CampaignDonateCard({
       >
         <LockKeyhole
           aria-hidden="true"
-          className="size-4"
+          className="
+            size-4
+            shrink-0
+          "
         />
 
-        Secure payment through Stripe
+        <span
+          dir={
+            textDirection
+          }
+        >
+          {
+            t.securePaymentThroughStripe
+          }
+        </span>
       </div>
     </section>
   );

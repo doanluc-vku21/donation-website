@@ -1,12 +1,34 @@
-import { notFound } from "next/navigation";
+import {
+  notFound,
+} from "next/navigation";
 
-import { CampaignPage } from "@/components/campaign/campaign-page";
+import {
+  CampaignPage,
+} from "@/components/campaign/campaign-page";
 
-import { getCampaignBySlug } from "@/lib/queries/campaigns";
+import {
+  getLocale,
+} from "@/lib/i18n-server";
 
-import { sanityClient } from "@/sanity/lib/client";
-import { CAMPAIGN_QUERY } from "@/sanity/lib/queries";
-import type { SanityCampaign } from "@/sanity/types/campaign";
+import {
+  localizeCampaign,
+} from "@/lib/localize-campaign";
+
+import {
+  getCampaignBySlug,
+} from "@/lib/queries/campaigns";
+
+import {
+  sanityClient,
+} from "@/sanity/lib/client";
+
+import {
+  CAMPAIGN_QUERY,
+} from "@/sanity/lib/queries";
+
+import type {
+  SanityCampaign,
+} from "@/sanity/types/campaign";
 
 const CAMPAIGN_SLUG =
   "akram-shake";
@@ -17,6 +39,10 @@ export const dynamic =
 export const revalidate = 0;
 
 export default async function AkramShakePage() {
+  // =========================================================
+  // SUPABASE CAMPAIGN DATA
+  // =========================================================
+
   const campaign =
     await getCampaignBySlug(
       CAMPAIGN_SLUG,
@@ -26,14 +52,20 @@ export default async function AkramShakePage() {
     notFound();
   }
 
+  // =========================================================
+  // SANITY CONTENT
+  // =========================================================
+
   const content =
     await sanityClient.fetch<SanityCampaign>(
       CAMPAIGN_QUERY,
       {
-        slug: CAMPAIGN_SLUG,
+        slug:
+          CAMPAIGN_SLUG,
       },
       {
-        cache: "no-store",
+        cache:
+          "no-store",
       },
     );
 
@@ -41,10 +73,38 @@ export default async function AkramShakePage() {
     notFound();
   }
 
+  // =========================================================
+  // CURRENT LANGUAGE
+  // =========================================================
+
+  const locale =
+    await getLocale();
+
+  // =========================================================
+  // LOCALIZED SANITY CONTENT
+  // =========================================================
+
+  const localizedContent =
+    localizeCampaign(
+      content,
+      locale,
+    );
+
+  // =========================================================
+  // PAGE
+  // =========================================================
+
   return (
     <CampaignPage
-      campaign={campaign}
-      content={content}
+      campaign={
+        campaign
+      }
+      content={
+        localizedContent
+      }
+      locale={
+        locale
+      }
     />
   );
 }

@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@portabletext/react": "^8.0.1",
+    "@sanity/assist": "^6.2.2",
     "@sanity/image-url": "^2.1.1",
     "@sanity/vision": "^5.31.2",
     "@supabase/supabase-js": "^2.116.0",
+    "dotenv": "^18.0.5",
     "lucide-react": "^1.45.0",
     "next": "^16.3.5",
     "next-sanity": "^13.3.4",
@@ -40,6 +42,7 @@
     "jsdom": "^30.0.1",
     "supabase": "^2.117.0",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.0"
   }

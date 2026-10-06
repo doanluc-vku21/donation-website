@@ -6,26 +6,178 @@ import {
   stripe,
 } from "@/lib/stripe/server";
 
+import {
+  isLocale,
+  type Locale,
+} from "@/lib/i18n";
+
 type DonationFrequency =
   | "one_time"
   | "monthly";
 
+type StripeSupportedLocale =
+  | "en"
+  | "fr"
+  | "de"
+  | "es";
+
 type CheckoutBody = {
   campaignId: string;
+
+  campaignSlug: string;
+
   amountCents: number;
+
   coverFee: boolean;
 
   frequency:
     DonationFrequency;
 
+  locale:
+    Locale;
+
   donor: {
-    firstName: string;
-    lastName: string;
-    email: string;
+    firstName:
+      string;
+
+    lastName:
+      string;
+
+    email:
+      string;
 
     displayPublicly:
       boolean;
   };
+};
+
+// =========================================================
+// PUBLIC CAMPAIGN PATH
+// =========================================================
+
+function getCampaignPublicPath(
+  campaignSlug: string,
+) {
+  switch (
+    campaignSlug
+  ) {
+    case "give-a-child-a-brighter-tomorrow":
+      return "/gaza-food";
+
+    case "akram-shake":
+      return "/akram-shake";
+
+    default:
+      return `/${campaignSlug}`;
+  }
+}
+
+// =========================================================
+// STRIPE PRODUCT TRANSLATIONS
+// =========================================================
+
+const stripeProductTranslations:
+  Record<
+    StripeSupportedLocale,
+    {
+      monthlyName:
+        string;
+
+      oneTimeName:
+        string;
+
+      monthlyWithFeeDescription:
+        string;
+
+      oneTimeWithFeeDescription:
+        string;
+
+      monthlyDescription:
+        string;
+
+      oneTimeDescription:
+        string;
+    }
+  > = {
+  en: {
+    monthlyName:
+      "Monthly donation",
+
+    oneTimeName:
+      "One-time donation",
+
+    monthlyWithFeeDescription:
+      "Monthly donation including transaction cost contribution",
+
+    oneTimeWithFeeDescription:
+      "One-time donation including transaction cost contribution",
+
+    monthlyDescription:
+      "Monthly campaign donation",
+
+    oneTimeDescription:
+      "One-time campaign donation",
+  },
+
+  fr: {
+    monthlyName:
+      "Don mensuel",
+
+    oneTimeName:
+      "Don unique",
+
+    monthlyWithFeeDescription:
+      "Don mensuel incluant une contribution aux frais de transaction",
+
+    oneTimeWithFeeDescription:
+      "Don unique incluant une contribution aux frais de transaction",
+
+    monthlyDescription:
+      "Don mensuel à la campagne",
+
+    oneTimeDescription:
+      "Don unique à la campagne",
+  },
+
+  de: {
+    monthlyName:
+      "Monatliche Spende",
+
+    oneTimeName:
+      "Einmalige Spende",
+
+    monthlyWithFeeDescription:
+      "Monatliche Spende einschließlich eines Beitrags zu den Transaktionskosten",
+
+    oneTimeWithFeeDescription:
+      "Einmalige Spende einschließlich eines Beitrags zu den Transaktionskosten",
+
+    monthlyDescription:
+      "Monatliche Kampagnenspende",
+
+    oneTimeDescription:
+      "Einmalige Kampagnenspende",
+  },
+
+  es: {
+    monthlyName:
+      "Donación mensual",
+
+    oneTimeName:
+      "Donación única",
+
+    monthlyWithFeeDescription:
+      "Donación mensual que incluye una contribución a los gastos de transacción",
+
+    oneTimeWithFeeDescription:
+      "Donación única que incluye una contribución a los gastos de transacción",
+
+    monthlyDescription:
+      "Donación mensual a la campaña",
+
+    oneTimeDescription:
+      "Donación única a la campaña",
+  },
 };
 
 export async function POST(
@@ -37,9 +189,11 @@ export async function POST(
 
     const {
       campaignId,
+      campaignSlug,
       amountCents,
       coverFee,
       frequency,
+      locale,
       donor,
     } = body;
 
@@ -58,6 +212,63 @@ export async function POST(
         },
       );
     }
+
+    // =========================================================
+    // VALIDATE CAMPAIGN SLUG
+    // =========================================================
+
+    if (
+      !campaignSlug ||
+      !/^[a-z0-9-]+$/.test(
+        campaignSlug,
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid campaign slug.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    // =========================================================
+    // PUBLIC CAMPAIGN PATH
+    // =========================================================
+
+    const campaignPath =
+      getCampaignPublicPath(
+        campaignSlug,
+      );
+
+    // =========================================================
+    // LOCALE
+    // =========================================================
+
+    const siteLocale:
+      Locale =
+      isLocale(
+        locale,
+      )
+        ? locale
+        : "en";
+
+    // Stripe Checkout không hỗ trợ Arabic.
+    // Arabic trên website vẫn được giữ trong metadata.
+    // Stripe riêng sẽ fallback sang English.
+
+    const stripeLocale:
+      StripeSupportedLocale =
+      siteLocale === "ar"
+        ? "en"
+        : siteLocale;
+
+    const stripeText =
+      stripeProductTranslations[
+        stripeLocale
+      ];
 
     // =========================================================
     // VALIDATE DONATION AMOUNT
@@ -106,9 +317,15 @@ export async function POST(
     // =========================================================
 
     if (
-      !donor?.firstName?.trim() ||
-      !donor?.lastName?.trim() ||
-      !donor?.email?.trim()
+      !donor
+        ?.firstName
+        ?.trim() ||
+      !donor
+        ?.lastName
+        ?.trim() ||
+      !donor
+        ?.email
+        ?.trim()
     ) {
       return NextResponse.json(
         {
@@ -194,6 +411,19 @@ export async function POST(
       campaign_id:
         campaignId,
 
+      // DB slug
+      campaign_slug:
+        campaignSlug,
+
+      // Public website path
+      campaign_path:
+        campaignPath,
+
+      // Giữ locale website thật.
+      // Arabic vẫn là "ar".
+      locale:
+        siteLocale,
+
       donation_amount_cents:
         String(
           amountCents,
@@ -230,7 +460,38 @@ export async function POST(
     };
 
     // =========================================================
-    // STRIPE SESSION
+    // PRODUCT NAME
+    // =========================================================
+
+    const productName =
+      frequency ===
+      "monthly"
+        ? stripeText
+            .monthlyName
+        : stripeText
+            .oneTimeName;
+
+    // =========================================================
+    // PRODUCT DESCRIPTION
+    // =========================================================
+
+    const productDescription =
+      coverFee
+        ? frequency ===
+          "monthly"
+          ? stripeText
+              .monthlyWithFeeDescription
+          : stripeText
+              .oneTimeWithFeeDescription
+        : frequency ===
+          "monthly"
+          ? stripeText
+              .monthlyDescription
+          : stripeText
+              .oneTimeDescription;
+
+    // =========================================================
+    // CREATE STRIPE SESSION
     // =========================================================
 
     const session =
@@ -242,8 +503,23 @@ export async function POST(
               ? "subscription"
               : "payment",
 
+          // =====================================
+          // STRIPE LOCALE
+          // =====================================
+
+          locale:
+            stripeLocale,
+
+          // =====================================
+          // CUSTOMER
+          // =====================================
+
           customer_email:
             email,
+
+          // =====================================
+          // LINE ITEM
+          // =====================================
 
           line_items: [
             {
@@ -267,40 +543,38 @@ export async function POST(
                     }
                   : {}),
 
-                product_data:
-                  {
-                    name:
-                      frequency ===
-                      "monthly"
-                        ? "Monthly donation"
-                        : "One-time donation",
+                product_data: {
+                  name:
+                    productName,
 
-                    description:
-                      coverFee
-                        ? frequency ===
-                          "monthly"
-                          ? "Monthly donation including transaction cost contribution"
-                          : "One-time donation including transaction cost contribution"
-                        : frequency ===
-                          "monthly"
-                          ? "Monthly campaign donation"
-                          : "One-time campaign donation",
-                  },
+                  description:
+                    productDescription,
+                },
               },
             },
           ],
 
-          // =====================================
+          // ===================================================
           // REDIRECT
-          // =====================================
+          // ===================================================
 
           success_url:
             `${siteUrl}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
 
+          // Quan trọng:
+          // dùng campaignPath, không dùng campaignSlug
           cancel_url:
-            `${siteUrl}/gaza-food#donation-panel`,
+            `${siteUrl}${campaignPath}#donation-panel`,
+
+          // ===================================================
+          // METADATA
+          // ===================================================
 
           metadata,
+
+          // ===================================================
+          // SUBSCRIPTION METADATA
+          // ===================================================
 
           ...(frequency ===
           "monthly"
@@ -314,11 +588,19 @@ export async function POST(
         },
       );
 
+    // =========================================================
+    // VALIDATE SESSION URL
+    // =========================================================
+
     if (!session.url) {
       throw new Error(
         "Stripe Checkout URL was not created.",
       );
     }
+
+    // =========================================================
+    // RESPONSE
+    // =========================================================
 
     return NextResponse.json(
       {
@@ -335,7 +617,9 @@ export async function POST(
             : "payment",
       },
     );
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "Stripe checkout error:",
       error,

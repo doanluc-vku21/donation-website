@@ -12,6 +12,13 @@ export const CAMPAIGN_QUERY =
       _id,
 
       title,
+      titleI18n {
+  en,
+  fr,
+  de,
+  es,
+  ar
+},
 
       "slug": slug.current,
 
@@ -35,6 +42,21 @@ export const CAMPAIGN_QUERY =
 
       eyebrow,
       summary,
+      eyebrowI18n {
+  en,
+  fr,
+  de,
+  es,
+  ar
+},
+
+summaryI18n {
+  en,
+  fr,
+  de,
+  es,
+  ar
+},
 
       heroImage {
         asset-> {
@@ -55,7 +77,29 @@ export const CAMPAIGN_QUERY =
       // =====================================
       // STORY
       // =====================================
+storyEyebrowI18n {
+  en,
+  fr,
+  de,
+  es,
+  ar
+},
 
+storyHeadingI18n {
+  en,
+  fr,
+  de,
+  es,
+  ar
+},
+
+storyI18n {
+  en,
+  fr,
+  de,
+  es,
+  ar
+},
       storyEyebrow,
       storyHeading,
       story,
@@ -78,56 +122,233 @@ export const CAMPAIGN_QUERY =
       // =====================================
       // FUND USAGE
       // =====================================
+fundUsageTitleI18n {
+  en,
+  fr,
+  de,
+  es,
+  ar
+},
 
+fundUsageSubtitleI18n {
+  en,
+  fr,
+  de,
+  es,
+  ar
+},
       fundUsageTitle,
       fundUsageSubtitle,
 
-      fundUsageItems[] {
-        _key,
-        itemType,
-        amount,
-        title,
-        description,
-        content
-      },
+     fundUsageItems[] {
+  _key,
+  itemType,
+  amount,
+
+  title,
+  description,
+  content,
+
+  titleI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  },
+
+  descriptionI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  },
+
+  contentI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  }
+},
 
       // =====================================
       // FOOTER
       // =====================================
 
       footerOrganizationName,
-      footerSubtitle,
-      footerSecureText,
 
-      footerAbout {
-        label,
-        title,
-        content
-      },
+footerSubtitle,
 
-      footerContact {
-        label,
-        title,
-        content
-      },
+footerSubtitleI18n {
+  en,
+  fr,
+  de,
+  es,
+  ar
+},
 
-      footerPrivacy {
-        label,
-        title,
-        content
-      },
+footerSecureText,
 
-      footerTerms {
-        label,
-        title,
-        content
-      },
+footerSecureTextI18n {
+  en,
+  fr,
+  de,
+  es,
+  ar
+},
 
-      footerRefund {
-        label,
-        title,
-        content
-      },
+footerAbout {
+  label,
+  title,
+  content,
+
+  labelI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  },
+
+  titleI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  },
+
+  contentI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  }
+},
+
+footerContact {
+  label,
+  title,
+  content,
+
+  labelI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  },
+
+  titleI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  },
+
+  contentI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  }
+},
+
+footerPrivacy {
+  label,
+  title,
+  content,
+
+  labelI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  },
+
+  titleI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  },
+
+  contentI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  }
+},
+
+footerTerms {
+  label,
+  title,
+  content,
+
+  labelI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  },
+
+  titleI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  },
+
+  contentI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  }
+},
+
+footerRefund {
+  label,
+  title,
+  content,
+
+  labelI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  },
+
+  titleI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  },
+
+  contentI18n {
+    en,
+    fr,
+    de,
+    es,
+    ar
+  }
+},
 
       // =====================================
       // DONATION
@@ -139,7 +360,21 @@ export const CAMPAIGN_QUERY =
       // =====================================
       // SEO
       // =====================================
+seoTitleI18n {
+  en,
+  fr,
+  de,
+  es,
+  ar
+},
 
+seoDescriptionI18n {
+  en,
+  fr,
+  de,
+  es,
+  ar
+},
       seoTitle,
       seoDescription
     }

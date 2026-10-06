@@ -8,20 +8,24 @@ export const campaignType = defineType({
   title: "Campaign",
   type: "document",
 
-  groups: [
-    {
-      name: "story",
-      title: "Story",
-    },
-    {
-      name: "fundUsage",
-      title: "Fund Usage",
-    },
-    {
-      name: "footer",
-      title: "Footer",
-    },
-  ],
+groups: [
+  {
+    name: "story",
+    title: "Story",
+  },
+  {
+    name: "fundUsage",
+    title: "Fund Usage",
+  },
+  {
+    name: "footer",
+    title: "Footer",
+  },
+  {
+    name: "translations",
+    title: "Translations",
+  },
+],
 
   fields: [
     // =========================================================
@@ -271,262 +275,322 @@ export const campaignType = defineType({
         "The organizer’s plan for the campaign goal.",
     }),
 
-    defineField({
-      name: "fundUsageItems",
-      title: "Fund usage items",
-      type: "array",
-      group: "fundUsage",
+defineField({
+  name: "fundUsageItems",
+  title: "Fund usage items",
+  type: "array",
+  group: "fundUsage",
 
-      of: [
-        {
-          type: "object",
-          name: "fundUsageItem",
-          title: "Fund usage item",
+  of: [
+    {
+      type: "object",
+      name: "fundUsageItem",
+      title: "Fund usage item",
 
-          fields: [
-            // =====================================
-            // TYPE
-            // =====================================
+      fields: [
+        // =====================================
+        // TYPE
+        // =====================================
 
-            defineField({
-              name: "itemType",
-              title: "Item type",
-              type: "string",
+        defineField({
+          name: "itemType",
+          title: "Item type",
+          type: "string",
 
-              initialValue:
-                "allocation",
+          initialValue:
+            "allocation",
 
-              options: {
-                layout: "radio",
+          options: {
+            layout: "radio",
 
-                list: [
-                  {
-                    title:
-                      "Allocation — Amount + title + description",
-                    value:
-                      "allocation",
-                  },
-                  {
-                    title:
-                      "Title + Text — No amount",
-                    value:
-                      "text",
-                  },
-                ],
-              },
-            }),
-
-            // =====================================
-            // AMOUNT
-            // Allocation only
-            // =====================================
-
-            defineField({
-              name: "amount",
-              title: "Amount",
-              type: "number",
-
-              description:
-                "Enter amount in dollars. Example: 3000",
-
-              hidden: ({
-                parent,
-              }) =>
-                parent?.itemType ===
-                "text",
-
-              validation: (rule) =>
-                rule.custom(
-                  (
-                    value,
-                    context,
-                  ) => {
-                    const parent =
-                      context.parent as
-                        | {
-                            itemType?: string;
-                          }
-                        | undefined;
-
-                    if (
-                      parent?.itemType ===
-                      "text"
-                    ) {
-                      return true;
-                    }
-
-                    if (
-                      typeof value !==
-                        "number" ||
-                      value < 0
-                    ) {
-                      return "Amount is required for Allocation items.";
-                    }
-
-                    return true;
-                  },
-                ),
-            }),
-
-            // =====================================
-            // TITLE
-            // Used by BOTH types
-            // =====================================
-
-            defineField({
-              name: "title",
-              title: "Title",
-              type: "string",
-
-              validation: (rule) =>
-                rule.custom(
-                  (value) => {
-                    if (
-                      !value?.trim()
-                    ) {
-                      return "Title is required.";
-                    }
-
-                    return true;
-                  },
-                ),
-            }),
-
-            // =====================================
-            // DESCRIPTION
-            // Allocation only
-            // =====================================
-
-            defineField({
-              name: "description",
-              title: "Description",
-              type: "text",
-              rows: 6,
-
-              description:
-                "Put each detail on a new line if needed.",
-
-              hidden: ({
-                parent,
-              }) =>
-                parent?.itemType ===
-                "text",
-            }),
-
-            // =====================================
-            // TEXT CONTENT
-            // Title + Text only
-            // =====================================
-
-            defineField({
-              name: "content",
-              title: "Text",
-              type: "text",
-              rows: 6,
-
-              description:
-                "Main text content. No amount will be shown.",
-
-              hidden: ({
-                parent,
-              }) =>
-                parent?.itemType !==
-                "text",
-
-              validation: (rule) =>
-                rule.custom(
-                  (
-                    value,
-                    context,
-                  ) => {
-                    const parent =
-                      context.parent as
-                        | {
-                            itemType?: string;
-                          }
-                        | undefined;
-
-                    if (
-                      parent?.itemType !==
-                      "text"
-                    ) {
-                      return true;
-                    }
-
-                    if (
-                      !value?.trim()
-                    ) {
-                      return "Text is required.";
-                    }
-
-                    return true;
-                  },
-                ),
-            }),
-          ],
-
-          // =====================================
-          // STUDIO PREVIEW
-          // =====================================
-
-          preview: {
-            select: {
-              itemType:
-                "itemType",
-              title:
-                "title",
-              amount:
-                "amount",
-              content:
-                "content",
-            },
-
-            prepare({
-              itemType,
-              title,
-              amount,
-              content,
-            }) {
-              if (
-                itemType ===
-                "text"
-              ) {
-                return {
-                  title:
-                    title ||
-                    "Title + Text",
-
-                  subtitle:
-                    content
-                      ? content.slice(
-                          0,
-                          90,
-                        )
-                      : "No text",
-                };
-              }
-
-              return {
+            list: [
+              {
                 title:
-                  title ||
-                  "Fund usage item",
+                  "Allocation — Amount + title + description",
 
-                subtitle:
-                  typeof amount ===
-                  "number"
-                    ? `$${amount.toLocaleString(
-                        "en-US",
-                      )}`
-                    : "No amount",
-              };
-            },
+                value:
+                  "allocation",
+              },
+              {
+                title:
+                  "Title + Text — No amount",
+
+                value:
+                  "text",
+              },
+            ],
           },
-        },
+        }),
+
+        // =====================================
+        // AMOUNT
+        // Allocation only
+        // =====================================
+
+        defineField({
+          name: "amount",
+          title: "Amount",
+          type: "number",
+
+          description:
+            "Enter amount in dollars. Example: 3000",
+
+          hidden: ({
+            parent,
+          }) =>
+            parent?.itemType ===
+            "text",
+
+          validation: (rule) =>
+            rule.custom(
+              (
+                value,
+                context,
+              ) => {
+                const parent =
+                  context.parent as
+                    | {
+                        itemType?: string;
+                      }
+                    | undefined;
+
+                if (
+                  parent?.itemType ===
+                  "text"
+                ) {
+                  return true;
+                }
+
+                if (
+                  typeof value !==
+                    "number" ||
+                  value < 0
+                ) {
+                  return "Amount is required for Allocation items.";
+                }
+
+                return true;
+              },
+            ),
+        }),
+
+        // =====================================
+        // ORIGINAL ENGLISH TITLE
+        // =====================================
+
+        defineField({
+          name: "title",
+          title: "Title",
+          type: "string",
+
+          validation: (rule) =>
+            rule.custom(
+              (value) => {
+                if (
+                  !value?.trim()
+                ) {
+                  return "Title is required.";
+                }
+
+                return true;
+              },
+            ),
+        }),
+
+        // =====================================
+        // ORIGINAL ENGLISH DESCRIPTION
+        // Allocation only
+        // =====================================
+
+        defineField({
+          name: "description",
+          title: "Description",
+          type: "text",
+          rows: 6,
+
+          description:
+            "Put each detail on a new line if needed.",
+
+          hidden: ({
+            parent,
+          }) =>
+            parent?.itemType ===
+            "text",
+        }),
+
+        // =====================================
+        // ORIGINAL ENGLISH TEXT
+        // Title + Text only
+        // =====================================
+
+        defineField({
+          name: "content",
+          title: "Text",
+          type: "text",
+          rows: 6,
+
+          description:
+            "Main text content. No amount will be shown.",
+
+          hidden: ({
+            parent,
+          }) =>
+            parent?.itemType !==
+            "text",
+
+          validation: (rule) =>
+            rule.custom(
+              (
+                value,
+                context,
+              ) => {
+                const parent =
+                  context.parent as
+                    | {
+                        itemType?: string;
+                      }
+                    | undefined;
+
+                if (
+                  parent?.itemType !==
+                  "text"
+                ) {
+                  return true;
+                }
+
+                if (
+                  !value?.trim()
+                ) {
+                  return "Text is required.";
+                }
+
+                return true;
+              },
+            ),
+        }),
+
+        // =====================================
+        // MULTILINGUAL TITLE
+        // =====================================
+
+        defineField({
+          name: "titleI18n",
+          title:
+            "Title - Multilingual",
+          type:
+            "localeString",
+        }),
+
+        // =====================================
+        // MULTILINGUAL DESCRIPTION
+        // Allocation only
+        // =====================================
+
+        defineField({
+          name:
+            "descriptionI18n",
+
+          title:
+            "Description - Multilingual",
+
+          type:
+            "localeText",
+
+          hidden: ({
+            parent,
+          }) =>
+            parent?.itemType ===
+            "text",
+        }),
+
+        // =====================================
+        // MULTILINGUAL TEXT
+        // Title + Text only
+        // =====================================
+
+        defineField({
+          name:
+            "contentI18n",
+
+          title:
+            "Text - Multilingual",
+
+          type:
+            "localeText",
+
+          hidden: ({
+            parent,
+          }) =>
+            parent?.itemType !==
+            "text",
+        }),
       ],
 
-      validation: (rule) =>
-        rule.max(20),
-    }),
+      // =====================================
+      // STUDIO PREVIEW
+      // =====================================
+
+      preview: {
+        select: {
+          itemType:
+            "itemType",
+
+          title:
+            "title",
+
+          amount:
+            "amount",
+
+          content:
+            "content",
+        },
+
+        prepare({
+          itemType,
+          title,
+          amount,
+          content,
+        }) {
+          if (
+            itemType ===
+            "text"
+          ) {
+            return {
+              title:
+                title ||
+                "Title + Text",
+
+              subtitle:
+                content
+                  ? content.slice(
+                      0,
+                      90,
+                    )
+                  : "No text",
+            };
+          }
+
+          return {
+            title:
+              title ||
+              "Fund usage item",
+
+            subtitle:
+              typeof amount ===
+              "number"
+                ? `$${amount.toLocaleString(
+                    "en-US",
+                  )}`
+                : "No amount",
+          };
+        },
+      },
+    },
+  ],
+
+  validation: (rule) =>
+    rule.max(20),
+}),
 
     // =========================================================
     // FOOTER
@@ -549,6 +613,12 @@ export const campaignType = defineType({
       initialValue:
         "Sample organization · UI preview",
     }),
+    defineField({
+  name: "footerSubtitleI18n",
+  title: "Organization subtitle - Multilingual",
+  type: "localeString",
+  group: "footer",
+}),
 
     defineField({
       name: "footerSecureText",
@@ -558,216 +628,368 @@ export const campaignType = defineType({
       initialValue:
         "Secure payments are processed by Stripe.",
     }),
+    defineField({
+  name: "footerSecureTextI18n",
+  title: "Secure payment text - Multilingual",
+  type: "localeString",
+  group: "footer",
+}),
 
     defineField({
-      name: "footerAbout",
-      title: "About",
-      type: "object",
-      group: "footer",
+  name: "footerAbout",
+  title: "About",
+  type: "object",
+  group: "footer",
 
-      options: {
-        collapsible: true,
-        collapsed: false,
-      },
+  options: {
+    collapsible: true,
+    collapsed: false,
+  },
 
-      fields: [
-        defineField({
-          name: "label",
-          title: "Link label",
-          type: "string",
-          initialValue:
-            "About",
-        }),
+  fields: [
+    // =====================================
+    // ORIGINAL ENGLISH
+    // =====================================
 
-        defineField({
-          name: "title",
-          title: "Popup title",
-          type: "string",
-          initialValue:
-            "About",
-        }),
+    defineField({
+      name: "label",
+      title: "Link label",
+      type: "string",
 
-        defineField({
-          name: "content",
-          title: "Popup content",
-          type: "array",
+      initialValue:
+        "About",
+    }),
 
-          of: [
-            {
-              type: "block",
-            },
-          ],
-        }),
+    defineField({
+      name: "title",
+      title: "Popup title",
+      type: "string",
+
+      initialValue:
+        "About",
+    }),
+
+    defineField({
+      name: "content",
+      title: "Popup content",
+      type: "array",
+
+      of: [
+        {
+          type: "block",
+        },
+      ],
+    }),
+
+    // =====================================
+    // MULTILINGUAL
+    // =====================================
+
+    defineField({
+      name: "labelI18n",
+      title:
+        "Link label - Multilingual",
+      type:
+        "localeString",
+    }),
+
+    defineField({
+      name: "titleI18n",
+      title:
+        "Popup title - Multilingual",
+      type:
+        "localeString",
+    }),
+
+    defineField({
+      name: "contentI18n",
+      title:
+        "Popup content - Multilingual",
+      type:
+        "localePortableText",
+    }),
+  ],
+}),
+
+    defineField({
+  name: "footerContact",
+  title: "Contact",
+  type: "object",
+  group: "footer",
+
+  options: {
+    collapsible: true,
+    collapsed: true,
+  },
+
+  fields: [
+    // =====================================
+    // ORIGINAL ENGLISH
+    // =====================================
+
+    defineField({
+      name: "label",
+      title: "Link label",
+      type: "string",
+
+      initialValue:
+        "Contact",
+    }),
+
+    defineField({
+      name: "title",
+      title: "Popup title",
+      type: "string",
+
+      initialValue:
+        "Contact",
+    }),
+
+    defineField({
+      name: "content",
+      title: "Popup content",
+      type: "array",
+
+      of: [
+        {
+          type: "block",
+        },
+      ],
+    }),
+
+    // =====================================
+    // MULTILINGUAL
+    // =====================================
+
+    defineField({
+      name: "labelI18n",
+      title:
+        "Link label - Multilingual",
+      type:
+        "localeString",
+    }),
+
+    defineField({
+      name: "titleI18n",
+      title:
+        "Popup title - Multilingual",
+      type:
+        "localeString",
+    }),
+
+    defineField({
+      name: "contentI18n",
+      title:
+        "Popup content - Multilingual",
+      type:
+        "localePortableText",
+    }),
+  ],
+}),
+
+    defineField({
+  name: "footerPrivacy",
+  title: "Privacy",
+  type: "object",
+  group: "footer",
+
+  options: {
+    collapsible: true,
+    collapsed: true,
+  },
+
+  fields: [
+    defineField({
+      name: "label",
+      title: "Link label",
+      type: "string",
+
+      initialValue:
+        "Privacy",
+    }),
+
+    defineField({
+      name: "title",
+      title: "Popup title",
+      type: "string",
+
+      initialValue:
+        "Privacy Policy",
+    }),
+
+    defineField({
+      name: "content",
+      title: "Popup content",
+      type: "array",
+
+      of: [
+        {
+          type: "block",
+        },
       ],
     }),
 
     defineField({
-      name: "footerContact",
-      title: "Contact",
-      type: "object",
-      group: "footer",
+      name: "labelI18n",
+      title:
+        "Link label - Multilingual",
+      type:
+        "localeString",
+    }),
 
-      options: {
-        collapsible: true,
-        collapsed: true,
-      },
+    defineField({
+      name: "titleI18n",
+      title:
+        "Popup title - Multilingual",
+      type:
+        "localeString",
+    }),
 
-      fields: [
-        defineField({
-          name: "label",
-          title: "Link label",
-          type: "string",
-          initialValue:
-            "Contact",
-        }),
+    defineField({
+      name: "contentI18n",
+      title:
+        "Popup content - Multilingual",
+      type:
+        "localePortableText",
+    }),
+  ],
+}),
 
-        defineField({
-          name: "title",
-          title: "Popup title",
-          type: "string",
-          initialValue:
-            "Contact",
-        }),
+    defineField({
+  name: "footerTerms",
+  title: "Terms",
+  type: "object",
+  group: "footer",
 
-        defineField({
-          name: "content",
-          title: "Popup content",
-          type: "array",
+  options: {
+    collapsible: true,
+    collapsed: true,
+  },
 
-          of: [
-            {
-              type: "block",
-            },
-          ],
-        }),
+  fields: [
+    defineField({
+      name: "label",
+      title: "Link label",
+      type: "string",
+
+      initialValue:
+        "Terms",
+    }),
+
+    defineField({
+      name: "title",
+      title: "Popup title",
+      type: "string",
+
+      initialValue:
+        "Terms & Conditions",
+    }),
+
+    defineField({
+      name: "content",
+      title: "Popup content",
+      type: "array",
+
+      of: [
+        {
+          type: "block",
+        },
       ],
     }),
 
     defineField({
-      name: "footerPrivacy",
-      title: "Privacy",
-      type: "object",
-      group: "footer",
+      name: "labelI18n",
+      title:
+        "Link label - Multilingual",
+      type:
+        "localeString",
+    }),
 
-      options: {
-        collapsible: true,
-        collapsed: true,
-      },
+    defineField({
+      name: "titleI18n",
+      title:
+        "Popup title - Multilingual",
+      type:
+        "localeString",
+    }),
 
-      fields: [
-        defineField({
-          name: "label",
-          title: "Link label",
-          type: "string",
-          initialValue:
-            "Privacy",
-        }),
+    defineField({
+      name: "contentI18n",
+      title:
+        "Popup content - Multilingual",
+      type:
+        "localePortableText",
+    }),
+  ],
+}),
 
-        defineField({
-          name: "title",
-          title: "Popup title",
-          type: "string",
-          initialValue:
-            "Privacy Policy",
-        }),
+    defineField({
+  name: "footerRefund",
+  title: "Refund policy",
+  type: "object",
+  group: "footer",
 
-        defineField({
-          name: "content",
-          title: "Popup content",
-          type: "array",
+  options: {
+    collapsible: true,
+    collapsed: true,
+  },
 
-          of: [
-            {
-              type: "block",
-            },
-          ],
-        }),
+  fields: [
+    defineField({
+      name: "label",
+      title: "Link label",
+      type: "string",
+
+      initialValue:
+        "Refund policy",
+    }),
+
+    defineField({
+      name: "title",
+      title: "Popup title",
+      type: "string",
+
+      initialValue:
+        "Donation / Refund Policy",
+    }),
+
+    defineField({
+      name: "content",
+      title: "Popup content",
+      type: "array",
+
+      of: [
+        {
+          type: "block",
+        },
       ],
     }),
 
     defineField({
-      name: "footerTerms",
-      title: "Terms",
-      type: "object",
-      group: "footer",
-
-      options: {
-        collapsible: true,
-        collapsed: true,
-      },
-
-      fields: [
-        defineField({
-          name: "label",
-          title: "Link label",
-          type: "string",
-          initialValue:
-            "Terms",
-        }),
-
-        defineField({
-          name: "title",
-          title: "Popup title",
-          type: "string",
-          initialValue:
-            "Terms & Conditions",
-        }),
-
-        defineField({
-          name: "content",
-          title: "Popup content",
-          type: "array",
-
-          of: [
-            {
-              type: "block",
-            },
-          ],
-        }),
-      ],
+      name: "labelI18n",
+      title:
+        "Link label - Multilingual",
+      type:
+        "localeString",
     }),
 
     defineField({
-      name: "footerRefund",
-      title: "Refund policy",
-      type: "object",
-      group: "footer",
-
-      options: {
-        collapsible: true,
-        collapsed: true,
-      },
-
-      fields: [
-        defineField({
-          name: "label",
-          title: "Link label",
-          type: "string",
-          initialValue:
-            "Refund policy",
-        }),
-
-        defineField({
-          name: "title",
-          title: "Popup title",
-          type: "string",
-          initialValue:
-            "Donation / Refund Policy",
-        }),
-
-        defineField({
-          name: "content",
-          title: "Popup content",
-          type: "array",
-
-          of: [
-            {
-              type: "block",
-            },
-          ],
-        }),
-      ],
+      name: "titleI18n",
+      title:
+        "Popup title - Multilingual",
+      type:
+        "localeString",
     }),
+
+    defineField({
+      name: "contentI18n",
+      title:
+        "Popup content - Multilingual",
+      type:
+        "localePortableText",
+    }),
+  ],
+}),
 
     // =========================================================
     // DONATION
@@ -821,7 +1043,79 @@ export const campaignType = defineType({
       initialValue:
         true,
     }),
+// =========================================================
+// MULTILINGUAL CONTENT
+// =========================================================
 
+defineField({
+  name: "titleI18n",
+  title: "Campaign title - Multilingual",
+  type: "localeString",
+  group: "translations",
+}),
+
+defineField({
+  name: "eyebrowI18n",
+  title: "Eyebrow - Multilingual",
+  type: "localeString",
+  group: "translations",
+}),
+
+defineField({
+  name: "summaryI18n",
+  title: "Summary - Multilingual",
+  type: "localeText",
+  group: "translations",
+}),
+
+defineField({
+  name: "storyEyebrowI18n",
+  title: "Story eyebrow - Multilingual",
+  type: "localeString",
+  group: "translations",
+}),
+
+defineField({
+  name: "storyHeadingI18n",
+  title: "Story heading - Multilingual",
+  type: "localeString",
+  group: "translations",
+}),
+
+defineField({
+  name: "storyI18n",
+  title: "Campaign story - Multilingual",
+  type: "localePortableText",
+  group: "translations",
+}),
+
+defineField({
+  name: "fundUsageTitleI18n",
+  title: "Fund usage title - Multilingual",
+  type: "localeString",
+  group: "translations",
+}),
+
+defineField({
+  name: "fundUsageSubtitleI18n",
+  title: "Fund usage subtitle - Multilingual",
+  type: "localeText",
+  group: "translations",
+}),
+
+defineField({
+  name: "seoTitleI18n",
+  title: "SEO title - Multilingual",
+  type: "localeString",
+  group: "translations",
+}),
+
+defineField({
+  name: "seoDescriptionI18n",
+  title: "SEO description - Multilingual",
+  type: "localeText",
+  group: "translations",
+}),
     // =========================================================
     // SEO
     // =========================================================

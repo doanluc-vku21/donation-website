@@ -18,6 +18,14 @@ import type {
   DonationFrequency,
 } from "@/lib/sample-data";
 
+import type {
+  Locale,
+} from "@/lib/i18n";
+
+import {
+  getUiTranslations,
+} from "@/lib/ui-translations";
+
 import {
   calculateFeeContribution,
   formatUsd,
@@ -42,6 +50,9 @@ type DonationStep =
 
 type DonationFlowProps = {
   campaign: Campaign;
+
+  locale: Locale;
+
   embedded?: boolean;
 
   onStepChange?: (
@@ -51,12 +62,14 @@ type DonationFlowProps = {
 
 export function DonationFlow({
   campaign,
+  locale,
   embedded = false,
   onStepChange,
 }: DonationFlowProps) {
-  // ============================================
-  // STATE
-  // ============================================
+  const t =
+    getUiTranslations(
+      locale,
+    );
 
   const [
     frequency,
@@ -127,10 +140,6 @@ export function DonationFlow({
     setError,
   ] = useState("");
 
-  // ============================================
-  // MONEY
-  // ============================================
-
   const hasValidAmount =
     Number.isInteger(
       amount,
@@ -150,26 +159,20 @@ export function DonationFlow({
       ? amount + fee
       : 0;
 
-  // ============================================
-  // DONATION OPTIONS
-  // ============================================
-
   const donationOptions =
     useMemo(() => {
       return [
-        ...campaign.donationOptions,
+        ...campaign
+          .donationOptions,
       ].sort(
         (a, b) =>
           a.amountUsd -
           b.amountUsd,
       );
     }, [
-      campaign.donationOptions,
+      campaign
+        .donationOptions,
     ]);
-
-  // ============================================
-  // SELECT PRESET
-  // ============================================
 
   function selectAmount(
     amountCents: number,
@@ -182,35 +185,45 @@ export function DonationFlow({
       amountCents,
     );
 
-    setCustomAmount("");
+    setCustomAmount(
+      "",
+    );
 
-    setError("");
+    setError(
+      "",
+    );
   }
-
-  // ============================================
-  // CUSTOM AMOUNT
-  // ============================================
 
   function chooseCustom(
     raw: string,
   ) {
-    setCustomAmount(raw);
+    setCustomAmount(
+      raw,
+    );
 
-    // Custom input means preset is no longer selected.
     setSelectedPreset(
       null,
     );
 
     if (
-      raw.trim() === ""
+      raw.trim() ===
+      ""
     ) {
-      setAmount(0);
-      setError("");
+      setAmount(
+        0,
+      );
+
+      setError(
+        "",
+      );
+
       return;
     }
 
     const dollars =
-      Number(raw);
+      Number(
+        raw,
+      );
 
     if (
       Number.isFinite(
@@ -220,24 +233,28 @@ export function DonationFlow({
     ) {
       setAmount(
         Math.round(
-          dollars * 100,
+          dollars *
+            100,
         ),
       );
 
-      setError("");
+      setError(
+        "",
+      );
     } else {
-      setAmount(0);
+      setAmount(
+        0,
+      );
     }
   }
 
-  // ============================================
-  // STEP
-  // ============================================
-
   function goToStep(
-    nextStep: DonationStep,
+    nextStep:
+      DonationStep,
   ) {
-    setStep(nextStep);
+    setStep(
+      nextStep,
+    );
 
     onStepChange?.(
       nextStep,
@@ -253,13 +270,15 @@ export function DonationFlow({
   }
 
   function continueToDonor() {
-    setError("");
+    setError(
+      "",
+    );
 
     if (
       !hasValidAmount
     ) {
       setError(
-        "Please select or enter a donation amount.",
+        t.errorSelectAmount,
       );
 
       return;
@@ -270,18 +289,16 @@ export function DonationFlow({
     );
   }
 
-  // ============================================
-  // CHECKOUT
-  // ============================================
-
   async function handleCheckout() {
-    setError("");
+    setError(
+      "",
+    );
 
     if (
       !firstName.trim()
     ) {
       setError(
-        "Please enter your first name.",
+        t.errorFirstName,
       );
 
       return;
@@ -291,7 +308,7 @@ export function DonationFlow({
       !lastName.trim()
     ) {
       setError(
-        "Please enter your last name.",
+        t.errorLastName,
       );
 
       return;
@@ -301,7 +318,7 @@ export function DonationFlow({
       !email.trim()
     ) {
       setError(
-        "Please enter your email address.",
+        t.errorEmail,
       );
 
       return;
@@ -316,7 +333,7 @@ export function DonationFlow({
       )
     ) {
       setError(
-        "Please enter a valid email address.",
+        t.errorValidEmail,
       );
 
       return;
@@ -326,14 +343,16 @@ export function DonationFlow({
       !hasValidAmount
     ) {
       setError(
-        "Please choose a valid donation amount.",
+        t.errorValidAmount,
       );
 
       return;
     }
 
     try {
-      setIsLoading(true);
+      setIsLoading(
+        true,
+      );
 
       const response =
         await fetch(
@@ -348,32 +367,37 @@ export function DonationFlow({
             },
 
             body:
-              JSON.stringify(
-                {
-                  campaignId:
-                    campaign.id,
+  JSON.stringify(
+    {
+      campaignId:
+        campaign.id,
 
-                  amountCents:
-                    amount,
+      campaignSlug:
+        campaign.slug,
 
-                  coverFee,
+      amountCents:
+        amount,
 
-                  frequency,
+      coverFee,
 
-                  donor: {
-                    firstName:
-                      firstName.trim(),
+      frequency,
 
-                    lastName:
-                      lastName.trim(),
+      locale,
 
-                    email:
-                      email.trim(),
+      donor: {
+        firstName:
+          firstName.trim(),
 
-                    displayPublicly,
-                  },
-                },
-              ),
+        lastName:
+          lastName.trim(),
+
+        email:
+          email.trim(),
+
+        displayPublicly,
+      },
+    },
+  ),
           },
         );
 
@@ -385,7 +409,7 @@ export function DonationFlow({
       ) {
         throw new Error(
           data.error ??
-            "Unable to start checkout.",
+            t.errorCheckout,
         );
       }
 
@@ -393,13 +417,9 @@ export function DonationFlow({
         !data.url
       ) {
         throw new Error(
-          "Stripe checkout URL was not returned.",
+          t.errorCheckout,
         );
       }
-
-      // ========================================
-      // META PIXEL
-      // ========================================
 
       if (
         typeof window !==
@@ -449,7 +469,7 @@ export function DonationFlow({
         checkoutError instanceof
           Error
           ? checkoutError.message
-          : "Unable to start checkout.",
+          : t.errorCheckout,
       );
 
       setIsLoading(
@@ -458,19 +478,18 @@ export function DonationFlow({
     }
   }
 
-  // ==========================================================
-  // AMOUNT STEP
-  // ==========================================================
-
   if (
-    step === "amount"
+    step ===
+    "amount"
   ) {
     return (
-      <section>
-        {/* =====================================
-            FREQUENCY
-        ====================================== */}
-
+      <section
+        dir={
+          locale === "ar"
+            ? "rtl"
+            : "ltr"
+        }
+      >
         <fieldset
           className="
             grid
@@ -482,7 +501,9 @@ export function DonationFlow({
           "
         >
           <legend className="sr-only">
-            Donation frequency
+            {
+              t.donationFrequency
+            }
           </legend>
 
           {(
@@ -491,9 +512,7 @@ export function DonationFlow({
               "monthly",
             ] as const
           ).map(
-            (
-              value,
-            ) => (
+            (value) => (
               <label
                 key={
                   value
@@ -555,17 +574,13 @@ export function DonationFlow({
 
                   {value ===
                   "one_time"
-                    ? "Give once"
-                    : "Monthly"}
+                    ? t.giveOnce
+                    : t.monthly}
                 </span>
               </label>
             ),
           )}
         </fieldset>
-
-        {/* =====================================
-            TITLE
-        ====================================== */}
 
         <h2
           className="
@@ -575,12 +590,10 @@ export function DonationFlow({
             text-[#171717]
           "
         >
-          Choose your gift
+          {
+            t.chooseYourGift
+          }
         </h2>
-
-        {/* =====================================
-            PRESET AMOUNTS
-        ====================================== */}
 
         <fieldset
           className="
@@ -591,13 +604,13 @@ export function DonationFlow({
           "
         >
           <legend className="sr-only">
-            Donation amount
+            {
+              t.donationAmount
+            }
           </legend>
 
           {donationOptions.map(
-            (
-              option,
-            ) => {
+            (option) => {
               const selected =
                 selectedPreset ===
                 option.amountUsd;
@@ -605,7 +618,8 @@ export function DonationFlow({
               return (
                 <label
                   key={
-                    option.amountUsd
+                    option
+                      .amountUsd
                   }
                   className="
                     min-w-0
@@ -624,7 +638,8 @@ export function DonationFlow({
                     }
                     onChange={() =>
                       selectAmount(
-                        option.amountUsd,
+                        option
+                          .amountUsd,
                       )
                     }
                   />
@@ -664,14 +679,16 @@ export function DonationFlow({
                         "
                       >
                         {formatUsd(
-                          option.amountUsd,
+                          option
+                            .amountUsd,
                         ).replace(
                           ".00",
                           "",
                         )}
                       </strong>
 
-                      {option.featured && (
+                      {option
+                        .featured && (
                         <small
                           className="
                             mt-1
@@ -683,7 +700,9 @@ export function DonationFlow({
                             text-[#1d6b46]
                           "
                         >
-                          Recommended
+                          {
+                            t.recommended
+                          }
                         </small>
                       )}
                     </span>
@@ -704,9 +723,7 @@ export function DonationFlow({
                       >
                         <Check
                           aria-hidden="true"
-                          className="
-                            size-[9px]
-                          "
+                          className="size-[9px]"
                         />
                       </span>
                     )}
@@ -716,10 +733,6 @@ export function DonationFlow({
             },
           )}
         </fieldset>
-
-        {/* =====================================
-            CUSTOM AMOUNT - ALWAYS VISIBLE
-        ====================================== */}
 
         <label
           className="
@@ -753,7 +766,9 @@ export function DonationFlow({
             min="1"
             step="1"
             inputMode="decimal"
-            placeholder="Enter amount"
+            placeholder={
+              t.enterAmount
+            }
             value={
               customAmount
             }
@@ -761,8 +776,7 @@ export function DonationFlow({
               event,
             ) =>
               chooseCustom(
-                event
-                  .target
+                event.target
                   .value,
               )
             }
@@ -792,10 +806,6 @@ export function DonationFlow({
           </span>
         </label>
 
-        {/* =====================================
-            OPTIONS
-        ====================================== */}
-
         <div
           className="
             mt-3
@@ -810,7 +820,9 @@ export function DonationFlow({
               setDisplayPublicly
             }
           >
-            Display my name publicly
+            {
+              t.displayNamePublicly
+            }
           </CompactCheck>
 
           <CompactCheck
@@ -822,18 +834,14 @@ export function DonationFlow({
             }
           >
             {hasValidAmount
-              ? `Add ${formatUsd(
+              ? `${t.addFeePrefix} ${formatUsd(
                   calculateFeeContribution(
                     amount,
                   ),
-                )} to cover processing fees`
-              : "Cover processing fees"}
+                )} ${t.addFeeSuffix}`
+              : t.coverProcessingFees}
           </CompactCheck>
         </div>
-
-        {/* =====================================
-            TOTAL
-        ====================================== */}
 
         {hasValidAmount && (
           <div
@@ -856,8 +864,8 @@ export function DonationFlow({
             >
               {frequency ===
               "monthly"
-                ? "Total per month"
-                : "Total"}
+                ? t.totalPerMonth
+                : t.total}
             </span>
 
             <strong
@@ -872,10 +880,6 @@ export function DonationFlow({
             </strong>
           </div>
         )}
-
-        {/* =====================================
-            ERROR
-        ====================================== */}
 
         {error && (
           <p
@@ -893,10 +897,6 @@ export function DonationFlow({
             {error}
           </p>
         )}
-
-        {/* =====================================
-            CONTINUE
-        ====================================== */}
 
         <button
           type="button"
@@ -933,48 +933,48 @@ export function DonationFlow({
           "
         >
           {hasValidAmount
-            ? `Continue with ${formatUsd(
+            ? `${t.continueWith} ${formatUsd(
                 total,
               ).replace(
                 ".00",
                 "",
               )}`
-            : "Select an amount to continue"}
+            : t.selectAmountToContinue}
 
           {hasValidAmount && (
             <ArrowRight
               aria-hidden="true"
-              className="
-                size-4
-              "
+              className="size-4"
             />
           )}
         </button>
 
         <SecureText>
-          Secure payment by Stripe
+          {
+            t.securePaymentByStripe
+          }
         </SecureText>
       </section>
     );
   }
 
-  // ==========================================================
-  // DONOR STEP
-  // ==========================================================
-
   return (
-    <section>
-      {/* =====================================
-          BACK
-      ====================================== */}
-
+    <section
+      dir={
+        locale === "ar"
+          ? "rtl"
+          : "ltr"
+      }
+    >
       <button
         type="button"
         disabled={
           isLoading
         }
         onClick={() => {
-          setError("");
+          setError(
+            "",
+          );
 
           goToStep(
             "amount",
@@ -997,18 +997,10 @@ export function DonationFlow({
           className="size-3.5"
         />
 
-        Back
+        {t.back}
       </button>
 
-      {/* =====================================
-          HEADING
-      ====================================== */}
-
-      <div
-        className="
-          mt-1
-        "
-      >
+      <div className="mt-1">
         <h2
           className="
             text-[22px]
@@ -1017,7 +1009,9 @@ export function DonationFlow({
             text-[#161616]
           "
         >
-          Your information
+          {
+            t.yourInformation
+          }
         </h2>
 
         <p
@@ -1028,13 +1022,11 @@ export function DonationFlow({
             text-[#66736b]
           "
         >
-          Enter your details to continue to secure checkout.
+          {
+            t.enterDetails
+          }
         </p>
       </div>
-
-      {/* =====================================
-          FIRST + LAST NAME
-      ====================================== */}
 
       <div
         className="
@@ -1045,7 +1037,9 @@ export function DonationFlow({
         "
       >
         <FormField
-          label="First name"
+          label={
+            t.firstName
+          }
           name="firstName"
           autoComplete="given-name"
           value={
@@ -1061,7 +1055,9 @@ export function DonationFlow({
         />
 
         <FormField
-          label="Last name"
+          label={
+            t.lastName
+          }
           name="lastName"
           autoComplete="family-name"
           value={
@@ -1077,17 +1073,11 @@ export function DonationFlow({
         />
       </div>
 
-      {/* =====================================
-          EMAIL
-      ====================================== */}
-
-      <div
-        className="
-          mt-3
-        "
-      >
+      <div className="mt-3">
         <FormField
-          label="Email address"
+          label={
+            t.emailAddress
+          }
           name="email"
           type="email"
           autoComplete="email"
@@ -1103,10 +1093,6 @@ export function DonationFlow({
           required
         />
       </div>
-
-      {/* =====================================
-          COMPACT SUMMARY
-      ====================================== */}
 
       <div
         className="
@@ -1136,8 +1122,8 @@ export function DonationFlow({
           >
             {frequency ===
             "monthly"
-              ? "Monthly gift"
-              : "One-time gift"}
+              ? t.monthlyGift
+              : t.oneTimeGift}
           </p>
 
           {coverFee && (
@@ -1147,11 +1133,11 @@ export function DonationFlow({
                 text-[#859087]
               "
             >
-              Includes{" "}
+              {t.includes}{" "}
               {formatUsd(
                 fee,
               )}{" "}
-              fee
+              {t.fee}
             </p>
           )}
         </div>
@@ -1173,10 +1159,6 @@ export function DonationFlow({
         </strong>
       </div>
 
-      {/* =====================================
-          ERROR
-      ====================================== */}
-
       {error && (
         <p
           role="alert"
@@ -1193,10 +1175,6 @@ export function DonationFlow({
           {error}
         </p>
       )}
-
-      {/* =====================================
-          CHECKOUT
-      ====================================== */}
 
       <button
         type="button"
@@ -1229,20 +1207,18 @@ export function DonationFlow({
         "
       >
         {isLoading
-          ? "Opening checkout..."
-          : "Continue to secure checkout"}
+          ? t.openingCheckout
+          : t.continueSecureCheckout}
       </button>
 
       <SecureText>
-        Payment processed securely by Stripe
+        {
+          t.paymentProcessedStripe
+        }
       </SecureText>
     </section>
   );
 }
-
-// ==========================================================
-// COMPACT CHECKBOX
-// ==========================================================
 
 function CompactCheck({
   checked,
@@ -1303,10 +1279,6 @@ function CompactCheck({
   );
 }
 
-// ==========================================================
-// SECURE TEXT
-// ==========================================================
-
 function SecureText({
   children,
 }: {
@@ -1337,10 +1309,6 @@ function SecureText({
     </p>
   );
 }
-
-// ==========================================================
-// FORM FIELD
-// ==========================================================
 
 type FormFieldProps = {
   label: string;
@@ -1401,8 +1369,12 @@ function FormField({
       </span>
 
       <input
-        name={name}
-        type={type}
+        name={
+          name
+        }
+        type={
+          type
+        }
         autoComplete={
           autoComplete
         }

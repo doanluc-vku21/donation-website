@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+
 import {
   ReactNode,
   useEffect,
@@ -11,29 +12,56 @@ import {
   useState,
 } from "react";
 
+import type {
+  Locale,
+} from "@/lib/i18n";
+
+import {
+  getUiTranslations,
+} from "@/lib/ui-translations";
+
 type MobileStoryToggleProps = {
   children: ReactNode;
+  locale: Locale;
 };
 
-const COLLAPSED_HEIGHT = 300;
+const COLLAPSED_HEIGHT =
+  300;
 
 export function MobileStoryToggle({
   children,
+  locale,
 }: MobileStoryToggleProps) {
+  const t =
+    getUiTranslations(
+      locale,
+    );
+
   const contentRef =
-    useRef<HTMLDivElement>(null);
+    useRef<HTMLDivElement>(
+      null,
+    );
 
-  const [expanded, setExpanded] =
-    useState(false);
+  const [
+    expanded,
+    setExpanded,
+  ] = useState(false);
 
-  const [contentHeight, setContentHeight] =
-    useState(COLLAPSED_HEIGHT);
+  const [
+    contentHeight,
+    setContentHeight,
+  ] = useState(
+    COLLAPSED_HEIGHT,
+  );
 
-  const [canCollapse, setCanCollapse] =
-    useState(false);
+  const [
+    canCollapse,
+    setCanCollapse,
+  ] = useState(false);
 
   useEffect(() => {
-    const content = contentRef.current;
+    const content =
+      contentRef.current;
 
     if (!content) {
       return;
@@ -47,20 +75,27 @@ export function MobileStoryToggle({
       const height =
         content.scrollHeight;
 
-      setContentHeight(height);
+      setContentHeight(
+        height,
+      );
 
       setCanCollapse(
         height >
-          COLLAPSED_HEIGHT + 20,
+          COLLAPSED_HEIGHT +
+            20,
       );
     }
 
     measure();
 
     const observer =
-      new ResizeObserver(measure);
+      new ResizeObserver(
+        measure,
+      );
 
-    observer.observe(content);
+    observer.observe(
+      content,
+    );
 
     return () => {
       observer.disconnect();
@@ -69,14 +104,31 @@ export function MobileStoryToggle({
 
   function toggleStory() {
     setExpanded(
-      (current) => !current,
+      (current) =>
+        !current,
     );
   }
 
   return (
-    <div className="w-full min-w-0">
+    <div
+      dir={
+        locale === "ar"
+          ? "rtl"
+          : "ltr"
+      }
+      className="
+        w-full
+        min-w-0
+      "
+    >
       <div
-        className="relative overflow-hidden transition-[max-height] duration-500 ease-in-out"
+        className="
+          relative
+          overflow-hidden
+          transition-[max-height]
+          duration-500
+          ease-in-out
+        "
         style={{
           maxHeight:
             expanded ||
@@ -86,7 +138,9 @@ export function MobileStoryToggle({
         }}
       >
         <div
-          ref={contentRef}
+          ref={
+            contentRef
+          }
           className="
             min-w-0
             [&>*:first-child]:mt-0
@@ -117,8 +171,12 @@ export function MobileStoryToggle({
       {canCollapse && (
         <button
           type="button"
-          onClick={toggleStory}
-          aria-expanded={expanded}
+          onClick={
+            toggleStory
+          }
+          aria-expanded={
+            expanded
+          }
           className="
             mt-3
             flex
@@ -144,7 +202,9 @@ export function MobileStoryToggle({
         >
           {expanded ? (
             <>
-              Show less
+              {
+                t.showLess
+              }
 
               <ChevronUp
                 aria-hidden="true"
@@ -153,7 +213,9 @@ export function MobileStoryToggle({
             </>
           ) : (
             <>
-              Show more
+              {
+                t.showMore
+              }
 
               <ChevronDown
                 aria-hidden="true"

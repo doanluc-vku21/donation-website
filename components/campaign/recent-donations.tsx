@@ -8,7 +8,6 @@ import {
 
 import {
   ChevronDown,
-  HeartHandshake,
   X,
 } from "lucide-react";
 
@@ -17,12 +16,27 @@ import {
 } from "@/lib/money";
 
 import type {
+  Locale,
+} from "@/lib/i18n";
+
+import {
+  getUiTranslations,
+  translateRelativeTime,
+} from "@/lib/ui-translations";
+
+import type {
   RecentDonation,
 } from "@/lib/sample-data";
 
 type RecentDonationsProps = {
-  donations: RecentDonation[];
+  donations:
+    RecentDonation[];
+
+  locale:
+    Locale;
+
   className?: string;
+
   previewLimit?: number;
 };
 
@@ -30,11 +44,34 @@ type SortMode =
   | "recent"
   | "highest";
 
+const localeMap:
+  Record<
+    Locale,
+    string
+  > = {
+  en: "en-US",
+  fr: "fr-FR",
+  de: "de-DE",
+  es: "es-ES",
+  ar: "ar",
+};
+
 export function RecentDonations({
   donations,
+  locale,
   className = "mt-12",
   previewLimit = 4,
 }: RecentDonationsProps) {
+  const t =
+    getUiTranslations(
+      locale,
+    );
+
+  const textDirection =
+    locale === "ar"
+      ? "rtl"
+      : "ltr";
+
   const [
     modalOpen,
     setModalOpen,
@@ -87,16 +124,20 @@ export function RecentDonations({
         .overflow;
 
     document.body.style
-      .overflow = "hidden";
+      .overflow =
+      "hidden";
 
     function handleKeyDown(
-      event: KeyboardEvent,
+      event:
+        KeyboardEvent,
     ) {
       if (
         event.key ===
         "Escape"
       ) {
-        setModalOpen(false);
+        setModalOpen(
+          false,
+        );
       }
     }
 
@@ -120,7 +161,8 @@ export function RecentDonations({
   ]);
 
   if (
-    donations.length === 0
+    donations.length ===
+    0
   ) {
     return null;
   }
@@ -128,10 +170,11 @@ export function RecentDonations({
   return (
     <>
       {/* =========================================
-          CONTRIBUTIONS SECTION
+          CONTRIBUTIONS
       ========================================== */}
 
       <section
+        dir="ltr"
         className={`${className} w-full`}
         aria-labelledby="contributions-title"
       >
@@ -152,9 +195,15 @@ export function RecentDonations({
               gap-4
             "
           >
+            {/* HEADER TEXT */}
+
             <div
+              dir={
+                textDirection
+              }
               className="
                 min-w-0
+                flex-1
               "
             >
               <p
@@ -166,7 +215,9 @@ export function RecentDonations({
                   text-[#24543d]
                 "
               >
-                Community support
+                {
+                  t.communitySupport
+                }
               </p>
 
               <h2
@@ -182,11 +233,18 @@ export function RecentDonations({
                   sm:text-[30px]
                 "
               >
-                Contributions
+                {
+                  t.contributions
+                }
               </h2>
             </div>
 
+            {/* COUNT - KEEP LAYOUT */}
+
             <span
+              dir={
+                textDirection
+              }
               className="
                 mb-1
                 shrink-0
@@ -200,16 +258,22 @@ export function RecentDonations({
               "
             >
               {donations.length.toLocaleString(
-                "en-US",
+                localeMap[
+                  locale
+                ],
               )}{" "}
+
               {donations.length ===
               1
-                ? "contribution"
-                : "contributions"}
+                ? t.contribution
+                : t.contributions}
             </span>
           </div>
 
           <p
+            dir={
+              textDirection
+            }
             className="
               mt-2
               max-w-[520px]
@@ -218,11 +282,15 @@ export function RecentDonations({
               text-[#6f7a86]
             "
           >
-            Recent support from people helping move this campaign forward.
+            {
+              t.recentSupport
+            }
           </p>
         </div>
 
-        {/* CONTRIBUTION CARD */}
+        {/* =====================================
+            LIST
+        ====================================== */}
 
         <div
           className="
@@ -241,7 +309,9 @@ export function RecentDonations({
             "
           >
             {previewDonations.map(
-              (donation) => (
+              (
+                donation,
+              ) => (
                 <ContributionRow
                   key={
                     donation.id
@@ -249,18 +319,26 @@ export function RecentDonations({
                   donation={
                     donation
                   }
+                  locale={
+                    locale
+                  }
                 />
               ),
             )}
           </ul>
         </div>
 
-        {/* SEE ALL */}
+        {/* =====================================
+            SEE ALL
+        ====================================== */}
 
         {donations.length >
           previewLimit && (
           <button
             type="button"
+            dir={
+              textDirection
+            }
             onClick={() => {
               setSortMode(
                 "recent",
@@ -294,7 +372,9 @@ export function RecentDonations({
               active:scale-[0.995]
             "
           >
-            See all contributions
+            {
+              t.seeAllContributions
+            }
           </button>
         )}
       </section>
@@ -305,6 +385,7 @@ export function RecentDonations({
 
       {modalOpen && (
         <div
+          dir="ltr"
           className="
             fixed
             inset-0
@@ -330,6 +411,7 @@ export function RecentDonations({
           }}
         >
           <section
+            dir="ltr"
             role="dialog"
             aria-modal="true"
             aria-labelledby="contributions-modal-title"
@@ -371,7 +453,17 @@ export function RecentDonations({
                   gap-4
                 "
               >
-                <div>
+                {/* MODAL TEXT */}
+
+                <div
+                  dir={
+                    textDirection
+                  }
+                  className="
+                    min-w-0
+                    flex-1
+                  "
+                >
                   <p
                     className="
                       text-[11px]
@@ -381,7 +473,9 @@ export function RecentDonations({
                       text-[#24543d]
                     "
                   >
-                    Community support
+                    {
+                      t.communitySupport
+                    }
                   </p>
 
                   <h2
@@ -394,7 +488,9 @@ export function RecentDonations({
                       text-[#12233d]
                     "
                   >
-                    Contributions
+                    {
+                      t.contributions
+                    }
                   </h2>
 
                   <p
@@ -405,13 +501,19 @@ export function RecentDonations({
                       text-[#6f7a86]
                     "
                   >
-                    Browse the latest donations made to this campaign.
+                    {
+                      t.browseLatestDonations
+                    }
                   </p>
                 </div>
 
+                {/* CLOSE stays same side */}
+
                 <button
                   type="button"
-                  aria-label="Close contributions"
+                  aria-label={
+                    t.closeContributions
+                  }
                   onClick={() =>
                     setModalOpen(
                       false,
@@ -442,9 +544,14 @@ export function RecentDonations({
                 </button>
               </div>
 
-              {/* SORT */}
+              {/* =====================================
+                  SORT
+              ====================================== */}
 
               <label
+                dir={
+                  textDirection
+                }
                 className="
                   mt-5
                   block
@@ -458,16 +565,22 @@ export function RecentDonations({
                     text-[#12233d]
                   "
                 >
-                  Sort by
+                  {
+                    t.sortBy
+                  }
                 </span>
 
                 <div
+                  dir="ltr"
                   className="
                     relative
                     mt-2
                   "
                 >
                   <select
+                    dir={
+                      textDirection
+                    }
                     value={
                       sortMode
                     }
@@ -500,12 +613,20 @@ export function RecentDonations({
                       focus:ring-[#dcebdc]
                     "
                   >
-                    <option value="recent">
-                      Most recent
+                    <option
+                      value="recent"
+                    >
+                      {
+                        t.mostRecent
+                      }
                     </option>
 
-                    <option value="highest">
-                      Highest amount
+                    <option
+                      value="highest"
+                    >
+                      {
+                        t.highestAmount
+                      }
                     </option>
                   </select>
 
@@ -525,7 +646,9 @@ export function RecentDonations({
               </label>
             </div>
 
-            {/* LIST */}
+            {/* =====================================
+                MODAL LIST
+            ====================================== */}
 
             <div
               className="
@@ -556,6 +679,9 @@ export function RecentDonations({
                       donation={
                         donation
                       }
+                      locale={
+                        locale
+                      }
                       modal
                     />
                   ),
@@ -575,18 +701,41 @@ export function RecentDonations({
 
 function ContributionRow({
   donation,
+  locale,
   modal = false,
 }: {
-  donation: RecentDonation;
+  donation:
+    RecentDonation;
+
+  locale:
+    Locale;
+
   modal?: boolean;
 }) {
+  const t =
+    getUiTranslations(
+      locale,
+    );
+
+  const textDirection =
+    locale === "ar"
+      ? "rtl"
+      : "ltr";
+
   const initials =
     getInitials(
       donation.displayName,
     );
 
+  const translatedTime =
+    translateRelativeTime(
+      donation.relativeTime,
+      locale,
+    );
+
   return (
     <li
+      dir="ltr"
       className={`
         group
         flex
@@ -603,9 +752,12 @@ function ContributionRow({
         hover:bg-[#fbfcfa]
       `}
     >
-      {/* AVATAR */}
+      {/* =====================================
+          AVATAR
+      ====================================== */}
 
       <span
+        dir="ltr"
         className="
           grid
           size-11
@@ -624,9 +776,14 @@ function ContributionRow({
         {initials}
       </span>
 
-      {/* NAME + TIME */}
+      {/* =====================================
+          NAME + TIME
+      ====================================== */}
 
       <div
+        dir={
+          textDirection
+        }
         className="
           min-w-0
           flex-1
@@ -650,7 +807,10 @@ function ContributionRow({
               sm:text-[15px]
             "
           >
-            {donation.displayName}
+            {
+              donation
+                .displayName
+            }
           </p>
 
           {donation.frequency ===
@@ -669,7 +829,9 @@ function ContributionRow({
                 text-[#426a4f]
               "
             >
-              Monthly
+              {
+                t.monthly
+              }
             </span>
           )}
         </div>
@@ -682,18 +844,24 @@ function ContributionRow({
             text-[#718096]
           "
         >
-          {donation.relativeTime}
+          {
+            translatedTime
+          }
         </p>
       </div>
 
-      {/* AMOUNT */}
+      {/* =====================================
+          AMOUNT
+      ====================================== */}
 
       <div
+        dir="ltr"
         className="
           shrink-0
         "
       >
         <strong
+          dir="ltr"
           className="
             inline-flex
             min-w-[48px]
@@ -746,14 +914,18 @@ function getInitials(
     words.length === 1
   ) {
     return words[0]
-      .slice(0, 2)
+      .slice(
+        0,
+        2,
+      )
       .toUpperCase();
   }
 
   return (
     words[0][0] +
     words[
-      words.length - 1
+      words.length -
+        1
     ][0]
   ).toUpperCase();
 }

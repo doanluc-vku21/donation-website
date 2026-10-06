@@ -1,18 +1,43 @@
-import { notFound } from "next/navigation";
+import {
+  notFound,
+} from "next/navigation";
 
-import { CampaignPage } from "@/components/campaign/campaign-page";
+import {
+  CampaignPage,
+} from "@/components/campaign/campaign-page";
 
-import { getCampaignBySlug } from "@/lib/queries/campaigns";
+import {
+  getCampaignBySlug,
+} from "@/lib/queries/campaigns";
 
-import { sanityClient } from "@/sanity/lib/client";
-import { CAMPAIGN_QUERY } from "@/sanity/lib/queries";
-import type { SanityCampaign } from "@/sanity/types/campaign";
+import {
+  getLocale,
+} from "@/lib/i18n-server";
+
+import {
+  localizeCampaign,
+} from "@/lib/localize-campaign";
+
+import {
+  sanityClient,
+} from "@/sanity/lib/client";
+
+import {
+  CAMPAIGN_QUERY,
+} from "@/sanity/lib/queries";
+
+import type {
+  SanityCampaign,
+} from "@/sanity/types/campaign";
 
 const CAMPAIGN_SLUG =
   "give-a-child-a-brighter-tomorrow";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const dynamic =
+  "force-dynamic";
+
+export const revalidate =
+  0;
 
 export default async function GazaFoodPage() {
   const campaign =
@@ -28,10 +53,12 @@ export default async function GazaFoodPage() {
     await sanityClient.fetch<SanityCampaign>(
       CAMPAIGN_QUERY,
       {
-        slug: CAMPAIGN_SLUG,
+        slug:
+          CAMPAIGN_SLUG,
       },
       {
-        cache: "no-store",
+        cache:
+          "no-store",
       },
     );
 
@@ -39,10 +66,26 @@ export default async function GazaFoodPage() {
     notFound();
   }
 
+  const locale =
+    await getLocale();
+
+  const localizedContent =
+    localizeCampaign(
+      content,
+      locale,
+    );
+
   return (
     <CampaignPage
-      campaign={campaign}
-      content={content}
+      campaign={
+        campaign
+      }
+      content={
+        localizedContent
+      }
+      locale={
+        locale
+      }
     />
   );
 }

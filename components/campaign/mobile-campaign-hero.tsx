@@ -1,18 +1,30 @@
 "use client";
 
 import Image from "next/image";
-// import Link from "next/link";
+
+import {
+  BadgeCheck,
+} from "lucide-react";
+
 import {
   DonationModal,
 } from "@/components/donation/donation-modal";
+
 import {
-  BadgeCheck,
-  Heart,
-} from "lucide-react";
+  ShareMenu,
+} from "@/components/share/share-menu";
 
 import type {
   Campaign,
 } from "@/lib/sample-data";
+
+import type {
+  Locale,
+} from "@/lib/i18n";
+
+import {
+  getUiTranslations,
+} from "@/lib/ui-translations";
 
 import type {
   SanityCampaign,
@@ -23,19 +35,27 @@ import {
   progressPercent,
 } from "@/lib/money";
 
-import {
-  ShareMenu,
-} from "@/components/share/share-menu";
-
 type MobileCampaignHeroProps = {
   campaign: Campaign;
   content: SanityCampaign;
+  locale: Locale;
 };
 
 export function MobileCampaignHero({
   campaign,
   content,
+  locale,
 }: MobileCampaignHeroProps) {
+  const t =
+    getUiTranslations(
+      locale,
+    );
+
+  const textDirection =
+    locale === "ar"
+      ? "rtl"
+      : "ltr";
+
   const progress =
     progressPercent(
       campaign.raisedAmountUsd,
@@ -43,7 +63,9 @@ export function MobileCampaignHero({
     );
 
   const latestDonation =
-    campaign.recentDonations?.[0];
+    campaign
+      .recentDonations
+      ?.[0];
 
   const heroUrl =
     content.heroImage
@@ -87,6 +109,7 @@ export function MobileCampaignHero({
 
   return (
     <div
+      dir="ltr"
       className="
         -mx-5
         -mt-7
@@ -94,6 +117,10 @@ export function MobileCampaignHero({
         lg:hidden
       "
     >
+      {/* =========================================
+          HERO
+      ========================================== */}
+
       <section
         className="
           relative
@@ -124,7 +151,9 @@ export function MobileCampaignHero({
         ) : (
           <Image
             src="/sample-campaign-hero.svg"
-            alt={content.title}
+            alt={
+              content.title
+            }
             width={1200}
             height={1000}
             priority
@@ -138,6 +167,8 @@ export function MobileCampaignHero({
           />
         )}
 
+        {/* OVERLAY */}
+
         <div
           className="
             absolute
@@ -149,6 +180,10 @@ export function MobileCampaignHero({
           "
         />
 
+        {/* =====================================
+            ORGANIZATION
+        ====================================== */}
+
         <div
           className="
             absolute
@@ -159,6 +194,7 @@ export function MobileCampaignHero({
           "
         >
           <div
+            dir="ltr"
             className="
               inline-flex
               max-w-full
@@ -192,10 +228,18 @@ export function MobileCampaignHero({
             >
               {logoUrl ? (
                 <Image
-                  src={logoUrl}
-                  alt={organizationName}
-                  width={logoWidth}
-                  height={logoHeight}
+                  src={
+                    logoUrl
+                  }
+                  alt={
+                    organizationName
+                  }
+                  width={
+                    logoWidth
+                  }
+                  height={
+                    logoHeight
+                  }
                   className="
                     h-full
                     w-full
@@ -206,7 +250,9 @@ export function MobileCampaignHero({
               ) : (
                 <Image
                   src="/sample-logo.svg"
-                  alt={organizationName}
+                  alt={
+                    organizationName
+                  }
                   width={40}
                   height={40}
                   className="
@@ -220,6 +266,7 @@ export function MobileCampaignHero({
             </span>
 
             <span
+              dir="ltr"
               className="
                 min-w-0
                 truncate
@@ -230,7 +277,9 @@ export function MobileCampaignHero({
                 text-white
               "
             >
-              {organizationName}
+              {
+                organizationName
+              }
             </span>
 
             <span
@@ -254,6 +303,10 @@ export function MobileCampaignHero({
           </div>
         </div>
 
+        {/* =====================================
+            TITLE
+        ====================================== */}
+
         <div
           className="
             absolute
@@ -264,7 +317,10 @@ export function MobileCampaignHero({
           "
         >
           <h1
-            className="
+            dir={
+              textDirection
+            }
+            className={`
               max-w-[370px]
               text-[27px]
               font-extrabold
@@ -272,11 +328,21 @@ export function MobileCampaignHero({
               tracking-[-0.035em]
               text-white
               drop-shadow-[0_2px_4px_rgba(0,0,0,.45)]
-            "
+
+              ${
+                locale === "ar"
+                  ? "ml-auto text-right"
+                  : "text-left"
+              }
+            `}
           >
-            {content.title}
+            {
+              content.title
+            }
           </h1>
         </div>
+
+        {/* CURVE */}
 
         <div
           aria-hidden="true"
@@ -295,8 +361,13 @@ export function MobileCampaignHero({
         />
       </section>
 
+      {/* =========================================
+          INLINE DONATION
+      ========================================== */}
+
       <section
         id="mobile-inline-donate"
+        dir="ltr"
         className="
           relative
           z-20
@@ -312,6 +383,8 @@ export function MobileCampaignHero({
           shadow-[0_5px_18px_rgba(0,0,0,.04)]
         "
       >
+        {/* PROGRESS */}
+
         <div
           className="
             flex
@@ -347,6 +420,7 @@ export function MobileCampaignHero({
               "
             >
               <strong
+                dir="ltr"
                 className="
                   text-[14px]
                   font-bold
@@ -358,7 +432,12 @@ export function MobileCampaignHero({
             </div>
           </div>
 
+          {/* TEXT */}
+
           <div
+            dir={
+              textDirection
+            }
             className="
               min-w-0
               flex-1
@@ -373,26 +452,37 @@ export function MobileCampaignHero({
                 text-[#182136]
               "
             >
-              {formatUsd(
-                campaign.raisedAmountUsd,
-              )}{" "}
-              raised{" "}
+              <span
+                dir="ltr"
+                className="inline-block"
+              >
+                {formatUsd(
+                  campaign
+                    .raisedAmountUsd,
+                )}
+              </span>{" "}
+
+              {t.raised}{" "}
+
               <span
                 className="
                   font-normal
                   text-[#727e91]
                 "
               >
-                of{" "}
+                {t.of}{" "}
 
                 <span
+                  dir="ltr"
                   className="
+                    inline-block
                     underline
                     underline-offset-2
                   "
                 >
                   {formatUsd(
-                    campaign.goalAmountUsd,
+                    campaign
+                      .goalAmountUsd,
                   ).replace(
                     ".00",
                     "",
@@ -410,47 +500,77 @@ export function MobileCampaignHero({
                   text-[#687489]
                 "
               >
-                {
-                  latestDonation.displayName
-                }{" "}
-                donated{" "}
-                {formatUsd(
-                  latestDonation.amountUsd,
-                ).replace(
-                  ".00",
-                  "",
-                )}{" "}
+                <span
+                  dir="ltr"
+                  className="inline-block"
+                >
+                  {
+                    latestDonation
+                      .displayName
+                  }
+                </span>{" "}
+
+                {t.donated}{" "}
+
+                <span
+                  dir="ltr"
+                  className="inline-block"
+                >
+                  {formatUsd(
+                    latestDonation
+                      .amountUsd,
+                  ).replace(
+                    ".00",
+                    "",
+                  )}
+                </span>{" "}
+
                 ›
               </p>
             )}
           </div>
         </div>
 
-<div className="mt-3">
-  <DonationModal
-    campaign={campaign}
-    content={content}
-    triggerClassName="
-      flex
-      min-h-[50px]
-      w-full
-      items-center
-      justify-center
-      gap-2
-      rounded-full
-      bg-[#bcf778]
-      px-5
-      text-[17px]
-      font-semibold
-      text-[#194e29]
-      shadow-[0_4px_12px_rgba(100,170,50,.13)]
-      transition
+        {/* =====================================
+            DONATE
+        ====================================== */}
 
-      hover:bg-[#afe96e]
-      active:scale-[0.99]
-    "
-  />
-</div>
+        <div className="mt-3">
+          <DonationModal
+            campaign={
+              campaign
+            }
+            content={
+              content
+            }
+            locale={
+              locale
+            }
+            triggerClassName="
+              flex
+              min-h-[50px]
+              w-full
+              items-center
+              justify-center
+              gap-2
+              rounded-full
+              bg-[#bcf778]
+              px-5
+              text-[17px]
+              font-semibold
+              text-[#194e29]
+              shadow-[0_4px_12px_rgba(100,170,50,.13)]
+              transition
+
+              hover:bg-[#afe96e]
+              active:scale-[0.99]
+            "
+          />
+        </div>
+
+        {/* =====================================
+            SHARE
+        ====================================== */}
 
         <div
           className="
@@ -460,7 +580,12 @@ export function MobileCampaignHero({
           "
         >
           <ShareMenu
-            title={content.title}
+            title={
+              content.title
+            }
+            locale={
+              locale
+            }
             triggerVariant="inline"
           />
         </div>

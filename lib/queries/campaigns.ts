@@ -14,41 +14,75 @@ import {
 type CampaignRow = {
   id: string;
   slug: string;
+
   title: string;
-  organization_name: string;
-  eyebrow: string | null;
-  summary: string | null;
-  story: string[];
-  goal_amount_cents: number;
-  currency: string;
+
+  organization_name:
+    string;
+
+  eyebrow:
+    string | null;
+
+  summary:
+    string | null;
+
+  story:
+    string[];
+
+  goal_amount_cents:
+    number;
+
+  currency:
+    string;
 };
 
 type DonationOptionRow = {
   id: string;
-  amount_cents: number;
-  impact_text: string;
-  featured: boolean;
-  sort_order: number;
+
+  amount_cents:
+    number;
+
+  impact_text:
+    string;
+
+  featured:
+    boolean;
+
+  sort_order:
+    number;
 };
 
 type CampaignStatsRow = {
-  raised_amount_cents: number;
-  donor_count: number;
+  raised_amount_cents:
+    number;
+
+  donor_count:
+    number;
 };
 
 type RecentDonationRow = {
   id: string;
-  display_name: string;
-  amount_cents: number;
-  frequency: DonationFrequency;
-  created_at: string;
+
+  display_name:
+    string;
+
+  amount_cents:
+    number;
+
+  frequency:
+    DonationFrequency;
+
+  created_at:
+    string;
 };
 
 function formatRelativeTime(
   dateString: string,
 ) {
   const date =
-    new Date(dateString);
+    new Date(
+      dateString,
+    );
 
   const diff =
     Date.now() -
@@ -62,11 +96,15 @@ function formatRelativeTime(
       ),
     );
 
-  if (minutes < 1) {
+  if (
+    minutes < 1
+  ) {
     return "Just now";
   }
 
-  if (minutes < 60) {
+  if (
+    minutes < 60
+  ) {
     return `${minutes} ${
       minutes === 1
         ? "minute"
@@ -79,7 +117,9 @@ function formatRelativeTime(
       minutes / 60,
     );
 
-  if (hours < 24) {
+  if (
+    hours < 24
+  ) {
     return `${hours} ${
       hours === 1
         ? "hour"
@@ -101,39 +141,49 @@ function formatRelativeTime(
 
 export async function getCampaignBySlug(
   slug: string,
-): Promise<Campaign | null> {
+): Promise<
+  Campaign | null
+> {
   const supabase =
     createSupabaseServerClient();
 
   const {
-    data: campaignData,
-    error: campaignError,
-  } = await supabase
-    .from("campaigns")
-    .select(
-      `
-        id,
-        slug,
-        title,
-        organization_name,
-        eyebrow,
-        summary,
-        story,
-        goal_amount_cents,
-        currency
-      `,
-    )
-    .eq(
-      "slug",
-      slug,
-    )
-    .eq(
-      "is_active",
-      true,
-    )
-    .maybeSingle();
+    data:
+      campaignData,
 
-  if (campaignError) {
+    error:
+      campaignError,
+  } =
+    await supabase
+      .from(
+        "campaigns",
+      )
+      .select(
+        `
+          id,
+          slug,
+          title,
+          organization_name,
+          eyebrow,
+          summary,
+          story,
+          goal_amount_cents,
+          currency
+        `,
+      )
+      .eq(
+        "slug",
+        slug,
+      )
+      .eq(
+        "is_active",
+        true,
+      )
+      .maybeSingle();
+
+  if (
+    campaignError
+  ) {
     console.error(
       campaignError,
     );
@@ -143,7 +193,9 @@ export async function getCampaignBySlug(
     );
   }
 
-  if (!campaignData) {
+  if (
+    !campaignData
+  ) {
     return null;
   }
 
@@ -154,64 +206,52 @@ export async function getCampaignBySlug(
     donationOptionsResult,
     statsResult,
     recentResult,
-  ] = await Promise.all([
-    // ===========================================
-    // DONATION OPTIONS
-    // ===========================================
+  ] =
+    await Promise.all([
+      supabase
+        .from(
+          "donation_options",
+        )
+        .select(
+          `
+            id,
+            amount_cents,
+            impact_text,
+            featured,
+            sort_order
+          `,
+        )
+        .eq(
+          "campaign_id",
+          campaign.id,
+        )
+        .order(
+          "sort_order",
+          {
+            ascending:
+              true,
+          },
+        ),
 
-    supabase
-      .from(
-        "donation_options",
-      )
-      .select(
-        `
-          id,
-          amount_cents,
-          impact_text,
-          featured,
-          sort_order
-        `,
-      )
-      .eq(
-        "campaign_id",
-        campaign.id,
-      )
-      .order(
-        "sort_order",
+      supabase.rpc(
+        "get_campaign_public_stats",
         {
-          ascending: true,
+          campaign_uuid:
+            campaign.id,
         },
       ),
 
-    // ===========================================
-    // PUBLIC STATS
-    // ===========================================
+      supabase.rpc(
+        "get_recent_donations",
+        {
+          campaign_uuid:
+            campaign.id,
 
-    supabase.rpc(
-      "get_campaign_public_stats",
-      {
-        campaign_uuid:
-          campaign.id,
-      },
-    ),
-
-    // ===========================================
-    // CONTRIBUTIONS
-    //
-    // Trước đây chỉ lấy 5.
-    // Bây giờ lấy tối đa 100 để dùng popup See all.
-    // ===========================================
-
-    supabase.rpc(
-      "get_recent_donations",
-      {
-        campaign_uuid:
-          campaign.id,
-
-        donation_limit: 100,
-      },
-    ),
-  ]);
+          donation_limit:
+            100,
+        },
+      ),
+    ]);
 
   if (
     donationOptionsResult.error
@@ -231,10 +271,6 @@ export async function getCampaignBySlug(
     throw recentResult.error;
   }
 
-  // =============================================
-  // DONATION OPTIONS
-  // =============================================
-
   const donationOptions:
     DonationOption[] =
     (
@@ -242,7 +278,8 @@ export async function getCampaignBySlug(
       []
     ).map(
       (
-        row: DonationOptionRow,
+        row:
+          DonationOptionRow,
       ) => ({
         amountUsd:
           Number(
@@ -257,10 +294,6 @@ export async function getCampaignBySlug(
       }),
     );
 
-  // =============================================
-  // STATS
-  // =============================================
-
   const stats =
     (
       statsResult.data ??
@@ -269,10 +302,6 @@ export async function getCampaignBySlug(
       | CampaignStatsRow
       | undefined;
 
-  // =============================================
-  // CONTRIBUTIONS
-  // =============================================
-
   const recentDonations:
     RecentDonation[] =
     (
@@ -280,7 +309,8 @@ export async function getCampaignBySlug(
       []
     ).map(
       (
-        row: RecentDonationRow,
+        row:
+          RecentDonationRow,
       ) => ({
         id:
           row.id,
@@ -302,21 +332,22 @@ export async function getCampaignBySlug(
           ),
       }),
     );
-const baseRaisedAmount =
-  campaign.slug ===
-  "give-a-child-a-brighter-tomorrow"
-    ? 3_783_973
-    : campaign.slug ===
-        "akram-shake"
-      ? 1_450_000
-      : 0;
-  // =============================================
-  // RETURN
-  // =============================================
+
+  const baseRaisedAmount =
+    campaign.slug ===
+    "give-a-child-a-brighter-tomorrow"
+      ? 3_783_973
+      : campaign.slug ===
+          "akram-shake"
+        ? 1_450_000
+        : 0;
 
   return {
     id:
       campaign.id,
+
+    slug:
+      campaign.slug,
 
     title:
       campaign.title,
@@ -343,12 +374,12 @@ const baseRaisedAmount =
       ),
 
     raisedAmountUsd:
-  baseRaisedAmount +
-  Number(
-    stats
-      ?.raised_amount_cents ??
-      0,
-  ),
+      baseRaisedAmount +
+      Number(
+        stats
+          ?.raised_amount_cents ??
+          0,
+      ),
 
     donorCount:
       Number(

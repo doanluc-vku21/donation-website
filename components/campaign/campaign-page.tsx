@@ -9,8 +9,20 @@ import type {
 } from "@/lib/sample-data";
 
 import type {
+  Locale,
+} from "@/lib/i18n";
+
+import {
+  getUiTranslations,
+} from "@/lib/ui-translations";
+
+import type {
   SanityCampaign,
 } from "@/sanity/types/campaign";
+
+import {
+  LanguageSwitcher,
+} from "@/components/i18n/language-switcher";
 
 import {
   CampaignStory,
@@ -51,10 +63,17 @@ import {
 export function CampaignPage({
   campaign,
   content,
+  locale,
 }: {
   campaign: Campaign;
   content: SanityCampaign;
+  locale: Locale;
 }) {
+  const t =
+    getUiTranslations(
+      locale,
+    );
+
   const logoUrl =
     content.organizationLogo
       ?.asset?.url;
@@ -110,8 +129,14 @@ export function CampaignPage({
         : campaign.goalAmountUsd,
   };
 
+  const direction =
+    locale === "ar"
+      ? "rtl"
+      : "ltr";
+
   return (
     <main
+      dir="ltr"
       className="
         min-h-screen
         w-full
@@ -122,6 +147,24 @@ export function CampaignPage({
         lg:pb-0
       "
     >
+      {/* =====================================================
+          LANGUAGE SWITCHER
+      ====================================================== */}
+
+      <div
+        dir="ltr"
+        className="
+          fixed
+          right-4
+          top-4
+          z-[120]
+        "
+      >
+        <LanguageSwitcher
+          locale={locale}
+        />
+      </div>
+
       <div
         className="
           mx-auto
@@ -150,6 +193,7 @@ export function CampaignPage({
             campaignWithGoal
           }
           content={content}
+          locale={locale}
         />
 
         {/* =====================================================
@@ -206,7 +250,12 @@ export function CampaignPage({
             )}
 
             <h1
-              className="
+  dir={
+    locale === "ar"
+      ? "rtl"
+      : "ltr"
+  }
+  className="
                 max-w-[760px]
                 break-words
                 text-[34px]
@@ -258,12 +307,18 @@ export function CampaignPage({
               )}
 
               <p
-                className="
-                  text-sm
-                  text-[#687386]
-                "
-              >
-                Organized by{" "}
+  dir={
+    locale === "ar"
+      ? "rtl"
+      : "ltr"
+  }
+  className="
+    text-sm
+    text-[#687386]
+  "
+>
+                {t.organizedBy}
+                {" "}
 
                 <strong
                   className="
@@ -276,10 +331,24 @@ export function CampaignPage({
                 </strong>
               </p>
 
-              <div className="ml-auto lg:hidden">
-                <ShareMenu />
+              <div
+                className="
+                  ml-auto
+                  lg:hidden
+                "
+              >
+                <ShareMenu
+                  title={
+                    content.title
+                  }
+                  locale={
+                    locale
+                  }
+                />
               </div>
             </div>
+
+            {/* HERO */}
 
             <figure
               className="
@@ -310,7 +379,9 @@ export function CampaignPage({
               ) : (
                 <Image
                   src="/sample-campaign-hero.svg"
-                  alt={content.title}
+                  alt={
+                    content.title
+                  }
                   width={1200}
                   height={760}
                   priority
@@ -334,10 +405,16 @@ export function CampaignPage({
               lg:hidden
             "
           >
-            <MobileStoryToggle>
+            <MobileStoryToggle
+              locale={locale}
+            >
               <CampaignStory
-                campaign={campaign}
-                content={content}
+                campaign={
+                  campaign
+                }
+                content={
+                  content
+                }
               />
             </MobileStoryToggle>
           </div>
@@ -352,7 +429,9 @@ export function CampaignPage({
             "
           >
             <FundUsage
-              content={content}
+              content={
+                content
+              }
             />
           </div>
 
@@ -369,22 +448,34 @@ export function CampaignPage({
             "
           >
             <CampaignStory
-              campaign={campaign}
-              content={content}
+              campaign={
+                campaign
+              }
+              content={
+                content
+              }
             />
 
             <FundUsage
-              content={content}
+              content={
+                content
+              }
             />
 
             <RecentDonations
               donations={
-                campaign.recentDonations
+                campaign
+                  .recentDonations
+              }
+              locale={
+                locale
               }
             />
 
             <SiteFooter
-              content={content}
+              content={
+                content
+              }
             />
           </div>
 
@@ -400,7 +491,11 @@ export function CampaignPage({
           >
             <RecentDonations
               donations={
-                campaign.recentDonations
+                campaign
+                  .recentDonations
+              }
+              locale={
+                locale
               }
             />
           </div>
@@ -416,7 +511,9 @@ export function CampaignPage({
             "
           >
             <SiteFooter
-              content={content}
+              content={
+                content
+              }
             />
           </div>
         </div>
@@ -443,21 +540,35 @@ export function CampaignPage({
             "
           >
             <CampaignDonateCard
-  campaign={
-    campaignWithGoal
-  }
-  content={content}
-/>
+              campaign={
+                campaignWithGoal
+              }
+              content={
+                content
+              }
+              locale={
+                locale
+              }
+            />
           </div>
         </aside>
       </div>
 
+      {/* =====================================================
+          MOBILE STICKY DONATION BAR
+      ====================================================== */}
+
       <MobileDonateBar
-  campaign={
-    campaignWithGoal
-  }
-  content={content}
-/>
+        campaign={
+          campaignWithGoal
+        }
+        content={
+          content
+        }
+        locale={
+          locale
+        }
+      />
     </main>
   );
 }

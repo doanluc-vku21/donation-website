@@ -10,6 +10,14 @@ import type {
 } from "@/lib/sample-data";
 
 import type {
+  Locale,
+} from "@/lib/i18n";
+
+import {
+  getUiTranslations,
+} from "@/lib/ui-translations";
+
+import type {
   SanityCampaign,
 } from "@/sanity/types/campaign";
 
@@ -29,12 +37,24 @@ import {
 type MobileDonateBarProps = {
   campaign: Campaign;
   content: SanityCampaign;
+  locale: Locale;
 };
 
 export function MobileDonateBar({
   campaign,
   content,
+  locale,
 }: MobileDonateBarProps) {
+  const t =
+    getUiTranslations(
+      locale,
+    );
+
+  const textDirection =
+    locale === "ar"
+      ? "rtl"
+      : "ltr";
+
   const [
     visible,
     setVisible,
@@ -47,7 +67,9 @@ export function MobileDonateBar({
     );
 
   const latestDonation =
-    campaign.recentDonations?.[0];
+    campaign
+      .recentDonations
+      ?.[0];
 
   useEffect(() => {
     const target =
@@ -67,7 +89,8 @@ export function MobileDonateBar({
       new IntersectionObserver(
         ([entry]) => {
           const rect =
-            entry.boundingClientRect;
+            entry
+              .boundingClientRect;
 
           const passedAbove =
             !entry.isIntersecting &&
@@ -82,7 +105,9 @@ export function MobileDonateBar({
         },
       );
 
-    observer.observe(target);
+    observer.observe(
+      target,
+    );
 
     return () => {
       observer.disconnect();
@@ -95,6 +120,7 @@ export function MobileDonateBar({
 
   return (
     <div
+      dir="ltr"
       className="
         fixed
         inset-x-0
@@ -107,6 +133,7 @@ export function MobileDonateBar({
       "
     >
       <section
+        dir="ltr"
         className="
           mx-auto
           w-full
@@ -121,7 +148,9 @@ export function MobileDonateBar({
           shadow-[0_-8px_28px_rgba(15,30,40,0.14)]
         "
       >
-        {/* PROGRESS */}
+        {/* =====================================
+            PROGRESS
+        ====================================== */}
 
         <div
           className="
@@ -131,17 +160,27 @@ export function MobileDonateBar({
           "
         >
           <ProgressCircle
-            progress={progress}
+            progress={
+              progress
+            }
           />
 
           <div
+            dir={
+              textDirection
+            }
             className="
               min-w-0
               flex-1
             "
           >
             <RaisedText
-              campaign={campaign}
+              campaign={
+                campaign
+              }
+              locale={
+                locale
+              }
             />
 
             {latestDonation && (
@@ -153,26 +192,43 @@ export function MobileDonateBar({
                   text-[#697387]
                 "
               >
-                {
-                  latestDonation.displayName
-                }{" "}
-                donated{" "}
+                <span
+                  dir="ltr"
+                  className="inline-block"
+                >
+                  {
+                    latestDonation
+                      .displayName
+                  }
+                </span>{" "}
 
-                {formatUsd(
-                  latestDonation.amountUsd,
-                ).replace(
-                  ".00",
-                  "",
-                )}{" "}
+                {t.donated}{" "}
+
+                <span
+                  dir="ltr"
+                  className="inline-block"
+                >
+                  {formatUsd(
+                    latestDonation
+                      .amountUsd,
+                  ).replace(
+                    ".00",
+                    "",
+                  )}
+                </span>{" "}
+
                 ›
               </p>
             )}
           </div>
         </div>
 
-        {/* ACTIONS */}
+        {/* =====================================
+            ACTIONS
+        ====================================== */}
 
         <div
+          dir="ltr"
           className="
             mt-4
             grid
@@ -181,8 +237,15 @@ export function MobileDonateBar({
           "
         >
           <DonationModal
-            campaign={campaign}
-            content={content}
+            campaign={
+              campaign
+            }
+            content={
+              content
+            }
+            locale={
+              locale
+            }
             triggerClassName="
               flex
               min-h-[50px]
@@ -203,6 +266,9 @@ export function MobileDonateBar({
             title={
               content.title
             }
+            locale={
+              locale
+            }
             triggerVariant="solid"
           />
         </div>
@@ -211,6 +277,10 @@ export function MobileDonateBar({
   );
 }
 
+// =================================================
+// PROGRESS CIRCLE
+// =================================================
+
 function ProgressCircle({
   progress,
 }: {
@@ -218,6 +288,7 @@ function ProgressCircle({
 }) {
   return (
     <div
+      dir="ltr"
       className="
         grid
         size-[62px]
@@ -245,6 +316,7 @@ function ProgressCircle({
         "
       >
         <strong
+          dir="ltr"
           className="
             text-[14px]
             font-bold
@@ -258,13 +330,32 @@ function ProgressCircle({
   );
 }
 
+// =================================================
+// RAISED TEXT
+// =================================================
+
 function RaisedText({
   campaign,
+  locale,
 }: {
   campaign: Campaign;
+  locale: Locale;
 }) {
+  const t =
+    getUiTranslations(
+      locale,
+    );
+
+  const textDirection =
+    locale === "ar"
+      ? "rtl"
+      : "ltr";
+
   return (
     <p
+      dir={
+        textDirection
+      }
       className="
         truncate
         text-[17px]
@@ -274,10 +365,17 @@ function RaisedText({
         text-[#172033]
       "
     >
-      {formatUsd(
-        campaign.raisedAmountUsd,
-      )}{" "}
-      raised{" "}
+      <span
+        dir="ltr"
+        className="inline-block"
+      >
+        {formatUsd(
+          campaign
+            .raisedAmountUsd,
+        )}
+      </span>{" "}
+
+      {t.raised}{" "}
 
       <span
         className="
@@ -285,16 +383,19 @@ function RaisedText({
           text-[#758092]
         "
       >
-        of{" "}
+        {t.of}{" "}
 
         <span
+          dir="ltr"
           className="
+            inline-block
             underline
             underline-offset-2
           "
         >
           {formatUsd(
-            campaign.goalAmountUsd,
+            campaign
+              .goalAmountUsd,
           ).replace(
             ".00",
             "",
