@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -35,6 +36,10 @@ import {
 import {
   DonationPayment,
 } from "./donation-payment";
+
+import {
+  DonationExpressCheckout,
+} from "./donation-express-checkout";
 
 import type {
   Currency,
@@ -189,6 +194,38 @@ export function DonationFlow({
       number | null
     >(null);
 
+  const [
+    expressClientSecret,
+    setExpressClientSecret,
+  ] =
+    useState<
+      string | null
+    >(null);
+
+  const [
+    expressSessionKey,
+    setExpressSessionKey,
+  ] =
+    useState(
+      "",
+    );
+
+  const [
+    expressAvailable,
+    setExpressAvailable,
+  ] =
+    useState(
+      false,
+    );
+
+  const [
+    expressLoading,
+    setExpressLoading,
+  ] =
+    useState(
+      false,
+    );
+
   const hasValidAmount =
     Number.isInteger(
       amount,
@@ -235,6 +272,188 @@ export function DonationFlow({
       campaign
         .donationOptions,
     ]);
+
+  function resetExpressCheckout() {
+    setExpressClientSecret(
+      null,
+    );
+
+    setExpressSessionKey(
+      "",
+    );
+
+    setExpressAvailable(
+      false,
+    );
+  }
+
+  useEffect(() => {
+    /*
+     * Fast wallet checkout is intentionally one-time only.
+     *
+     * We create a lightweight Checkout Session as soon as
+     * the amount step has a valid one-time amount.
+     *
+     * A short debounce avoids creating a Stripe session for
+     * every keystroke in the custom amount field.
+     */
+    if (
+      step !==
+        "amount" ||
+      frequency !==
+        "one_time" ||
+      !hasValidAmount
+    ) {
+      resetExpressCheckout();
+
+      return;
+    }
+
+    const key = [
+      campaign.id,
+      amount,
+      currency,
+      coverFee
+        ? "fee"
+        : "no-fee",
+      displayPublicly
+        ? "public"
+        : "anonymous",
+      locale,
+    ].join(
+      ":",
+    );
+
+    if (
+      expressSessionKey ===
+        key &&
+      expressClientSecret
+    ) {
+      return;
+    }
+
+    const controller =
+      new AbortController();
+
+    const timeout =
+      window.setTimeout(
+        async () => {
+          try {
+            setExpressLoading(
+              true,
+            );
+
+            setExpressAvailable(
+              false,
+            );
+
+            const response =
+              await fetch(
+                "/api/stripe/express-checkout",
+                {
+                  method:
+                    "POST",
+
+                  headers: {
+                    "Content-Type":
+                      "application/json",
+                  },
+
+                  signal:
+                    controller.signal,
+
+                  body:
+                    JSON.stringify(
+                      {
+                        campaignId:
+                          campaign.id,
+
+                        campaignSlug:
+                          campaign.slug,
+
+                        amountCents:
+                          amount,
+
+                        currency,
+
+                        coverFee,
+
+                        locale,
+
+                        displayPublicly,
+                      },
+                    ),
+                },
+              );
+
+            const data =
+              await response.json();
+
+            if (
+              !response.ok ||
+              !data.clientSecret
+            ) {
+              throw new Error(
+                data.error ??
+                  "Unable to load express checkout.",
+              );
+            }
+
+            setExpressClientSecret(
+              data.clientSecret,
+            );
+
+            setExpressSessionKey(
+              key,
+            );
+          } catch (
+            expressError
+          ) {
+            if (
+              expressError instanceof
+                DOMException &&
+              expressError.name ===
+                "AbortError"
+            ) {
+              return;
+            }
+
+            console.error(
+              "Express checkout session failed:",
+              expressError,
+            );
+
+            resetExpressCheckout();
+          } finally {
+            setExpressLoading(
+              false,
+            );
+          }
+        },
+        450,
+      );
+
+    return () => {
+      window.clearTimeout(
+        timeout,
+      );
+
+      controller.abort();
+    };
+  }, [
+    amount,
+    campaign.id,
+    campaign.slug,
+    coverFee,
+    currency,
+    displayPublicly,
+    expressClientSecret,
+    expressSessionKey,
+    frequency,
+    hasValidAmount,
+    locale,
+    step,
+  ]);
 
   function goToStep(
     nextStep:
@@ -291,6 +510,7 @@ export function DonationFlow({
     );
 
     resetCheckoutSession();
+    resetExpressCheckout();
 
     setError(
       "",
@@ -309,6 +529,7 @@ export function DonationFlow({
     );
 
     resetCheckoutSession();
+    resetExpressCheckout();
 
     if (
       raw.trim() ===
@@ -695,6 +916,7 @@ export function DonationFlow({
                     );
 
                     resetCheckoutSession();
+                    resetExpressCheckout();
 
                     setError(
                       "",
@@ -988,9 +1210,15 @@ export function DonationFlow({
             checked={
               displayPublicly
             }
-            onChange={
-              setDisplayPublicly
-            }
+            onChange={(
+              checked,
+            ) => {
+              setDisplayPublicly(
+                checked,
+              );
+
+              resetExpressCheckout();
+            }}
           >
             {
               t.displayNamePublicly
@@ -1009,6 +1237,7 @@ export function DonationFlow({
               );
 
               resetCheckoutSession();
+              resetExpressCheckout();
 
               setError(
                 "",
@@ -1065,6 +1294,93 @@ export function DonationFlow({
                 locale,
               )}
             </strong>
+          </div>
+        )}
+
+        {frequency ===
+          "one_time" &&
+          hasValidAmount && (
+          <div
+            className="
+              mt-4
+            "
+          >
+            {expressClientSecret ? (
+              <>
+                <DonationExpressCheckout
+                  key={
+                    expressSessionKey
+                  }
+                  clientSecret={
+                    expressClientSecret
+                  }
+                  locale={
+                    locale
+                  }
+                  onAvailabilityChange={
+                    setExpressAvailable
+                  }
+                  onError={(
+                    message,
+                  ) => {
+                    setError(
+                      message,
+                    );
+                  }}
+                />
+
+                {expressAvailable && (
+                  <div
+                    dir="ltr"
+                    className="
+                      my-4
+                      flex
+                      items-center
+                      gap-3
+                    "
+                  >
+                    <span
+                      className="
+                        h-px
+                        flex-1
+                        bg-[#e2e7e3]
+                      "
+                    />
+
+                    <span
+                      className="
+                        shrink-0
+                        text-[10px]
+                        font-semibold
+                        uppercase
+                        tracking-[0.08em]
+                        text-[#89918c]
+                      "
+                    >
+                      OR
+                    </span>
+
+                    <span
+                      className="
+                        h-px
+                        flex-1
+                        bg-[#e2e7e3]
+                      "
+                    />
+                  </div>
+                )}
+              </>
+            ) : expressLoading ? (
+              <div
+                className="
+                  h-[48px]
+                  w-full
+                  animate-pulse
+                  rounded-[12px]
+                  bg-[#eef1ed]
+                "
+              />
+            ) : null}
           </div>
         )}
 

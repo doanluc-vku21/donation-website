@@ -187,16 +187,43 @@ async function handleCheckoutSessionCompleted(
   const campaignId =
     metadata.campaign_id;
 
-  const firstName =
+  const customerName =
+    session
+      .customer_details
+      ?.name
+      ?.trim() ??
+    "";
+
+  const metadataFirstName =
     metadata
       .donor_first_name
       ?.trim() ??
     "";
 
-  const lastName =
+  const metadataLastName =
     metadata
       .donor_last_name
       ?.trim() ??
+    "";
+
+  const {
+    firstName:
+      customerFirstName,
+    lastName:
+      customerLastName,
+  } =
+    splitCustomerName(
+      customerName,
+    );
+
+  const firstName =
+    metadataFirstName ||
+    customerFirstName ||
+    "Donor";
+
+  const lastName =
+    metadataLastName ||
+    customerLastName ||
     "";
 
   const rawEmail =
@@ -223,16 +250,25 @@ async function handleCheckoutSessionCompleted(
       ?.phone ||
     null;
 
-  const displayName =
-    metadata
-      .display_name
-      ?.trim() ||
-    "Anonymous";
-
   const isAnonymous =
     metadata
-      .is_anonymous ===
-    "true";
+      .is_anonymous !==
+    "false";
+
+  const metadataDisplayName =
+    metadata
+      .display_name
+      ?.trim() ??
+    "";
+
+  const displayName =
+    isAnonymous
+      ? "Anonymous"
+      : metadataDisplayName ||
+        buildPublicDisplayName(
+          firstName,
+          lastName,
+        );
 
   const chargedCurrency =
     normalizeCurrency(
@@ -956,6 +992,88 @@ function readPositiveNumber(
       0
     ? parsed
     : 1;
+}
+
+function splitCustomerName(
+  fullName:
+    string,
+) {
+  const parts =
+    fullName
+      .trim()
+      .split(
+        /\s+/,
+      )
+      .filter(
+        Boolean,
+      );
+
+  if (
+    parts.length ===
+    0
+  ) {
+    return {
+      firstName:
+        "",
+      lastName:
+        "",
+    };
+  }
+
+  if (
+    parts.length ===
+    1
+  ) {
+    return {
+      firstName:
+        parts[0],
+      lastName:
+        "",
+    };
+  }
+
+  return {
+    firstName:
+      parts[0],
+
+    lastName:
+      parts
+        .slice(
+          1,
+        )
+        .join(
+          " ",
+        ),
+  };
+}
+
+function buildPublicDisplayName(
+  firstName:
+    string,
+  lastName:
+    string,
+) {
+  const first =
+    firstName
+      .trim();
+
+  const last =
+    lastName
+      .trim();
+
+  if (
+    !first
+  ) {
+    return "Donor";
+  }
+
+  if (
+    !last
+  ) {
+    return first;
+  }
+
+  return `${first} ${last.charAt(0)}.`;
 }
 
 // =========================================================

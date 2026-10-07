@@ -1,19 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, LockKeyhole } from "lucide-react";
-import { loadStripe } from "@stripe/stripe-js";
+import {
+  useState,
+} from "react";
+
+import {
+  ArrowLeft,
+  LockKeyhole,
+} from "lucide-react";
+
+import {
+  loadStripe,
+} from "@stripe/stripe-js";
+
 import {
   CheckoutElementsProvider,
-  ExpressCheckoutElement,
   PaymentElement,
   useCheckoutElements,
 } from "@stripe/react-stripe-js/checkout";
 
-import type { Locale } from "@/lib/i18n";
+import type {
+  Locale,
+} from "@/lib/i18n";
 
 const publishableKey =
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  process.env
+    .NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
 if (!publishableKey) {
   throw new Error(
@@ -22,103 +34,160 @@ if (!publishableKey) {
 }
 
 const stripePromise =
-  loadStripe(publishableKey);
+  loadStripe(
+    publishableKey,
+  );
 
 const paymentLabels = {
   en: {
-    back: "Back",
-    heading: "Payment",
+    back:
+      "Back",
+
+    heading:
+      "Payment",
+
     description:
       "Complete your donation securely.",
-    pay: "Donate",
+
+    pay:
+      "Donate",
+
     processing:
       "Processing payment...",
+
     secure:
       "Payment processed securely by Stripe",
+
     error:
       "Unable to process payment. Please try again.",
+
     loading:
       "Loading secure payment...",
-    or: "OR",
   },
 
   fr: {
-    back: "Retour",
-    heading: "Paiement",
+    back:
+      "Retour",
+
+    heading:
+      "Paiement",
+
     description:
       "Finalisez votre don en toute sécurité.",
-    pay: "Faire un don",
+
+    pay:
+      "Faire un don",
+
     processing:
       "Traitement du paiement...",
+
     secure:
       "Paiement sécurisé par Stripe",
+
     error:
       "Impossible de traiter le paiement. Veuillez réessayer.",
+
     loading:
       "Chargement du paiement sécurisé...",
-    or: "OU",
   },
 
   de: {
-    back: "Zurück",
-    heading: "Zahlung",
+    back:
+      "Zurück",
+
+    heading:
+      "Zahlung",
+
     description:
       "Schließen Sie Ihre Spende sicher ab.",
-    pay: "Spenden",
+
+    pay:
+      "Spenden",
+
     processing:
       "Zahlung wird verarbeitet...",
+
     secure:
       "Sichere Zahlungsabwicklung durch Stripe",
+
     error:
       "Die Zahlung konnte nicht verarbeitet werden. Bitte versuchen Sie es erneut.",
+
     loading:
       "Sichere Zahlung wird geladen...",
-    or: "ODER",
   },
 
   es: {
-    back: "Atrás",
-    heading: "Pago",
+    back:
+      "Atrás",
+
+    heading:
+      "Pago",
+
     description:
       "Complete su donación de forma segura.",
-    pay: "Donar",
+
+    pay:
+      "Donar",
+
     processing:
       "Procesando el pago...",
+
     secure:
       "Pago procesado de forma segura por Stripe",
+
     error:
       "No se pudo procesar el pago. Inténtelo de nuevo.",
+
     loading:
       "Cargando pago seguro...",
-    or: "O",
   },
 
   ar: {
-    back: "رجوع",
-    heading: "الدفع",
+    back:
+      "رجوع",
+
+    heading:
+      "الدفع",
+
     description:
       "أكمل تبرعك بأمان.",
-    pay: "تبرع",
+
+    pay:
+      "تبرع",
+
     processing:
       "جارٍ معالجة الدفع...",
+
     secure:
       "تتم معالجة الدفع بأمان بواسطة Stripe",
+
     error:
       "تعذر معالجة الدفع. يرجى المحاولة مرة أخرى.",
+
     loading:
       "جارٍ تحميل الدفع الآمن...",
-    or: "أو",
   },
 } satisfies Record<
   Locale,
-  Record<string, string>
+  Record<
+    string,
+    string
+  >
 >;
 
 type DonationPaymentProps = {
-  clientSecret: string;
-  locale: Locale;
-  amountLabel: string;
-  onBack: () => void;
+  clientSecret:
+    string;
+
+  locale:
+    Locale;
+
+  amountLabel:
+    string;
+
+  onBack:
+    () => void;
 };
 
 export function DonationPayment({
@@ -129,23 +198,30 @@ export function DonationPayment({
 }: DonationPaymentProps) {
   return (
     <CheckoutElementsProvider
-      stripe={stripePromise}
+      stripe={
+        stripePromise
+      }
       options={{
         clientSecret,
 
         elementsOptions: {
           appearance: {
-            theme: "stripe",
+            theme:
+              "stripe",
 
             variables: {
               colorPrimary:
                 "#24543d",
+
               colorText:
                 "#182136",
+
               colorDanger:
                 "#dc2626",
+
               borderRadius:
                 "11px",
+
               fontFamily:
                 "Arial, Helvetica, sans-serif",
             },
@@ -154,11 +230,15 @@ export function DonationPayment({
       }}
     >
       <PaymentForm
-        locale={locale}
+        locale={
+          locale
+        }
         amountLabel={
           amountLabel
         }
-        onBack={onBack}
+        onBack={
+          onBack
+        }
       />
     </CheckoutElementsProvider>
   );
@@ -169,36 +249,48 @@ function PaymentForm({
   amountLabel,
   onBack,
 }: {
-  locale: Locale;
-  amountLabel: string;
-  onBack: () => void;
+  locale:
+    Locale;
+
+  amountLabel:
+    string;
+
+  onBack:
+    () => void;
 }) {
   const checkoutResult =
     useCheckoutElements();
 
   const labels =
-    paymentLabels[locale];
+    paymentLabels[
+      locale
+    ];
 
   const [
     isSubmitting,
     setIsSubmitting,
   ] =
-    useState(false);
+    useState(
+      false,
+    );
 
   const [
     error,
     setError,
   ] =
-    useState("");
+    useState(
+      "",
+    );
 
-  const [
-    expressAvailable,
-    setExpressAvailable,
-  ] =
-    useState(false);
+  async function handleSubmit(
+    event:
+      React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
 
-  async function confirmCheckout() {
-    setError("");
+    setError(
+      "",
+    );
 
     if (
       checkoutResult.type !==
@@ -208,7 +300,9 @@ function PaymentForm({
     }
 
     try {
-      setIsSubmitting(true);
+      setIsSubmitting(
+        true,
+      );
 
       const result =
         await checkoutResult
@@ -242,22 +336,15 @@ function PaymentForm({
           : labels.error,
       );
 
-      setIsSubmitting(false);
+      setIsSubmitting(
+        false,
+      );
     }
-  }
-
-  async function handleSubmit(
-    event:
-      React.FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-
-    await confirmCheckout();
   }
 
   if (
     checkoutResult.type ===
-    "error"
+      "error"
   ) {
     return (
       <div
@@ -281,7 +368,7 @@ function PaymentForm({
 
   if (
     checkoutResult.type ===
-    "loading"
+      "loading"
   ) {
     return (
       <div
@@ -294,7 +381,9 @@ function PaymentForm({
           text-[#66736b]
         "
       >
-        {labels.loading}
+        {
+          labels.loading
+        }
       </div>
     );
   }
@@ -302,7 +391,8 @@ function PaymentForm({
   return (
     <section
       dir={
-        locale === "ar"
+        locale ===
+        "ar"
           ? "rtl"
           : "ltr"
       }
@@ -312,7 +402,9 @@ function PaymentForm({
         disabled={
           isSubmitting
         }
-        onClick={onBack}
+        onClick={
+          onBack
+        }
         className="
           inline-flex
           min-h-[30px]
@@ -330,7 +422,9 @@ function PaymentForm({
           className="size-3.5"
         />
 
-        {labels.back}
+        {
+          labels.back
+        }
       </button>
 
       <div className="mt-1">
@@ -342,7 +436,9 @@ function PaymentForm({
             text-[#161616]
           "
         >
-          {labels.heading}
+          {
+            labels.heading
+          }
         </h2>
 
         <p
@@ -359,117 +455,11 @@ function PaymentForm({
         </p>
       </div>
 
-      <div
-        dir="ltr"
-        className={
-          expressAvailable
-            ? "mt-4 block"
-            : "hidden"
-        }
-      >
-        <ExpressCheckoutElement
-          options={{
-            buttonHeight: 48,
-
-            buttonTheme: {
-              applePay:
-                "black",
-              googlePay:
-                "black",
-            },
-
-            buttonType: {
-              applePay:
-                "plain",
-              googlePay:
-                "plain",
-            },
-
-            layout: {
-              maxColumns: 2,
-              maxRows: 1,
-              overflow:
-                "auto",
-            },
-
-            paymentMethodOrder: [
-              "applePay",
-              "googlePay",
-              "link",
-            ],
-
-            paymentMethods: {
-              applePay:
-                "always",
-              googlePay:
-                "always",
-            },
-          }}
-          onReady={({
-            availablePaymentMethods,
-          }) => {
-            setExpressAvailable(
-              Boolean(
-                availablePaymentMethods,
-              ),
-            );
-          }}
-          onConfirm={
-            confirmCheckout
-          }
-        />
-      </div>
-
-      {expressAvailable && (
-        <div
-          dir="ltr"
-          className="
-            my-4
-            flex
-            items-center
-            gap-3
-          "
-        >
-          <span
-            className="
-              h-px
-              flex-1
-              bg-[#e2e7e3]
-            "
-          />
-
-          <span
-            className="
-              shrink-0
-              text-[10px]
-              font-semibold
-              uppercase
-              tracking-[0.08em]
-              text-[#89918c]
-            "
-          >
-            {labels.or}
-          </span>
-
-          <span
-            className="
-              h-px
-              flex-1
-              bg-[#e2e7e3]
-            "
-          />
-        </div>
-      )}
-
       <form
         onSubmit={
           handleSubmit
         }
-        className={
-          expressAvailable
-            ? ""
-            : "mt-4"
-        }
+        className="mt-4"
       >
         <div
           dir="ltr"
@@ -494,7 +484,9 @@ function PaymentForm({
               text-red-700
             "
           >
-            {error}
+            {
+              error
+            }
           </p>
         )}
 
@@ -549,7 +541,9 @@ function PaymentForm({
             "
           />
 
-          {labels.secure}
+          {
+            labels.secure
+          }
         </p>
       </form>
     </section>
