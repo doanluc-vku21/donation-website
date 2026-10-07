@@ -16,6 +16,8 @@
     "@sanity/assist": "^6.2.2",
     "@sanity/image-url": "^2.1.1",
     "@sanity/vision": "^5.31.2",
+    "@stripe/react-stripe-js": "^7.0.0",
+    "@stripe/stripe-js": "^10.0.0",
     "@supabase/supabase-js": "^2.116.0",
     "dotenv": "^18.0.5",
     "lucide-react": "^1.45.0",

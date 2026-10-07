@@ -34,7 +34,8 @@ import {
 
 type DonationStep =
   | "amount"
-  | "donor";
+  | "donor"
+  | "payment";
 
 type DonationModalProps = {
   campaign: Campaign;

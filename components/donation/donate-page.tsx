@@ -261,8 +261,9 @@ export function DonatePage({
 
         <div className="mt-4">
           <DonationFlow
-            campaign={campaign}
-          />
+  campaign={campaign}
+  locale="en"
+/>
         </div>
 
         {/* =====================================================

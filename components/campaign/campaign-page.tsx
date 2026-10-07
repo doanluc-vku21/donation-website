@@ -21,8 +21,12 @@ import type {
 } from "@/sanity/types/campaign";
 
 import {
-  LanguageSwitcher,
-} from "@/components/i18n/language-switcher";
+  LocaleCurrencySwitcher,
+} from "@/components/i18n/locale-currency-switcher";
+
+import type {
+  Currency,
+} from "@/lib/currency";
 
 import {
   CampaignStory,
@@ -64,10 +68,18 @@ export function CampaignPage({
   campaign,
   content,
   locale,
+  currency,
 }: {
   campaign: Campaign;
-  content: SanityCampaign;
-  locale: Locale;
+
+  content:
+    SanityCampaign;
+
+  locale:
+    Locale;
+
+  currency:
+    Currency;
 }) {
   const t =
     getUiTranslations(
@@ -160,9 +172,14 @@ export function CampaignPage({
           z-[120]
         "
       >
-        <LanguageSwitcher
-          locale={locale}
-        />
+        <LocaleCurrencySwitcher
+  locale={
+    locale
+  }
+  currency={
+    currency
+  }
+/>
       </div>
 
       <div

@@ -80,11 +80,9 @@ const stripeProductTranslations:
   Record<
     StripeSupportedLocale,
     {
-      monthlyName:
-        string;
+      monthlyName: string;
 
-      oneTimeName:
-        string;
+      oneTimeName: string;
 
       monthlyWithFeeDescription:
         string;
@@ -198,7 +196,7 @@ export async function POST(
     } = body;
 
     // =========================================================
-    // VALIDATE CAMPAIGN
+    // CAMPAIGN
     // =========================================================
 
     if (!campaignId) {
@@ -212,10 +210,6 @@ export async function POST(
         },
       );
     }
-
-    // =========================================================
-    // VALIDATE CAMPAIGN SLUG
-    // =========================================================
 
     if (
       !campaignSlug ||
@@ -234,10 +228,6 @@ export async function POST(
       );
     }
 
-    // =========================================================
-    // PUBLIC CAMPAIGN PATH
-    // =========================================================
-
     const campaignPath =
       getCampaignPublicPath(
         campaignSlug,
@@ -255,10 +245,6 @@ export async function POST(
         ? locale
         : "en";
 
-    // Stripe Checkout không hỗ trợ Arabic.
-    // Arabic trên website vẫn được giữ trong metadata.
-    // Stripe riêng sẽ fallback sang English.
-
     const stripeLocale:
       StripeSupportedLocale =
       siteLocale === "ar"
@@ -271,7 +257,7 @@ export async function POST(
       ];
 
     // =========================================================
-    // VALIDATE DONATION AMOUNT
+    // AMOUNT
     // =========================================================
 
     if (
@@ -292,7 +278,7 @@ export async function POST(
     }
 
     // =========================================================
-    // VALIDATE FREQUENCY
+    // FREQUENCY
     // =========================================================
 
     if (
@@ -313,7 +299,7 @@ export async function POST(
     }
 
     // =========================================================
-    // VALIDATE DONOR
+    // DONOR
     // =========================================================
 
     if (
@@ -337,10 +323,6 @@ export async function POST(
         },
       );
     }
-
-    // =========================================================
-    // EMAIL
-    // =========================================================
 
     const email =
       donor.email
@@ -384,7 +366,7 @@ export async function POST(
       feeAmountCents;
 
     // =========================================================
-    // SITE URL
+    // URL
     // =========================================================
 
     const siteUrl =
@@ -411,16 +393,12 @@ export async function POST(
       campaign_id:
         campaignId,
 
-      // DB slug
       campaign_slug:
         campaignSlug,
 
-      // Public website path
       campaign_path:
         campaignPath,
 
-      // Giữ locale website thật.
-      // Arabic vẫn là "ar".
       locale:
         siteLocale,
 
@@ -460,7 +438,7 @@ export async function POST(
     };
 
     // =========================================================
-    // PRODUCT NAME
+    // PRODUCT
     // =========================================================
 
     const productName =
@@ -470,10 +448,6 @@ export async function POST(
             .monthlyName
         : stripeText
             .oneTimeName;
-
-    // =========================================================
-    // PRODUCT DESCRIPTION
-    // =========================================================
 
     const productDescription =
       coverFee
@@ -491,35 +465,26 @@ export async function POST(
               .oneTimeDescription;
 
     // =========================================================
-    // CREATE STRIPE SESSION
+    // CREATE CHECKOUT SESSION — ELEMENTS MODE
     // =========================================================
 
     const session =
       await stripe.checkout.sessions.create(
         {
+          ui_mode:
+            "elements",
+
           mode:
             frequency ===
             "monthly"
               ? "subscription"
               : "payment",
 
-          // =====================================
-          // STRIPE LOCALE
-          // =====================================
-
           locale:
             stripeLocale,
 
-          // =====================================
-          // CUSTOMER
-          // =====================================
-
           customer_email:
             email,
-
-          // =====================================
-          // LINE ITEM
-          // =====================================
 
           line_items: [
             {
@@ -554,27 +519,11 @@ export async function POST(
             },
           ],
 
-          // ===================================================
-          // REDIRECT
-          // ===================================================
-
-          success_url:
+          // Payment Element quay về đây sau khi hoàn tất.
+          return_url:
             `${siteUrl}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
 
-          // Quan trọng:
-          // dùng campaignPath, không dùng campaignSlug
-          cancel_url:
-            `${siteUrl}${campaignPath}#donation-panel`,
-
-          // ===================================================
-          // METADATA
-          // ===================================================
-
           metadata,
-
-          // ===================================================
-          // SUBSCRIPTION METADATA
-          // ===================================================
 
           ...(frequency ===
           "monthly"
@@ -589,12 +538,14 @@ export async function POST(
       );
 
     // =========================================================
-    // VALIDATE SESSION URL
+    // CLIENT SECRET
     // =========================================================
 
-    if (!session.url) {
+    if (
+      !session.client_secret
+    ) {
       throw new Error(
-        "Stripe Checkout URL was not created.",
+        "Checkout Session client secret was not created.",
       );
     }
 
@@ -604,11 +555,14 @@ export async function POST(
 
     return NextResponse.json(
       {
-        url:
-          session.url,
+        clientSecret:
+          session.client_secret,
 
         sessionId:
           session.id,
+
+        returnUrl:
+          `${siteUrl}/thank-you?session_id=${session.id}`,
 
         mode:
           frequency ===

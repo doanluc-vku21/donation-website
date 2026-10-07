@@ -31,6 +31,10 @@ import {
   formatUsd,
 } from "@/lib/money";
 
+import {
+  DonationPayment,
+} from "./donation-payment";
+
 declare global {
   interface Window {
     fbq?: (
@@ -46,7 +50,8 @@ declare global {
 
 type DonationStep =
   | "amount"
-  | "donor";
+  | "donor"
+  | "payment";
 
 type DonationFlowProps = {
   campaign: Campaign;
@@ -82,30 +87,34 @@ export function DonationFlow({
   const [
     amount,
     setAmount,
-  ] = useState(0);
+  ] =
+    useState(0);
 
   const [
     customAmount,
     setCustomAmount,
-  ] = useState("");
+  ] =
+    useState("");
 
   const [
     selectedPreset,
     setSelectedPreset,
   ] =
-    useState<number | null>(
-      null,
-    );
+    useState<
+      number | null
+    >(null);
 
   const [
     coverFee,
     setCoverFee,
-  ] = useState(false);
+  ] =
+    useState(false);
 
   const [
     displayPublicly,
     setDisplayPublicly,
-  ] = useState(false);
+  ] =
+    useState(false);
 
   const [
     step,
@@ -118,27 +127,48 @@ export function DonationFlow({
   const [
     firstName,
     setFirstName,
-  ] = useState("");
+  ] =
+    useState("");
 
   const [
     lastName,
     setLastName,
-  ] = useState("");
+  ] =
+    useState("");
 
   const [
     email,
     setEmail,
-  ] = useState("");
+  ] =
+    useState("");
 
   const [
     isLoading,
     setIsLoading,
-  ] = useState(false);
+  ] =
+    useState(false);
 
   const [
     error,
     setError,
-  ] = useState("");
+  ] =
+    useState("");
+
+  const [
+    clientSecret,
+    setClientSecret,
+  ] =
+    useState<
+      string | null
+    >(null);
+
+  const [
+    sessionId,
+    setSessionId,
+  ] =
+    useState<
+      string | null
+    >(null);
 
   const hasValidAmount =
     Number.isInteger(
@@ -156,7 +186,8 @@ export function DonationFlow({
 
   const total =
     hasValidAmount
-      ? amount + fee
+      ? amount +
+        fee
       : 0;
 
   const donationOptions =
@@ -165,7 +196,10 @@ export function DonationFlow({
         ...campaign
           .donationOptions,
       ].sort(
-        (a, b) =>
+        (
+          a,
+          b,
+        ) =>
           a.amountUsd -
           b.amountUsd,
       );
@@ -174,8 +208,40 @@ export function DonationFlow({
         .donationOptions,
     ]);
 
+  function goToStep(
+    nextStep:
+      DonationStep,
+  ) {
+    setStep(
+      nextStep,
+    );
+
+    onStepChange?.(
+      nextStep,
+    );
+
+    if (!embedded) {
+      window.scrollTo({
+        top: 0,
+        behavior:
+          "smooth",
+      });
+    }
+  }
+
+  function resetCheckoutSession() {
+    setClientSecret(
+      null,
+    );
+
+    setSessionId(
+      null,
+    );
+  }
+
   function selectAmount(
-    amountCents: number,
+    amountCents:
+      number,
   ) {
     setAmount(
       amountCents,
@@ -188,6 +254,8 @@ export function DonationFlow({
     setCustomAmount(
       "",
     );
+
+    resetCheckoutSession();
 
     setError(
       "",
@@ -204,6 +272,8 @@ export function DonationFlow({
     setSelectedPreset(
       null,
     );
+
+    resetCheckoutSession();
 
     if (
       raw.trim() ===
@@ -245,27 +315,6 @@ export function DonationFlow({
       setAmount(
         0,
       );
-    }
-  }
-
-  function goToStep(
-    nextStep:
-      DonationStep,
-  ) {
-    setStep(
-      nextStep,
-    );
-
-    onStepChange?.(
-      nextStep,
-    );
-
-    if (!embedded) {
-      window.scrollTo({
-        top: 0,
-        behavior:
-          "smooth",
-      });
     }
   }
 
@@ -354,6 +403,8 @@ export function DonationFlow({
         true,
       );
 
+      resetCheckoutSession();
+
       const response =
         await fetch(
           "/api/stripe/checkout",
@@ -367,37 +418,37 @@ export function DonationFlow({
             },
 
             body:
-  JSON.stringify(
-    {
-      campaignId:
-        campaign.id,
+              JSON.stringify(
+                {
+                  campaignId:
+                    campaign.id,
 
-      campaignSlug:
-        campaign.slug,
+                  campaignSlug:
+                    campaign.slug,
 
-      amountCents:
-        amount,
+                  amountCents:
+                    amount,
 
-      coverFee,
+                  coverFee,
 
-      frequency,
+                  frequency,
 
-      locale,
+                  locale,
 
-      donor: {
-        firstName:
-          firstName.trim(),
+                  donor: {
+                    firstName:
+                      firstName.trim(),
 
-        lastName:
-          lastName.trim(),
+                    lastName:
+                      lastName.trim(),
 
-        email:
-          email.trim(),
+                    email:
+                      email.trim(),
 
-        displayPublicly,
-      },
-    },
-  ),
+                    displayPublicly,
+                  },
+                },
+              ),
           },
         );
 
@@ -414,7 +465,8 @@ export function DonationFlow({
       }
 
       if (
-        !data.url
+        !data.clientSecret ||
+        !data.sessionId
       ) {
         throw new Error(
           t.errorCheckout,
@@ -450,12 +502,20 @@ export function DonationFlow({
         );
       }
 
-      window.setTimeout(
-        () => {
-          window.location.href =
-            data.url;
-        },
-        150,
+      setClientSecret(
+        data.clientSecret,
+      );
+
+      setSessionId(
+        data.sessionId,
+      );
+
+      goToStep(
+        "payment",
+      );
+
+      setIsLoading(
+        false,
       );
     } catch (
       checkoutError
@@ -478,6 +538,48 @@ export function DonationFlow({
     }
   }
 
+  // =========================================================
+  // PAYMENT STEP
+  // =========================================================
+
+  if (
+    step ===
+      "payment" &&
+    clientSecret &&
+    sessionId
+  ) {
+    return (
+      <DonationPayment
+        clientSecret={
+          clientSecret
+        }
+        locale={
+          locale
+        }
+        amountLabel={
+          formatUsd(
+            total,
+          )
+        }
+        onBack={() => {
+          resetCheckoutSession();
+
+          setError(
+            "",
+          );
+
+          goToStep(
+            "donor",
+          );
+        }}
+      />
+    );
+  }
+
+  // =========================================================
+  // AMOUNT STEP
+  // =========================================================
+
   if (
     step ===
     "amount"
@@ -485,7 +587,8 @@ export function DonationFlow({
     return (
       <section
         dir={
-          locale === "ar"
+          locale ===
+          "ar"
             ? "rtl"
             : "ltr"
         }
@@ -512,7 +615,9 @@ export function DonationFlow({
               "monthly",
             ] as const
           ).map(
-            (value) => (
+            (
+              value,
+            ) => (
               <label
                 key={
                   value
@@ -535,11 +640,17 @@ export function DonationFlow({
                     frequency ===
                     value
                   }
-                  onChange={() =>
+                  onChange={() => {
                     setFrequency(
                       value,
-                    )
-                  }
+                    );
+
+                    resetCheckoutSession();
+
+                    setError(
+                      "",
+                    );
+                  }}
                 />
 
                 <span
@@ -610,7 +721,9 @@ export function DonationFlow({
           </legend>
 
           {donationOptions.map(
-            (option) => {
+            (
+              option,
+            ) => {
               const selected =
                 selectedPreset ===
                 option.amountUsd;
@@ -829,9 +942,19 @@ export function DonationFlow({
             checked={
               coverFee
             }
-            onChange={
-              setCoverFee
-            }
+            onChange={(
+              checked,
+            ) => {
+              setCoverFee(
+                checked,
+              );
+
+              resetCheckoutSession();
+
+              setError(
+                "",
+              );
+            }}
           >
             {hasValidAmount
               ? `${t.addFeePrefix} ${formatUsd(
@@ -894,7 +1017,9 @@ export function DonationFlow({
               text-red-700
             "
           >
-            {error}
+            {
+              error
+            }
           </p>
         )}
 
@@ -958,10 +1083,15 @@ export function DonationFlow({
     );
   }
 
+  // =========================================================
+  // DONOR STEP
+  // =========================================================
+
   return (
     <section
       dir={
-        locale === "ar"
+        locale ===
+        "ar"
           ? "rtl"
           : "ltr"
       }
@@ -975,6 +1105,8 @@ export function DonationFlow({
           setError(
             "",
           );
+
+          resetCheckoutSession();
 
           goToStep(
             "amount",
@@ -997,7 +1129,9 @@ export function DonationFlow({
           className="size-3.5"
         />
 
-        {t.back}
+        {
+          t.back
+        }
       </button>
 
       <div className="mt-1">
@@ -1133,11 +1267,17 @@ export function DonationFlow({
                 text-[#859087]
               "
             >
-              {t.includes}{" "}
+              {
+                t.includes
+              }{" "}
+
               {formatUsd(
                 fee,
               )}{" "}
-              {t.fee}
+
+              {
+                t.fee
+              }
             </p>
           )}
         </div>
@@ -1172,7 +1312,9 @@ export function DonationFlow({
             text-red-700
           "
         >
-          {error}
+          {
+            error
+          }
         </p>
       )}
 
@@ -1220,15 +1362,21 @@ export function DonationFlow({
   );
 }
 
+// =========================================================
+// COMPACT CHECK
+// =========================================================
+
 function CompactCheck({
   checked,
   onChange,
   children,
 }: {
-  checked: boolean;
+  checked:
+    boolean;
 
   onChange: (
-    checked: boolean,
+    checked:
+      boolean,
   ) => void;
 
   children:
@@ -1273,11 +1421,17 @@ function CompactCheck({
           text-[#46534b]
         "
       >
-        {children}
+        {
+          children
+        }
       </span>
     </label>
   );
 }
+
+// =========================================================
+// SECURE TEXT
+// =========================================================
 
 function SecureText({
   children,
@@ -1305,27 +1459,43 @@ function SecureText({
         "
       />
 
-      {children}
+      {
+        children
+      }
     </p>
   );
 }
 
+// =========================================================
+// FORM FIELD
+// =========================================================
+
 type FormFieldProps = {
-  label: string;
-  name: string;
+  label:
+    string;
 
-  type?: string;
+  name:
+    string;
 
-  autoComplete: string;
+  type?:
+    string;
 
-  value: string;
+  autoComplete:
+    string;
+
+  value:
+    string;
 
   onChange: (
-    value: string,
+    value:
+      string,
   ) => void;
 
-  disabled?: boolean;
-  required?: boolean;
+  disabled?:
+    boolean;
+
+  required?:
+    boolean;
 };
 
 function FormField({
@@ -1354,7 +1524,9 @@ function FormField({
           text-[#252525]
         "
       >
-        {label}
+        {
+          label
+        }
 
         {required && (
           <span

@@ -15,6 +15,10 @@ import {
 } from "@/lib/i18n-server";
 
 import {
+  getCurrency,
+} from "@/lib/currency-server";
+
+import {
   localizeCampaign,
 } from "@/lib/localize-campaign";
 
@@ -66,8 +70,25 @@ export default async function GazaFoodPage() {
     notFound();
   }
 
+  // =========================================
+  // AUTO LANGUAGE
+  // =========================================
+
   const locale =
     await getLocale();
+
+  // =========================================
+  // AUTO CURRENCY
+  // =========================================
+
+  const {
+    currency,
+  } =
+    await getCurrency();
+
+  // =========================================
+  // SANITY LOCALIZATION
+  // =========================================
 
   const localizedContent =
     localizeCampaign(
@@ -85,6 +106,9 @@ export default async function GazaFoodPage() {
       }
       locale={
         locale
+      }
+      currency={
+        currency
       }
     />
   );

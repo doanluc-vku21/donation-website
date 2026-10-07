@@ -12,7 +12,14 @@ const sanityContent: SanityCampaign = {
 
 describe("CampaignPage", () => {
   it("presents the campaign story, donation form, and supporters", () => {
-    render(<CampaignPage campaign={sampleCampaign} content={sanityContent} />);
+    render(
+  <CampaignPage
+    campaign={sampleCampaign}
+    content={sanityContent}
+    locale="en"
+    currency="USD"
+  />,
+);
 
     expect(screen.getByRole("heading", { level: 1, name: sampleCampaign.title })).toBeVisible();
     expect(screen.getByRole("region", { name: "Campaign progress" })).toBeVisible();
@@ -29,7 +36,14 @@ describe("CampaignPage", () => {
   });
 
   it("uses original sample campaign media", () => {
-    render(<CampaignPage campaign={sampleCampaign} content={sanityContent} />);
+    render(
+  <CampaignPage
+    campaign={sampleCampaign}
+    content={sanityContent}
+    locale="en"
+    currency="USD"
+  />,
+);
 
     expect(screen.getByRole("img", { name: sampleCampaign.title })).toHaveAttribute(
       "src",

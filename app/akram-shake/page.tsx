@@ -11,6 +11,10 @@ import {
 } from "@/lib/i18n-server";
 
 import {
+  getCurrency,
+} from "@/lib/currency-server";
+
+import {
   localizeCampaign,
 } from "@/lib/localize-campaign";
 
@@ -36,13 +40,10 @@ const CAMPAIGN_SLUG =
 export const dynamic =
   "force-dynamic";
 
-export const revalidate = 0;
+export const revalidate =
+  0;
 
 export default async function AkramShakePage() {
-  // =========================================================
-  // SUPABASE CAMPAIGN DATA
-  // =========================================================
-
   const campaign =
     await getCampaignBySlug(
       CAMPAIGN_SLUG,
@@ -51,10 +52,6 @@ export default async function AkramShakePage() {
   if (!campaign) {
     notFound();
   }
-
-  // =========================================================
-  // SANITY CONTENT
-  // =========================================================
 
   const content =
     await sanityClient.fetch<SanityCampaign>(
@@ -73,26 +70,31 @@ export default async function AkramShakePage() {
     notFound();
   }
 
-  // =========================================================
-  // CURRENT LANGUAGE
-  // =========================================================
+  // =========================================
+  // LANGUAGE
+  // =========================================
 
   const locale =
     await getLocale();
 
-  // =========================================================
-  // LOCALIZED SANITY CONTENT
-  // =========================================================
+  // =========================================
+  // CURRENCY
+  // =========================================
+
+  const {
+    currency,
+  } =
+    await getCurrency();
+
+  // =========================================
+  // LOCALIZED CONTENT
+  // =========================================
 
   const localizedContent =
     localizeCampaign(
       content,
       locale,
     );
-
-  // =========================================================
-  // PAGE
-  // =========================================================
 
   return (
     <CampaignPage
@@ -104,6 +106,9 @@ export default async function AkramShakePage() {
       }
       locale={
         locale
+      }
+      currency={
+        currency
       }
     />
   );
