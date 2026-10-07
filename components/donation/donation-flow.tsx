@@ -92,6 +92,17 @@ export function DonationFlow({
       locale,
     );
 
+  const defaultDonationOptionUsd =
+    campaign.donationOptions.find(
+      (
+        option,
+      ) =>
+        option.featured,
+    )?.amountUsd ??
+    campaign.donationOptions[0]
+      ?.amountUsd ??
+    1000;
+
   const [
     frequency,
     setFrequency,
@@ -104,7 +115,13 @@ export function DonationFlow({
     amount,
     setAmount,
   ] =
-    useState(0);
+    useState(
+      () =>
+        convertUsdToCurrencyMinor(
+          defaultDonationOptionUsd,
+          exchangeRate,
+        ),
+    );
 
   const [
     customAmount,
@@ -118,7 +135,9 @@ export function DonationFlow({
   ] =
     useState<
       number | null
-    >(null);
+    >(
+      defaultDonationOptionUsd,
+    );
 
   const [
     coverFee,
@@ -430,7 +449,9 @@ export function DonationFlow({
             );
           }
         },
-        450,
+        customAmount.trim()
+          ? 450
+          : 0,
       );
 
     return () => {
@@ -446,6 +467,7 @@ export function DonationFlow({
     campaign.slug,
     coverFee,
     currency,
+    customAmount,
     displayPublicly,
     expressClientSecret,
     expressSessionKey,
