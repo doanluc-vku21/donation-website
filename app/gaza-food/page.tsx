@@ -15,7 +15,7 @@ import {
 } from "@/lib/i18n-server";
 
 import {
-  getCurrency,
+  getCurrencyContext,
 } from "@/lib/currency-server";
 
 import {
@@ -71,23 +71,24 @@ export default async function GazaFoodPage() {
   }
 
   // =========================================
-  // AUTO LANGUAGE
+  // LANGUAGE
   // =========================================
 
   const locale =
     await getLocale();
 
   // =========================================
-  // AUTO CURRENCY
+  // CURRENCY
   // =========================================
 
   const {
     currency,
+    exchangeRate,
   } =
-    await getCurrency();
+    await getCurrencyContext();
 
   // =========================================
-  // SANITY LOCALIZATION
+  // CONTENT
   // =========================================
 
   const localizedContent =
@@ -109,6 +110,9 @@ export default async function GazaFoodPage() {
       }
       currency={
         currency
+      }
+      exchangeRate={
+        exchangeRate
       }
     />
   );

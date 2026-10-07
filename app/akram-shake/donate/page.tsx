@@ -1,4 +1,6 @@
-import { notFound } from "next/navigation";
+import {
+  notFound,
+} from "next/navigation";
 
 import {
   DonatePage,
@@ -7,6 +9,18 @@ import {
 import {
   getCampaignBySlug,
 } from "@/lib/queries/campaigns";
+
+import {
+  getLocale,
+} from "@/lib/i18n-server";
+
+import {
+  getCurrencyContext,
+} from "@/lib/currency-server";
+
+import {
+  localizeCampaign,
+} from "@/lib/localize-campaign";
 
 import {
   sanityClient,
@@ -26,7 +40,8 @@ const CAMPAIGN_SLUG =
 export const dynamic =
   "force-dynamic";
 
-export const revalidate = 0;
+export const revalidate =
+  0;
 
 export default async function AkramShakeDonatePage() {
   const campaign =
@@ -42,10 +57,12 @@ export default async function AkramShakeDonatePage() {
     await sanityClient.fetch<SanityCampaign>(
       CAMPAIGN_QUERY,
       {
-        slug: CAMPAIGN_SLUG,
+        slug:
+          CAMPAIGN_SLUG,
       },
       {
-        cache: "no-store",
+        cache:
+          "no-store",
       },
     );
 
@@ -53,20 +70,50 @@ export default async function AkramShakeDonatePage() {
     notFound();
   }
 
+  const locale =
+    await getLocale();
+
+  const {
+    currency,
+    exchangeRate,
+  } =
+    await getCurrencyContext();
+
+  const localizedContent =
+    localizeCampaign(
+      content,
+      locale,
+    );
+
+  const campaignWithGoal = {
+    ...campaign,
+
+    goalAmountUsd:
+      localizedContent.goalAmount != null
+        ? Math.round(
+            localizedContent.goalAmount *
+              100,
+          )
+        : campaign.goalAmountUsd,
+  };
+
   return (
     <DonatePage
-      campaign={{
-        ...campaign,
-
-        goalAmountUsd:
-          content.goalAmount != null
-            ? Math.round(
-                content.goalAmount *
-                  100,
-              )
-            : campaign.goalAmountUsd,
-      }}
-      content={content}
+      campaign={
+        campaignWithGoal
+      }
+      content={
+        localizedContent
+      }
+      locale={
+        locale
+      }
+      currency={
+        currency
+      }
+      exchangeRate={
+        exchangeRate
+      }
     />
   );
 }

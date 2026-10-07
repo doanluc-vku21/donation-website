@@ -22,9 +22,14 @@ import type {
 } from "@/sanity/types/campaign";
 
 import {
-  formatUsd,
+  convertUsdToCurrencyMinor,
+  formatMoney,
   progressPercent,
 } from "@/lib/money";
+
+import type {
+  Currency,
+} from "@/lib/currency";
 
 import {
   ShareMenu,
@@ -38,12 +43,16 @@ type MobileDonateBarProps = {
   campaign: Campaign;
   content: SanityCampaign;
   locale: Locale;
+  currency: Currency;
+  exchangeRate: number;
 };
 
 export function MobileDonateBar({
   campaign,
   content,
   locale,
+  currency,
+  exchangeRate,
 }: MobileDonateBarProps) {
   const t =
     getUiTranslations(
@@ -70,6 +79,14 @@ export function MobileDonateBar({
     campaign
       .recentDonations
       ?.[0];
+
+  const latestDonationAmount =
+    latestDonation
+      ? convertUsdToCurrencyMinor(
+          latestDonation.amountUsd,
+          exchangeRate,
+        )
+      : 0;
 
   useEffect(() => {
     const target =
@@ -148,10 +165,6 @@ export function MobileDonateBar({
           shadow-[0_-8px_28px_rgba(15,30,40,0.14)]
         "
       >
-        {/* =====================================
-            PROGRESS
-        ====================================== */}
-
         <div
           className="
             flex
@@ -181,6 +194,12 @@ export function MobileDonateBar({
               locale={
                 locale
               }
+              currency={
+                currency
+              }
+              exchangeRate={
+                exchangeRate
+              }
             />
 
             {latestDonation && (
@@ -208,12 +227,14 @@ export function MobileDonateBar({
                   dir="ltr"
                   className="inline-block"
                 >
-                  {formatUsd(
-                    latestDonation
-                      .amountUsd,
-                  ).replace(
-                    ".00",
-                    "",
+                  {formatMoney(
+                    latestDonationAmount,
+                    currency,
+                    locale,
+                    {
+                      hideZeroDecimals:
+                        true,
+                    },
                   )}
                 </span>{" "}
 
@@ -222,10 +243,6 @@ export function MobileDonateBar({
             )}
           </div>
         </div>
-
-        {/* =====================================
-            ACTIONS
-        ====================================== */}
 
         <div
           dir="ltr"
@@ -245,6 +262,12 @@ export function MobileDonateBar({
             }
             locale={
               locale
+            }
+            currency={
+              currency
+            }
+            exchangeRate={
+              exchangeRate
             }
             triggerClassName="
               flex
@@ -276,10 +299,6 @@ export function MobileDonateBar({
     </div>
   );
 }
-
-// =================================================
-// PROGRESS CIRCLE
-// =================================================
 
 function ProgressCircle({
   progress,
@@ -330,16 +349,16 @@ function ProgressCircle({
   );
 }
 
-// =================================================
-// RAISED TEXT
-// =================================================
-
 function RaisedText({
   campaign,
   locale,
+  currency,
+  exchangeRate,
 }: {
   campaign: Campaign;
   locale: Locale;
+  currency: Currency;
+  exchangeRate: number;
 }) {
   const t =
     getUiTranslations(
@@ -350,6 +369,18 @@ function RaisedText({
     locale === "ar"
       ? "rtl"
       : "ltr";
+
+  const raisedAmount =
+    convertUsdToCurrencyMinor(
+      campaign.raisedAmountUsd,
+      exchangeRate,
+    );
+
+  const goalAmount =
+    convertUsdToCurrencyMinor(
+      campaign.goalAmountUsd,
+      exchangeRate,
+    );
 
   return (
     <p
@@ -369,9 +400,10 @@ function RaisedText({
         dir="ltr"
         className="inline-block"
       >
-        {formatUsd(
-          campaign
-            .raisedAmountUsd,
+        {formatMoney(
+          raisedAmount,
+          currency,
+          locale,
         )}
       </span>{" "}
 
@@ -393,12 +425,14 @@ function RaisedText({
             underline-offset-2
           "
         >
-          {formatUsd(
-            campaign
-              .goalAmountUsd,
-          ).replace(
-            ".00",
-            "",
+          {formatMoney(
+            goalAmount,
+            currency,
+            locale,
+            {
+              hideZeroDecimals:
+                true,
+            },
           )}
         </span>
       </span>

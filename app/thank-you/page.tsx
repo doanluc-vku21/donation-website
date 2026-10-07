@@ -17,13 +17,18 @@ import {
 } from "@/lib/stripe/server";
 
 import {
-  formatUsd,
+  formatMoney,
 } from "@/lib/money";
 
 import {
   isLocale,
   type Locale,
 } from "@/lib/i18n";
+
+import {
+  isCurrency,
+  type Currency,
+} from "@/lib/currency";
 
 import {
   getThankYouTranslations,
@@ -48,9 +53,7 @@ export default async function ThankYouPage({
   // NO SESSION ID
   // =========================================================
 
-  if (
-    !sessionId
-  ) {
+  if (!sessionId) {
     const locale:
       Locale = "en";
 
@@ -165,25 +168,25 @@ export default async function ThankYouPage({
         : "ltr";
 
     const campaignSlug =
-  session.metadata
-    ?.campaign_slug ??
-  "";
+      session.metadata
+        ?.campaign_slug ??
+      "";
 
-const campaignPath =
-  session.metadata
-    ?.campaign_path;
+    const campaignPath =
+      session.metadata
+        ?.campaign_path;
 
-const campaignUrl =
-  campaignPath ||
-  (
-    campaignSlug ===
-    "give-a-child-a-brighter-tomorrow"
-      ? "/gaza-food"
-      : campaignSlug ===
-          "akram-shake"
-        ? "/akram-shake"
-        : "/"
-  );
+    const campaignUrl =
+      campaignPath ||
+      (
+        campaignSlug ===
+        "give-a-child-a-brighter-tomorrow"
+          ? "/gaza-food"
+          : campaignSlug ===
+              "akram-shake"
+            ? "/akram-shake"
+            : "/"
+      );
 
     // =========================================================
     // PAYMENT DATA
@@ -193,17 +196,34 @@ const campaignUrl =
       session.amount_total ??
       0;
 
+    const sessionCurrency =
+      session.currency
+        ?.toUpperCase();
+
+    const currency:
+      Currency =
+      isCurrency(
+        sessionCurrency,
+      )
+        ? sessionCurrency
+        : "USD";
+
+    /*
+     * Step 8 metadata:
+     * These are the amounts actually charged by Stripe
+     * in the selected local currency.
+     */
     const donationAmount =
       Number(
         session.metadata
-          ?.donation_amount_cents ??
+          ?.charged_donation_amount_cents ??
           amountTotal,
       );
 
     const feeAmount =
       Number(
         session.metadata
-          ?.fee_amount_cents ??
+          ?.charged_fee_amount_cents ??
           0,
       );
 
@@ -232,16 +252,8 @@ const campaignUrl =
         ?.frequency ??
       "one_time";
 
-    const currency =
-      session.currency ??
-      "usd";
-
     return (
       <>
-        {/* =================================================
-            META PURCHASE
-        ================================================== */}
-
         {paymentSucceeded && (
           <MetaPixelPurchase
             sessionId={
@@ -259,10 +271,6 @@ const campaignUrl =
             }
           />
         )}
-
-        {/* =================================================
-            PAGE
-        ================================================== */}
 
         <main
           dir="ltr"
@@ -357,10 +365,6 @@ const campaignUrl =
               }
             </p>
 
-            {/* =============================================
-                DONATION SUMMARY
-            ============================================== */}
-
             <div
               className="
                 mt-7
@@ -388,8 +392,10 @@ const campaignUrl =
                   font-semibold
                 "
               >
-                {formatUsd(
+                {formatMoney(
                   donationAmount,
+                  currency,
+                  locale,
                 )}
               </p>
 
@@ -409,8 +415,10 @@ const campaignUrl =
                       t.donation
                     }
                     value={
-                      formatUsd(
+                      formatMoney(
                         donationAmount,
+                        currency,
+                        locale,
                       )
                     }
                   />
@@ -421,8 +429,10 @@ const campaignUrl =
                         t.transactionCost
                       }
                       value={
-                        formatUsd(
+                        formatMoney(
                           feeAmount,
+                          currency,
+                          locale,
                         )
                       }
                     />
@@ -434,8 +444,10 @@ const campaignUrl =
                         t.totalPaid
                       }
                       value={
-                        formatUsd(
+                        formatMoney(
                           amountTotal,
+                          currency,
+                          locale,
                         )
                       }
                       strong
@@ -501,10 +513,6 @@ const campaignUrl =
               )}
             </div>
 
-            {/* =============================================
-                INFO
-            ============================================== */}
-
             <div
               className="
                 mt-5
@@ -548,16 +556,12 @@ const campaignUrl =
                     t.currency
                   }
                   value={
-                    currency.toUpperCase()
+                    currency
                   }
                   ltrValue
                 />
               </div>
             </div>
-
-            {/* =============================================
-                ACTIONS
-            ============================================== */}
 
             <div
               dir="ltr"
@@ -748,19 +752,13 @@ const campaignUrl =
   }
 }
 
-// =========================================================
-// SUMMARY ROW
-// =========================================================
-
 function SummaryRow({
   label,
   value,
   strong = false,
 }: {
   label: string;
-
   value: string;
-
   strong?: boolean;
 }) {
   return (
@@ -795,10 +793,6 @@ function SummaryRow({
   );
 }
 
-// =========================================================
-// INFO ROW
-// =========================================================
-
 function InfoRow({
   label,
   value,
@@ -806,11 +800,8 @@ function InfoRow({
   ltrValue = false,
 }: {
   label: string;
-
   value: string;
-
   success?: boolean;
-
   ltrValue?: boolean;
 }) {
   return (

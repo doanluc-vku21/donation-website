@@ -32,6 +32,10 @@ import {
   DonationFlow,
 } from "./donation-flow";
 
+import type {
+  Currency,
+} from "@/lib/currency";
+
 type DonationStep =
   | "amount"
   | "donor"
@@ -41,6 +45,9 @@ type DonationModalProps = {
   campaign: Campaign;
   content: SanityCampaign;
   locale: Locale;
+
+  currency: Currency;
+  exchangeRate: number;
 
   triggerClassName?: string;
   triggerLabel?: string;
@@ -52,6 +59,8 @@ export function DonationModal({
   campaign,
   content,
   locale,
+  currency,
+  exchangeRate,
   triggerClassName = "",
   triggerLabel,
   showHeart = true,
@@ -447,6 +456,12 @@ export function DonationModal({
                   }
                   locale={
                     locale
+                  }
+                  currency={
+                    currency
+                  }
+                  exchangeRate={
+                    exchangeRate
                   }
                   embedded
                   onStepChange={(

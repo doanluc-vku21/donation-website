@@ -11,7 +11,7 @@ import {
 } from "@/lib/i18n-server";
 
 import {
-  getCurrency,
+  getCurrencyContext,
 } from "@/lib/currency-server";
 
 import {
@@ -83,8 +83,9 @@ export default async function AkramShakePage() {
 
   const {
     currency,
+    exchangeRate,
   } =
-    await getCurrency();
+    await getCurrencyContext();
 
   // =========================================
   // LOCALIZED CONTENT
@@ -109,6 +110,9 @@ export default async function AkramShakePage() {
       }
       currency={
         currency
+      }
+      exchangeRate={
+        exchangeRate
       }
     />
   );

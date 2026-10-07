@@ -28,12 +28,17 @@ import {
 
 import {
   calculateFeeContribution,
-  formatUsd,
+  convertUsdToCurrencyMinor,
+  formatMoney,
 } from "@/lib/money";
 
 import {
   DonationPayment,
 } from "./donation-payment";
+
+import type {
+  Currency,
+} from "@/lib/currency";
 
 declare global {
   interface Window {
@@ -58,6 +63,10 @@ type DonationFlowProps = {
 
   locale: Locale;
 
+  currency: Currency;
+
+  exchangeRate: number;
+
   embedded?: boolean;
 
   onStepChange?: (
@@ -68,6 +77,8 @@ type DonationFlowProps = {
 export function DonationFlow({
   campaign,
   locale,
+  currency,
+  exchangeRate,
   embedded = false,
   onStepChange,
 }: DonationFlowProps) {
@@ -170,17 +181,28 @@ export function DonationFlow({
       string | null
     >(null);
 
+  const [
+    checkoutTotalMinor,
+    setCheckoutTotalMinor,
+  ] =
+    useState<
+      number | null
+    >(null);
+
   const hasValidAmount =
     Number.isInteger(
       amount,
     ) &&
     amount >= 100;
 
+  // `amount`, `fee`, `total` từ đây là LOCAL CURRENCY minor units.
+  // Ví dụ GBP: 100 = £1.00.
   const fee =
     hasValidAmount &&
     coverFee
       ? calculateFeeContribution(
           amount,
+          exchangeRate,
         )
       : 0;
 
@@ -189,6 +211,12 @@ export function DonationFlow({
       ? amount +
         fee
       : 0;
+
+  const currencySymbol =
+    getCurrencySymbol(
+      currency,
+      locale,
+    );
 
   const donationOptions =
     useMemo(() => {
@@ -237,18 +265,25 @@ export function DonationFlow({
     setSessionId(
       null,
     );
+
+    setCheckoutTotalMinor(
+      null,
+    );
   }
 
   function selectAmount(
-    amountCents:
+    amountUsdCents:
       number,
   ) {
     setAmount(
-      amountCents,
+      convertUsdToCurrencyMinor(
+        amountUsdCents,
+        exchangeRate,
+      ),
     );
 
     setSelectedPreset(
-      amountCents,
+      amountUsdCents,
     );
 
     setCustomAmount(
@@ -290,20 +325,20 @@ export function DonationFlow({
       return;
     }
 
-    const dollars =
+    const localAmount =
       Number(
         raw,
       );
 
     if (
       Number.isFinite(
-        dollars,
+        localAmount,
       ) &&
-      dollars > 0
+      localAmount > 0
     ) {
       setAmount(
         Math.round(
-          dollars *
+          localAmount *
             100,
         ),
       );
@@ -429,6 +464,8 @@ export function DonationFlow({
                   amountCents:
                     amount,
 
+                  currency,
+
                   coverFee,
 
                   frequency,
@@ -466,7 +503,12 @@ export function DonationFlow({
 
       if (
         !data.clientSecret ||
-        !data.sessionId
+        !data.sessionId ||
+        !Number.isInteger(
+          data.totalAmountMinor,
+        ) ||
+        typeof data.currency !==
+          "string"
       ) {
         throw new Error(
           t.errorCheckout,
@@ -484,11 +526,11 @@ export function DonationFlow({
           "InitiateCheckout",
           {
             value:
-              total /
+              data.totalAmountMinor /
               100,
 
             currency:
-              "USD",
+              data.currency,
 
             content_name:
               "Donation",
@@ -508,6 +550,10 @@ export function DonationFlow({
 
       setSessionId(
         data.sessionId,
+      );
+
+      setCheckoutTotalMinor(
+        data.totalAmountMinor,
       );
 
       goToStep(
@@ -546,7 +592,8 @@ export function DonationFlow({
     step ===
       "payment" &&
     clientSecret &&
-    sessionId
+    sessionId &&
+    checkoutTotalMinor != null
   ) {
     return (
       <DonationPayment
@@ -557,8 +604,10 @@ export function DonationFlow({
           locale
         }
         amountLabel={
-          formatUsd(
-            total,
+          formatMoney(
+            checkoutTotalMinor,
+            currency,
+            locale,
           )
         }
         onBack={() => {
@@ -791,12 +840,18 @@ export function DonationFlow({
                           text-[#161616]
                         "
                       >
-                        {formatUsd(
-                          option
-                            .amountUsd,
-                        ).replace(
-                          ".00",
-                          "",
+                        {formatMoney(
+                          convertUsdToCurrencyMinor(
+                            option
+                              .amountUsd,
+                            exchangeRate,
+                          ),
+                          currency,
+                          locale,
+                          {
+                            hideZeroDecimals:
+                              true,
+                          },
                         )}
                       </strong>
 
@@ -871,7 +926,9 @@ export function DonationFlow({
               text-[#657069]
             "
           >
-            $
+            {
+              currencySymbol
+            }
           </span>
 
           <input
@@ -915,7 +972,9 @@ export function DonationFlow({
               text-[#7c8580]
             "
           >
-            USD
+            {
+              currency
+            }
           </span>
         </label>
 
@@ -957,10 +1016,13 @@ export function DonationFlow({
             }}
           >
             {hasValidAmount
-              ? `${t.addFeePrefix} ${formatUsd(
+              ? `${t.addFeePrefix} ${formatMoney(
                   calculateFeeContribution(
                     amount,
+                    exchangeRate,
                   ),
+                  currency,
+                  locale,
                 )} ${t.addFeeSuffix}`
               : t.coverProcessingFees}
           </CompactCheck>
@@ -997,8 +1059,10 @@ export function DonationFlow({
                 text-[#12233d]
               "
             >
-              {formatUsd(
+              {formatMoney(
                 total,
+                currency,
+                locale,
               )}
             </strong>
           </div>
@@ -1058,11 +1122,14 @@ export function DonationFlow({
           "
         >
           {hasValidAmount
-            ? `${t.continueWith} ${formatUsd(
+            ? `${t.continueWith} ${formatMoney(
                 total,
-              ).replace(
-                ".00",
-                "",
+                currency,
+                locale,
+                {
+                  hideZeroDecimals:
+                    true,
+                },
               )}`
             : t.selectAmountToContinue}
 
@@ -1271,8 +1338,10 @@ export function DonationFlow({
                 t.includes
               }{" "}
 
-              {formatUsd(
+              {formatMoney(
                 fee,
+                currency,
+                locale,
               )}{" "}
 
               {
@@ -1289,8 +1358,10 @@ export function DonationFlow({
             text-[#182136]
           "
         >
-          {formatUsd(
+          {formatMoney(
             total,
+            currency,
+            locale,
           )}
 
           {frequency ===
@@ -1359,6 +1430,54 @@ export function DonationFlow({
         }
       </SecureText>
     </section>
+  );
+}
+
+// =========================================================
+// CURRENCY SYMBOL
+// =========================================================
+
+function getCurrencySymbol(
+  currency: Currency,
+  locale: Locale,
+) {
+  const localeMap:
+    Record<
+      Locale,
+      string
+    > = {
+    en: "en-US",
+    fr: "fr-FR",
+    de: "de-DE",
+    es: "es-ES",
+    ar: "ar-AE",
+  };
+
+  const parts =
+    new Intl.NumberFormat(
+      localeMap[
+        locale
+      ],
+      {
+        style:
+          "currency",
+        currency,
+        currencyDisplay:
+          "narrowSymbol",
+      },
+    ).formatToParts(
+      0,
+    );
+
+  return (
+    parts.find(
+      (
+        part,
+      ) =>
+        part.type ===
+        "currency",
+    )?.value ??
+    currency
   );
 }
 

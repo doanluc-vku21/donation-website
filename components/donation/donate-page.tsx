@@ -12,6 +12,18 @@ import type {
 } from "@/lib/sample-data";
 
 import type {
+  Locale,
+} from "@/lib/i18n";
+
+import type {
+  Currency,
+} from "@/lib/currency";
+
+import {
+  getUiTranslations,
+} from "@/lib/ui-translations";
+
+import type {
   SanityCampaign,
 } from "@/sanity/types/campaign";
 
@@ -22,15 +34,22 @@ import {
 type DonatePageProps = {
   campaign: Campaign;
   content: SanityCampaign;
+  locale: Locale;
+  currency: Currency;
+  exchangeRate: number;
 };
 
 export function DonatePage({
   campaign,
   content,
+  locale,
+  currency,
+  exchangeRate,
 }: DonatePageProps) {
-  // ===========================================================
-  // CAMPAIGN IMAGE
-  // ===========================================================
+  const t =
+    getUiTranslations(
+      locale,
+    );
 
   const heroUrl =
     content.heroImage
@@ -56,16 +75,24 @@ export function DonatePage({
     content.title ||
     campaign.title;
 
-  // ===========================================================
-  // ORGANIZATION
-  // ===========================================================
-
   const organizationName =
     content.organizationName ||
     campaign.organizationName;
 
+  const backHref =
+    campaign.slug ===
+    "akram-shake"
+      ? "/akram-shake"
+      : "/gaza-food";
+
+  const direction =
+    locale === "ar"
+      ? "rtl"
+      : "ltr";
+
   return (
     <main
+      dir={direction}
       className="
         min-h-screen
         bg-[#fbfcf8]
@@ -84,13 +111,11 @@ export function DonatePage({
           max-w-[540px]
         "
       >
-        {/* =====================================================
-            BACK
-        ====================================================== */}
-
         <div>
           <Link
-            href="/gaza-food"
+            href={
+              backHref
+            }
             className="
               inline-flex
               min-h-10
@@ -109,13 +134,9 @@ export function DonatePage({
               className="size-4"
             />
 
-            Back to campaign
+            {t.back}
           </Link>
         </div>
-
-        {/* =====================================================
-            INTRO
-        ====================================================== */}
 
         <header
           className="
@@ -133,7 +154,7 @@ export function DonatePage({
               sm:text-[28px]
             "
           >
-            Make your donation
+            {t.makeYourDonation}
           </h1>
 
           <p
@@ -144,13 +165,9 @@ export function DonatePage({
               text-[#6d776f]
             "
           >
-            Every gift goes to work right away.
+            {t.everyGiftWorks}
           </p>
         </header>
-
-        {/* =====================================================
-            CAMPAIGN SUMMARY
-        ====================================================== */}
 
         <section
           className="
@@ -165,8 +182,6 @@ export function DonatePage({
             p-3
           "
         >
-          {/* CAMPAIGN IMAGE */}
-
           <div
             className="
               relative
@@ -180,10 +195,18 @@ export function DonatePage({
           >
             {heroUrl ? (
               <Image
-                src={heroUrl}
-                alt={heroAlt}
-                width={heroWidth}
-                height={heroHeight}
+                src={
+                  heroUrl
+                }
+                alt={
+                  heroAlt
+                }
+                width={
+                  heroWidth
+                }
+                height={
+                  heroHeight
+                }
                 priority
                 className="
                   h-full
@@ -211,8 +234,6 @@ export function DonatePage({
             )}
           </div>
 
-          {/* TEXT */}
-
           <div
             className="
               min-w-0
@@ -230,7 +251,9 @@ export function DonatePage({
                 sm:text-[15px]
               "
             >
-              {content.title}
+              {
+                content.title
+              }
             </h2>
 
             <p
@@ -242,33 +265,40 @@ export function DonatePage({
                 text-[#777f78]
               "
             >
-              Organized by{" "}
+              {
+                t.organizedBy
+              }{" "}
+
               <span
                 className="
                   font-medium
                   text-[#566159]
                 "
               >
-                {organizationName}
+                {
+                  organizationName
+                }
               </span>
             </p>
           </div>
         </section>
 
-        {/* =====================================================
-            DONATION FLOW
-        ====================================================== */}
-
         <div className="mt-4">
           <DonationFlow
-  campaign={campaign}
-  locale="en"
-/>
+            campaign={
+              campaign
+            }
+            locale={
+              locale
+            }
+            currency={
+              currency
+            }
+            exchangeRate={
+              exchangeRate
+            }
+          />
         </div>
-
-        {/* =====================================================
-            TRUST AREA
-        ====================================================== */}
 
         <footer
           className="
@@ -304,7 +334,9 @@ export function DonatePage({
                 "
               />
 
-              Secure payment by Stripe
+              {
+                t.securePaymentByStripe
+              }
             </span>
 
             <span
@@ -322,7 +354,9 @@ export function DonatePage({
                 "
               />
 
-              Secure donation
+              {
+                t.paymentProcessedStripe
+              }
             </span>
           </div>
 
@@ -334,7 +368,9 @@ export function DonatePage({
               text-[#6d7c75]
             "
           >
-            {organizationName}
+            {
+              organizationName
+            }
           </p>
         </footer>
       </div>

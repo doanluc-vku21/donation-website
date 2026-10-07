@@ -11,6 +11,20 @@ import {
   type Locale,
 } from "@/lib/i18n";
 
+import {
+  isCurrency,
+  type Currency,
+} from "@/lib/currency";
+
+import {
+  calculateFeeContribution,
+  convertCurrencyMinorToUsd,
+} from "@/lib/money";
+
+import {
+  getUsdToCurrencyRate,
+} from "@/lib/exchange-rate";
+
 type DonationFrequency =
   | "one_time"
   | "monthly";
@@ -26,7 +40,16 @@ type CheckoutBody = {
 
   campaignSlug: string;
 
+  /**
+   * LOCAL CURRENCY minor units.
+   *
+   * Example:
+   * GBP 4000 = £40.00
+   * EUR 5000 = €50.00
+   */
   amountCents: number;
+
+  currency: Currency;
 
   coverFee: boolean;
 
@@ -189,15 +212,16 @@ export async function POST(
       campaignId,
       campaignSlug,
       amountCents,
+      currency,
       coverFee,
       frequency,
       locale,
       donor,
     } = body;
 
-    // =========================================================
+    // =======================================================
     // CAMPAIGN
-    // =========================================================
+    // =======================================================
 
     if (!campaignId) {
       return NextResponse.json(
@@ -233,9 +257,9 @@ export async function POST(
         campaignSlug,
       );
 
-    // =========================================================
+    // =======================================================
     // LOCALE
-    // =========================================================
+    // =======================================================
 
     const siteLocale:
       Locale =
@@ -256,9 +280,44 @@ export async function POST(
         stripeLocale
       ];
 
-    // =========================================================
+    // =======================================================
+    // CURRENCY
+    // =======================================================
+
+    if (
+      !isCurrency(
+        currency,
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid currency.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const siteCurrency:
+      Currency =
+      currency;
+
+    /*
+     * SERVER is source of truth for FX.
+     * Never trust an exchange rate sent by the browser.
+     *
+     * 1 USD = exchangeRate local currency.
+     */
+    const exchangeRate =
+      await getUsdToCurrencyRate(
+        siteCurrency,
+      );
+
+    // =======================================================
     // AMOUNT
-    // =========================================================
+    // =======================================================
 
     if (
       !Number.isInteger(
@@ -277,9 +336,9 @@ export async function POST(
       );
     }
 
-    // =========================================================
+    // =======================================================
     // FREQUENCY
-    // =========================================================
+    // =======================================================
 
     if (
       frequency !==
@@ -298,9 +357,9 @@ export async function POST(
       );
     }
 
-    // =========================================================
+    // =======================================================
     // DONOR
-    // =========================================================
+    // =======================================================
 
     if (
       !donor
@@ -348,16 +407,15 @@ export async function POST(
       );
     }
 
-    // =========================================================
-    // TRANSACTION COST
-    // =========================================================
+    // =======================================================
+    // LOCAL CHARGE AMOUNTS
+    // =======================================================
 
     const feeAmountCents =
       coverFee
-        ? Math.round(
-            amountCents *
-              0.029 +
-              30,
+        ? calculateFeeContribution(
+            amountCents,
+            exchangeRate,
           )
         : 0;
 
@@ -365,18 +423,57 @@ export async function POST(
       amountCents +
       feeAmountCents;
 
-    // =========================================================
+    // =======================================================
+    // NORMALIZED USD AMOUNTS
+    //
+    // Existing campaign stats/RPC expect amount_cents in USD.
+    // =======================================================
+
+    const normalizedDonationUsdCents =
+      convertCurrencyMinorToUsd(
+        amountCents,
+        exchangeRate,
+      );
+
+    const normalizedFeeUsdCents =
+      coverFee
+        ? convertCurrencyMinorToUsd(
+            feeAmountCents,
+            exchangeRate,
+          )
+        : 0;
+
+    const normalizedTotalUsdCents =
+      normalizedDonationUsdCents +
+      normalizedFeeUsdCents;
+
+    if (
+      normalizedDonationUsdCents <=
+      0
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Unable to normalize donation amount.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    // =======================================================
     // URL
-    // =========================================================
+    // =======================================================
 
     const siteUrl =
       process.env
         .NEXT_PUBLIC_SITE_URL ??
       "http://localhost:3000";
 
-    // =========================================================
+    // =======================================================
     // DISPLAY NAME
-    // =========================================================
+    // =======================================================
 
     const displayName =
       donor.displayPublicly
@@ -385,9 +482,9 @@ export async function POST(
             .charAt(0)}.`
         : "Anonymous";
 
-    // =========================================================
+    // =======================================================
     // METADATA
-    // =========================================================
+    // =======================================================
 
     const metadata = {
       campaign_id:
@@ -402,19 +499,42 @@ export async function POST(
       locale:
         siteLocale,
 
-      donation_amount_cents:
+      charged_currency:
+        siteCurrency,
+
+      charged_donation_amount_cents:
         String(
           amountCents,
         ),
 
-      fee_amount_cents:
+      charged_fee_amount_cents:
         String(
           feeAmountCents,
         ),
 
-      total_amount_cents:
+      charged_total_amount_cents:
         String(
           totalAmountCents,
+        ),
+
+      normalized_donation_usd_cents:
+        String(
+          normalizedDonationUsdCents,
+        ),
+
+      normalized_fee_usd_cents:
+        String(
+          normalizedFeeUsdCents,
+        ),
+
+      normalized_total_usd_cents:
+        String(
+          normalizedTotalUsdCents,
+        ),
+
+      usd_exchange_rate:
+        String(
+          exchangeRate,
         ),
 
       frequency,
@@ -437,9 +557,9 @@ export async function POST(
           : "true",
     };
 
-    // =========================================================
+    // =======================================================
     // PRODUCT
-    // =========================================================
+    // =======================================================
 
     const productName =
       frequency ===
@@ -464,9 +584,9 @@ export async function POST(
           : stripeText
               .oneTimeDescription;
 
-    // =========================================================
-    // CREATE CHECKOUT SESSION — ELEMENTS MODE
-    // =========================================================
+    // =======================================================
+    // CREATE CHECKOUT SESSION
+    // =======================================================
 
     const session =
       await stripe.checkout.sessions.create(
@@ -492,7 +612,7 @@ export async function POST(
 
               price_data: {
                 currency:
-                  "usd",
+                  siteCurrency.toLowerCase(),
 
                 unit_amount:
                   totalAmountCents,
@@ -519,7 +639,6 @@ export async function POST(
             },
           ],
 
-          // Payment Element quay về đây sau khi hoàn tất.
           return_url:
             `${siteUrl}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
 
@@ -537,10 +656,6 @@ export async function POST(
         },
       );
 
-    // =========================================================
-    // CLIENT SECRET
-    // =========================================================
-
     if (
       !session.client_secret
     ) {
@@ -548,10 +663,6 @@ export async function POST(
         "Checkout Session client secret was not created.",
       );
     }
-
-    // =========================================================
-    // RESPONSE
-    // =========================================================
 
     return NextResponse.json(
       {
@@ -569,6 +680,18 @@ export async function POST(
           "monthly"
             ? "subscription"
             : "payment",
+
+        currency:
+          siteCurrency,
+
+        donationAmountMinor:
+          amountCents,
+
+        feeAmountMinor:
+          feeAmountCents,
+
+        totalAmountMinor:
+          totalAmountCents,
       },
     );
   } catch (

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChevronDown,
   Languages,
 } from "lucide-react";
 
@@ -61,33 +62,79 @@ export function LocaleCurrencySwitcher({
       className="
         flex
         items-center
-        gap-2
+        gap-1.5
+
+        sm:gap-2
       "
     >
       {/* =====================================
           LANGUAGE
+          Mobile: icon only
+          sm+: show language name
       ====================================== */}
 
       <label
         className="
+          relative
           inline-flex
-          min-h-[42px]
+          min-h-[36px]
+          min-w-[42px]
           items-center
-          gap-2
+          justify-center
+          gap-1
           rounded-full
           border
           border-[#dde3ea]
           bg-white
-          px-3
-          text-sm
+          px-2
+          text-[12px]
           shadow-sm
+
+          sm:min-h-[42px]
+          sm:min-w-0
+          sm:justify-start
+          sm:gap-2
+          sm:px-3
+          sm:text-sm
         "
       >
         <Languages
           aria-hidden="true"
-          className="size-4"
+          className="
+            size-4
+            shrink-0
+          "
         />
 
+        {/* Desktop/tablet visible text */}
+        <span
+          className="
+            hidden
+            max-w-[96px]
+            truncate
+            font-medium
+
+            sm:inline
+          "
+        >
+          {
+            localeLabels[
+              locale
+            ]
+          }
+        </span>
+
+        <ChevronDown
+          aria-hidden="true"
+          className="
+            size-3
+            shrink-0
+
+            sm:size-3.5
+          "
+        />
+
+        {/* Native select covers the whole pill */}
         <select
           value={
             locale
@@ -102,11 +149,12 @@ export function LocaleCurrencySwitcher({
           }
           aria-label="Language"
           className="
-            max-w-[110px]
+            absolute
+            inset-0
+            h-full
+            w-full
             cursor-pointer
-            bg-transparent
-            font-medium
-            outline-none
+            opacity-0
           "
         >
           {locales.map(
@@ -139,15 +187,19 @@ export function LocaleCurrencySwitcher({
       <label
         className="
           inline-flex
-          min-h-[42px]
+          min-h-[36px]
           items-center
           rounded-full
           border
           border-[#dde3ea]
           bg-white
-          px-3
-          text-sm
+          px-2.5
+          text-[12px]
           shadow-sm
+
+          sm:min-h-[42px]
+          sm:px-3
+          sm:text-sm
         "
       >
         <select
@@ -164,10 +216,13 @@ export function LocaleCurrencySwitcher({
           }
           aria-label="Currency"
           className="
+            w-[58px]
             cursor-pointer
             bg-transparent
             font-semibold
             outline-none
+
+            sm:w-auto
           "
         >
           {currencies.map(

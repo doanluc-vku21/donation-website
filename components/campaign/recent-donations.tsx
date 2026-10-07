@@ -12,8 +12,13 @@ import {
 } from "lucide-react";
 
 import {
-  formatUsd,
+  convertUsdToCurrencyMinor,
+  formatMoney,
 } from "@/lib/money";
+
+import type {
+  Currency,
+} from "@/lib/currency";
 
 import type {
   Locale,
@@ -34,6 +39,12 @@ type RecentDonationsProps = {
 
   locale:
     Locale;
+
+  currency:
+    Currency;
+
+  exchangeRate:
+    number;
 
   className?: string;
 
@@ -59,6 +70,8 @@ const localeMap:
 export function RecentDonations({
   donations,
   locale,
+  currency,
+  exchangeRate,
   className = "mt-12",
   previewLimit = 4,
 }: RecentDonationsProps) {
@@ -321,6 +334,12 @@ export function RecentDonations({
                   }
                   locale={
                     locale
+                  }
+                  currency={
+                    currency
+                  }
+                  exchangeRate={
+                    exchangeRate
                   }
                 />
               ),
@@ -682,6 +701,12 @@ export function RecentDonations({
                       locale={
                         locale
                       }
+                      currency={
+                        currency
+                      }
+                      exchangeRate={
+                        exchangeRate
+                      }
                       modal
                     />
                   ),
@@ -702,6 +727,8 @@ export function RecentDonations({
 function ContributionRow({
   donation,
   locale,
+  currency,
+  exchangeRate,
   modal = false,
 }: {
   donation:
@@ -709,6 +736,12 @@ function ContributionRow({
 
   locale:
     Locale;
+
+  currency:
+    Currency;
+
+  exchangeRate:
+    number;
 
   modal?: boolean;
 }) {
@@ -876,11 +909,17 @@ function ContributionRow({
             text-[#14623f]
           "
         >
-          {formatUsd(
-            donation.amountUsd,
-          ).replace(
-            ".00",
-            "",
+          {formatMoney(
+            convertUsdToCurrencyMinor(
+              donation.amountUsd,
+              exchangeRate,
+            ),
+            currency,
+            locale,
+            {
+              hideZeroDecimals:
+                true,
+            },
           )}
         </strong>
       </div>

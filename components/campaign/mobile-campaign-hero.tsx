@@ -22,6 +22,10 @@ import type {
   Locale,
 } from "@/lib/i18n";
 
+import type {
+  Currency,
+} from "@/lib/currency";
+
 import {
   getUiTranslations,
 } from "@/lib/ui-translations";
@@ -31,7 +35,8 @@ import type {
 } from "@/sanity/types/campaign";
 
 import {
-  formatUsd,
+  convertUsdToCurrencyMinor,
+  formatMoney,
   progressPercent,
 } from "@/lib/money";
 
@@ -39,12 +44,16 @@ type MobileCampaignHeroProps = {
   campaign: Campaign;
   content: SanityCampaign;
   locale: Locale;
+  currency: Currency;
+  exchangeRate: number;
 };
 
 export function MobileCampaignHero({
   campaign,
   content,
   locale,
+  currency,
+  exchangeRate,
 }: MobileCampaignHeroProps) {
   const t =
     getUiTranslations(
@@ -66,6 +75,26 @@ export function MobileCampaignHero({
     campaign
       .recentDonations
       ?.[0];
+
+  const raisedAmount =
+    convertUsdToCurrencyMinor(
+      campaign.raisedAmountUsd,
+      exchangeRate,
+    );
+
+  const goalAmount =
+    convertUsdToCurrencyMinor(
+      campaign.goalAmountUsd,
+      exchangeRate,
+    );
+
+  const latestDonationAmount =
+    latestDonation
+      ? convertUsdToCurrencyMinor(
+          latestDonation.amountUsd,
+          exchangeRate,
+        )
+      : 0;
 
   const heroUrl =
     content.heroImage
@@ -117,10 +146,6 @@ export function MobileCampaignHero({
         lg:hidden
       "
     >
-      {/* =========================================
-          HERO
-      ========================================== */}
-
       <section
         className="
           relative
@@ -167,8 +192,6 @@ export function MobileCampaignHero({
           />
         )}
 
-        {/* OVERLAY */}
-
         <div
           className="
             absolute
@@ -180,15 +203,11 @@ export function MobileCampaignHero({
           "
         />
 
-        {/* =====================================
-            ORGANIZATION
-        ====================================== */}
-
         <div
           className="
             absolute
             left-4
-            right-4
+            right-[168px]
             top-4
             z-10
           "
@@ -199,14 +218,14 @@ export function MobileCampaignHero({
               inline-flex
               max-w-full
               items-center
-              gap-2.5
+              gap-2
               rounded-full
               border
               border-white/15
               bg-black/30
-              py-1.5
-              pl-1.5
-              pr-3
+              py-1
+              pl-1
+              pr-2.5
               text-white
               shadow-[0_4px_18px_rgba(0,0,0,.18)]
               backdrop-blur-md
@@ -215,7 +234,7 @@ export function MobileCampaignHero({
             <span
               className="
                 grid
-                size-[38px]
+                size-[34px]
                 shrink-0
                 place-items-center
                 overflow-hidden
@@ -269,8 +288,9 @@ export function MobileCampaignHero({
               dir="ltr"
               className="
                 min-w-0
+                max-w-[108px]
                 truncate
-                text-[13px]
+                text-[12px]
                 font-semibold
                 leading-none
                 tracking-[-0.01em]
@@ -294,7 +314,7 @@ export function MobileCampaignHero({
               <BadgeCheck
                 aria-hidden="true"
                 className="
-                  size-[18px]
+                  size-[16px]
                   fill-[#2f7df4]
                   text-white
                 "
@@ -302,10 +322,6 @@ export function MobileCampaignHero({
             </span>
           </div>
         </div>
-
-        {/* =====================================
-            TITLE
-        ====================================== */}
 
         <div
           className="
@@ -342,8 +358,6 @@ export function MobileCampaignHero({
           </h1>
         </div>
 
-        {/* CURVE */}
-
         <div
           aria-hidden="true"
           className="
@@ -360,10 +374,6 @@ export function MobileCampaignHero({
           "
         />
       </section>
-
-      {/* =========================================
-          INLINE DONATION
-      ========================================== */}
 
       <section
         id="mobile-inline-donate"
@@ -383,8 +393,6 @@ export function MobileCampaignHero({
           shadow-[0_5px_18px_rgba(0,0,0,.04)]
         "
       >
-        {/* PROGRESS */}
-
         <div
           className="
             flex
@@ -432,8 +440,6 @@ export function MobileCampaignHero({
             </div>
           </div>
 
-          {/* TEXT */}
-
           <div
             dir={
               textDirection
@@ -456,9 +462,10 @@ export function MobileCampaignHero({
                 dir="ltr"
                 className="inline-block"
               >
-                {formatUsd(
-                  campaign
-                    .raisedAmountUsd,
+                {formatMoney(
+                  raisedAmount,
+                  currency,
+                  locale,
                 )}
               </span>{" "}
 
@@ -480,12 +487,14 @@ export function MobileCampaignHero({
                     underline-offset-2
                   "
                 >
-                  {formatUsd(
-                    campaign
-                      .goalAmountUsd,
-                  ).replace(
-                    ".00",
-                    "",
+                  {formatMoney(
+                    goalAmount,
+                    currency,
+                    locale,
+                    {
+                      hideZeroDecimals:
+                        true,
+                    },
                   )}
                 </span>
               </span>
@@ -516,12 +525,14 @@ export function MobileCampaignHero({
                   dir="ltr"
                   className="inline-block"
                 >
-                  {formatUsd(
-                    latestDonation
-                      .amountUsd,
-                  ).replace(
-                    ".00",
-                    "",
+                  {formatMoney(
+                    latestDonationAmount,
+                    currency,
+                    locale,
+                    {
+                      hideZeroDecimals:
+                        true,
+                    },
                   )}
                 </span>{" "}
 
@@ -530,10 +541,6 @@ export function MobileCampaignHero({
             )}
           </div>
         </div>
-
-        {/* =====================================
-            DONATE
-        ====================================== */}
 
         <div className="mt-3">
           <DonationModal
@@ -545,6 +552,12 @@ export function MobileCampaignHero({
             }
             locale={
               locale
+            }
+            currency={
+              currency
+            }
+            exchangeRate={
+              exchangeRate
             }
             triggerClassName="
               flex
@@ -567,10 +580,6 @@ export function MobileCampaignHero({
             "
           />
         </div>
-
-        {/* =====================================
-            SHARE
-        ====================================== */}
 
         <div
           className="

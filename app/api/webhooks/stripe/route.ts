@@ -1,18 +1,46 @@
-import { NextResponse } from "next/server";
+import {
+  NextResponse,
+} from "next/server";
+
 import Stripe from "stripe";
 
-import { stripe } from "@/lib/stripe/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import {
+  stripe,
+} from "@/lib/stripe/server";
 
-export const runtime = "nodejs";
+import {
+  supabaseAdmin,
+} from "@/lib/supabase/admin";
 
-export async function POST(request: Request) {
-  const signature = request.headers.get("stripe-signature");
+import {
+  isCurrency,
+  type Currency,
+} from "@/lib/currency";
+
+import {
+  convertCurrencyMinorToUsd,
+} from "@/lib/money";
+
+import {
+  getUsdToCurrencyRate,
+} from "@/lib/exchange-rate";
+
+export const runtime =
+  "nodejs";
+
+export async function POST(
+  request: Request,
+) {
+  const signature =
+    request.headers.get(
+      "stripe-signature",
+    );
 
   if (!signature) {
     return NextResponse.json(
       {
-        error: "Missing Stripe signature.",
+        error:
+          "Missing Stripe signature.",
       },
       {
         status: 400,
@@ -21,7 +49,8 @@ export async function POST(request: Request) {
   }
 
   const webhookSecret =
-    process.env.STRIPE_WEBHOOK_SECRET;
+    process.env
+      .STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
     console.error(
@@ -39,17 +68,22 @@ export async function POST(request: Request) {
     );
   }
 
-  const rawBody = await request.text();
+  const rawBody =
+    await request.text();
 
-  let event: Stripe.Event;
+  let event:
+    Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      rawBody,
-      signature,
-      webhookSecret,
-    );
-  } catch (error) {
+    event =
+      stripe.webhooks.constructEvent(
+        rawBody,
+        signature,
+        webhookSecret,
+      );
+  } catch (
+    error
+  ) {
     console.error(
       "Webhook signature verification failed:",
       error,
@@ -67,10 +101,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    switch (event.type) {
+    switch (
+      event.type
+    ) {
       case "checkout.session.completed": {
         const session =
-          event.data.object as Stripe.Checkout.Session;
+          event.data
+            .object as Stripe.Checkout.Session;
 
         await handleCheckoutSessionCompleted(
           session,
@@ -81,7 +118,8 @@ export async function POST(request: Request) {
 
       case "invoice.payment_succeeded": {
         const invoice =
-          event.data.object as Stripe.Invoice;
+          event.data
+            .object as Stripe.Invoice;
 
         await handleInvoicePaymentSucceeded(
           invoice,
@@ -101,7 +139,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       received: true,
     });
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "Stripe webhook processing error:",
       error,
@@ -119,18 +159,13 @@ export async function POST(request: Request) {
   }
 }
 
-/*
- * ============================================================
- * CHECKOUT SESSION COMPLETED
- *
- * Dùng cho:
- * - One-time donation
- * - Monthly donation lần đầu
- * ============================================================
- */
+// =========================================================
+// CHECKOUT SESSION COMPLETED
+// =========================================================
 
 async function handleCheckoutSessionCompleted(
-  session: Stripe.Checkout.Session,
+  session:
+    Stripe.Checkout.Session,
 ) {
   if (
     session.payment_status !==
@@ -146,22 +181,30 @@ async function handleCheckoutSessionCompleted(
   }
 
   const metadata =
-    session.metadata ?? {};
+    session.metadata ??
+    {};
 
   const campaignId =
     metadata.campaign_id;
 
   const firstName =
-    metadata.donor_first_name?.trim() ??
+    metadata
+      .donor_first_name
+      ?.trim() ??
     "";
 
   const lastName =
-    metadata.donor_last_name?.trim() ??
+    metadata
+      .donor_last_name
+      ?.trim() ??
     "";
 
   const rawEmail =
-    metadata.donor_email?.trim() ||
-    session.customer_details
+    metadata
+      .donor_email
+      ?.trim() ||
+    session
+      .customer_details
       ?.email ||
     session.customer_email ||
     "";
@@ -172,35 +215,81 @@ async function handleCheckoutSessionCompleted(
       .toLowerCase();
 
   const phone =
-    metadata.donor_phone?.trim() ||
-    session.customer_details
+    metadata
+      .donor_phone
+      ?.trim() ||
+    session
+      .customer_details
       ?.phone ||
     null;
 
   const displayName =
-    metadata.display_name?.trim() ||
+    metadata
+      .display_name
+      ?.trim() ||
     "Anonymous";
 
   const isAnonymous =
-    metadata.is_anonymous ===
+    metadata
+      .is_anonymous ===
     "true";
 
-  const donationAmountCents =
-    Number(
-      metadata.donation_amount_cents,
+  const chargedCurrency =
+    normalizeCurrency(
+      session.currency ??
+        metadata
+          .charged_currency,
     );
 
-  const feeAmountCents =
-    Number(
-      metadata.fee_amount_cents ??
-        0,
+  const chargedDonationAmountCents =
+    readPositiveInteger(
+      metadata
+        .charged_donation_amount_cents,
     );
 
-  const totalAmountCents =
-    Number(
-      metadata.total_amount_cents ??
-        session.amount_total ??
-        0,
+  const chargedFeeAmountCents =
+    readNonNegativeInteger(
+      metadata
+        .charged_fee_amount_cents,
+    );
+
+  const chargedTotalAmountCents =
+    Number.isInteger(
+      session.amount_total,
+    ) &&
+    (session.amount_total ??
+      0) >
+      0
+      ? Number(
+          session.amount_total,
+        )
+      : readPositiveInteger(
+          metadata
+            .charged_total_amount_cents,
+        );
+
+  const normalizedDonationUsdCents =
+    readPositiveInteger(
+      metadata
+        .normalized_donation_usd_cents,
+    );
+
+  const normalizedFeeUsdCents =
+    readNonNegativeInteger(
+      metadata
+        .normalized_fee_usd_cents,
+    );
+
+  const normalizedTotalUsdCents =
+    readPositiveInteger(
+      metadata
+        .normalized_total_usd_cents,
+    );
+
+  const exchangeRate =
+    readPositiveNumber(
+      metadata
+        .usd_exchange_rate,
     );
 
   const frequency =
@@ -215,40 +304,49 @@ async function handleCheckoutSessionCompleted(
     );
   }
 
-  if (
-    !Number.isInteger(
-      donationAmountCents,
-    ) ||
-    donationAmountCents <= 0
-  ) {
-    throw new Error(
-      `Invalid donation amount in Checkout Session ${session.id}`,
-    );
-  }
-
   if (!email) {
     throw new Error(
       `Missing donor email in Checkout Session ${session.id}`,
     );
   }
 
-  /*
-   * Idempotency:
-   * không tạo lại donation nếu Stripe retry event.
-   */
-  const {
-    data: existingDonation,
-    error: existingDonationError,
-  } = await supabaseAdmin
-    .from("donations")
-    .select("id")
-    .eq(
-      "stripe_checkout_session_id",
-      session.id,
-    )
-    .maybeSingle();
+  if (
+    !chargedCurrency ||
+    !chargedDonationAmountCents ||
+    chargedTotalAmountCents <=
+      0 ||
+    normalizedDonationUsdCents <=
+      0 ||
+    normalizedTotalUsdCents <=
+      0
+  ) {
+    throw new Error(
+      `Invalid multi-currency metadata in Checkout Session ${session.id}`,
+    );
+  }
 
-  if (existingDonationError) {
+  const {
+    data:
+      existingDonation,
+    error:
+      existingDonationError,
+  } =
+    await supabaseAdmin
+      .from(
+        "donations",
+      )
+      .select(
+        "id",
+      )
+      .eq(
+        "stripe_checkout_session_id",
+        session.id,
+      )
+      .maybeSingle();
+
+  if (
+    existingDonationError
+  ) {
     console.error(
       "Existing donation lookup error:",
       existingDonationError,
@@ -257,7 +355,9 @@ async function handleCheckoutSessionCompleted(
     throw existingDonationError;
   }
 
-  if (existingDonation) {
+  if (
+    existingDonation
+  ) {
     console.log(
       "Donation already saved:",
       session.id,
@@ -266,152 +366,160 @@ async function handleCheckoutSessionCompleted(
     return;
   }
 
-  /*
-   * Tìm hoặc tạo donor.
-   */
   const donorId =
-    await getOrCreateDonor({
-      email,
-      firstName,
-      lastName,
-      phone,
+    await getOrCreateDonor(
+      {
+        email,
+        firstName,
+        lastName,
+        phone,
 
-      stripeCustomerId:
-        typeof session.customer ===
-        "string"
-          ? session.customer
-          : null,
-    });
+        stripeCustomerId:
+          typeof session.customer ===
+          "string"
+            ? session.customer
+            : null,
+      },
+    );
 
   const paymentIntentId =
-    typeof session.payment_intent ===
+    typeof session
+      .payment_intent ===
     "string"
       ? session.payment_intent
       : null;
 
   const subscriptionId =
-    typeof session.subscription ===
+    typeof session
+      .subscription ===
     "string"
       ? session.subscription
       : null;
 
   const stripeCustomerId =
-    typeof session.customer ===
+    typeof session
+      .customer ===
     "string"
       ? session.customer
       : null;
 
   /*
-   * Tạo donation cho lần thanh toán đầu tiên.
+   * IMPORTANT:
+   *
+   * Existing amount_* columns stay normalized to USD.
+   * This keeps current campaign stats/RPC correct.
+   *
+   * charged_* columns store what Stripe actually charged.
    */
   const {
-    error: donationError,
-  } = await supabaseAdmin
-    .from("donations")
-    .insert({
-      campaign_id:
-        campaignId,
+    error:
+      donationError,
+  } =
+    await supabaseAdmin
+      .from(
+        "donations",
+      )
+      .insert({
+        campaign_id:
+          campaignId,
 
-      donor_id:
-        donorId,
+        donor_id:
+          donorId,
 
-      display_name:
-        displayName,
+        display_name:
+          displayName,
 
-      amount_cents:
-        donationAmountCents,
+        amount_cents:
+          normalizedDonationUsdCents,
 
-      fee_amount_cents:
-        Number.isFinite(
-          feeAmountCents,
-        )
-          ? feeAmountCents
-          : 0,
+        fee_amount_cents:
+          normalizedFeeUsdCents,
 
-      total_amount_cents:
-        Number.isFinite(
-          totalAmountCents,
-        )
-          ? totalAmountCents
-          : donationAmountCents,
+        total_amount_cents:
+          normalizedTotalUsdCents,
 
-      currency:
-        session.currency
-          ?.toUpperCase() ??
-        "USD",
+        currency:
+          "USD",
 
-      frequency,
+        charged_amount_cents:
+          chargedDonationAmountCents,
 
-      status:
-        "succeeded",
+        charged_fee_amount_cents:
+          chargedFeeAmountCents,
 
-      is_anonymous:
-        isAnonymous,
+        charged_total_amount_cents:
+          chargedTotalAmountCents,
 
-      stripe_customer_id:
-        stripeCustomerId,
+        charged_currency:
+          chargedCurrency,
 
-      stripe_payment_intent_id:
-        paymentIntentId,
+        usd_exchange_rate:
+          exchangeRate,
 
-      stripe_checkout_session_id:
-        session.id,
+        frequency,
 
-      stripe_subscription_id:
-        subscriptionId,
-    });
+        status:
+          "succeeded",
 
-if (donationError) {
+        is_anonymous:
+          isAnonymous,
+
+        stripe_customer_id:
+          stripeCustomerId,
+
+        stripe_payment_intent_id:
+          paymentIntentId,
+
+        stripe_checkout_session_id:
+          session.id,
+
+        stripe_subscription_id:
+          subscriptionId,
+      });
+
   if (
-    donationError.code ===
-    "23505"
+    donationError
   ) {
-    console.log(
-      "Donation already processed by database constraint:",
-      session.id,
+    if (
+      donationError.code ===
+      "23505"
+    ) {
+      console.log(
+        "Donation already processed by database constraint:",
+        session.id,
+      );
+
+      return;
+    }
+
+    console.error(
+      "Donation insert error:",
+      donationError,
     );
 
-    return;
+    throw donationError;
   }
-
-  console.error(
-    "Donation insert error:",
-    donationError,
-  );
-
-  throw donationError;
-}
 
   console.log(
     "Donation saved successfully:",
     session.id,
-    "Frequency:",
-    frequency,
-    "Subscription:",
-    subscriptionId,
-    "Donor:",
-    donorId,
+    "Charged:",
+    chargedDonationAmountCents,
+    chargedCurrency,
+    "Normalized USD:",
+    normalizedDonationUsdCents,
   );
 }
 
-/*
- * ============================================================
- * INVOICE PAYMENT SUCCEEDED
- *
- * Dùng cho:
- * monthly recurring payment ở các tháng sau.
- * ============================================================
- */
+// =========================================================
+// INVOICE PAYMENT SUCCEEDED
+// Monthly recurring payment after first charge.
+// =========================================================
 
 async function handleInvoicePaymentSucceeded(
-  invoice: Stripe.Invoice,
+  invoice:
+    Stripe.Invoice,
 ) {
-  /*
-   * Lấy subscription id.
-   *
-   * Một số phiên bản Stripe typings có thể không expose trực tiếp
-   * invoice.subscription, nên cast nhẹ để an toàn.
-   */
   const subscriptionValue =
     (
       invoice as Stripe.Invoice & {
@@ -426,21 +534,19 @@ async function handleInvoicePaymentSucceeded(
     typeof subscriptionValue ===
     "string"
       ? subscriptionValue
-      : subscriptionValue?.id ??
+      : subscriptionValue
+          ?.id ??
         null;
 
-  /*
-   * Invoice không thuộc subscription thì bỏ qua.
-   */
-  if (!subscriptionId) {
+  if (
+    !subscriptionId
+  ) {
     return;
   }
 
   /*
-   * Invoice đầu tiên của subscription đã được ghi bằng
+   * First subscription invoice was already saved by
    * checkout.session.completed.
-   *
-   * Nếu ghi tiếp ở đây sẽ bị duplicate donation đầu tiên.
    */
   if (
     invoice.billing_reason ===
@@ -454,55 +560,54 @@ async function handleInvoicePaymentSucceeded(
     return;
   }
 
-  /*
-   * Retrieve subscription để lấy metadata.
-   */
   const subscription =
-    await stripe.subscriptions.retrieve(
-      subscriptionId,
-    );
+    await stripe
+      .subscriptions
+      .retrieve(
+        subscriptionId,
+      );
 
   const metadata =
-    subscription.metadata ?? {};
+    subscription.metadata ??
+    {};
 
   const campaignId =
     metadata.campaign_id;
 
   const email =
-    metadata.donor_email
+    metadata
+      .donor_email
       ?.trim()
       .toLowerCase();
 
   const firstName =
-    metadata.donor_first_name?.trim() ??
+    metadata
+      .donor_first_name
+      ?.trim() ??
     "";
 
   const lastName =
-    metadata.donor_last_name?.trim() ??
+    metadata
+      .donor_last_name
+      ?.trim() ??
     "";
 
   const phone =
-    metadata.donor_phone?.trim() ||
+    metadata
+      .donor_phone
+      ?.trim() ||
     null;
 
   const displayName =
-    metadata.display_name?.trim() ||
+    metadata
+      .display_name
+      ?.trim() ||
     "Anonymous";
 
   const isAnonymous =
-    metadata.is_anonymous ===
+    metadata
+      .is_anonymous ===
     "true";
-
-  const donationAmountCents =
-    Number(
-      metadata.donation_amount_cents,
-    );
-
-  const feeAmountCents =
-    Number(
-      metadata.fee_amount_cents ??
-        0,
-    );
 
   if (!campaignId) {
     throw new Error(
@@ -516,20 +621,77 @@ async function handleInvoicePaymentSucceeded(
     );
   }
 
+  const chargedCurrency =
+    normalizeCurrency(
+      invoice.currency ??
+        metadata
+          .charged_currency,
+    );
+
   if (
-    !Number.isInteger(
-      donationAmountCents,
-    ) ||
-    donationAmountCents <= 0
+    !chargedCurrency
+  ) {
+    throw new Error(
+      `Invalid currency in recurring invoice ${invoice.id}`,
+    );
+  }
+
+  const chargedDonationAmountCents =
+    readPositiveInteger(
+      metadata
+        .charged_donation_amount_cents,
+    );
+
+  const chargedFeeAmountCents =
+    readNonNegativeInteger(
+      metadata
+        .charged_fee_amount_cents,
+    );
+
+  if (
+    chargedDonationAmountCents <=
+    0
   ) {
     throw new Error(
       `Invalid donation amount in Subscription ${subscriptionId}`,
     );
   }
 
+  const chargedTotalAmountCents =
+    Number.isFinite(
+      invoice.amount_paid,
+    )
+      ? invoice.amount_paid
+      : chargedDonationAmountCents +
+        chargedFeeAmountCents;
+
   /*
-   * Lấy PaymentIntent ID từ invoice.
+   * Recurring payments happen in the future, so normalize them
+   * using the FX rate at payment time rather than the old rate.
    */
+  const exchangeRate =
+    await getUsdToCurrencyRate(
+      chargedCurrency,
+    );
+
+  const normalizedDonationUsdCents =
+    convertCurrencyMinorToUsd(
+      chargedDonationAmountCents,
+      exchangeRate,
+    );
+
+  const normalizedFeeUsdCents =
+    convertCurrencyMinorToUsd(
+      chargedFeeAmountCents,
+      exchangeRate,
+    );
+
+  const normalizedTotalUsdCents =
+    convertCurrencyMinorToUsd(
+      chargedTotalAmountCents,
+      exchangeRate,
+    );
+
   const paymentIntentValue =
     (
       invoice as Stripe.Invoice & {
@@ -544,28 +706,31 @@ async function handleInvoicePaymentSucceeded(
     typeof paymentIntentValue ===
     "string"
       ? paymentIntentValue
-      : paymentIntentValue?.id ??
+      : paymentIntentValue
+          ?.id ??
         null;
 
-  /*
-   * Idempotency cho recurring payment.
-   *
-   * Nếu invoice webhook retry,
-   * không tạo thêm donation.
-   */
-  if (paymentIntentId) {
+  if (
+    paymentIntentId
+  ) {
     const {
-      data: existingDonation,
+      data:
+        existingDonation,
       error:
         existingDonationError,
-    } = await supabaseAdmin
-      .from("donations")
-      .select("id")
-      .eq(
-        "stripe_payment_intent_id",
-        paymentIntentId,
-      )
-      .maybeSingle();
+    } =
+      await supabaseAdmin
+        .from(
+          "donations",
+        )
+        .select(
+          "id",
+        )
+        .eq(
+          "stripe_payment_intent_id",
+          paymentIntentId,
+        )
+        .maybeSingle();
 
     if (
       existingDonationError
@@ -590,9 +755,6 @@ async function handleInvoicePaymentSucceeded(
     }
   }
 
-  /*
-   * Stripe Customer ID.
-   */
   const customerValue =
     invoice.customer;
 
@@ -600,130 +762,205 @@ async function handleInvoicePaymentSucceeded(
     typeof customerValue ===
     "string"
       ? customerValue
-      : customerValue?.id ??
+      : customerValue
+          ?.id ??
         null;
 
-  /*
-   * Reuse donor hiện tại.
-   */
   const donorId =
-    await getOrCreateDonor({
-      email,
-      firstName,
-      lastName,
-      phone,
-      stripeCustomerId,
-    });
-
-  /*
-   * Tổng Stripe thực thu kỳ này.
-   */
-  const totalAmountCents =
-    Number.isFinite(
-      invoice.amount_paid,
-    )
-      ? invoice.amount_paid
-      : donationAmountCents +
-        feeAmountCents;
-
-  /*
-   * Insert recurring donation.
-   */
-  const {
-    error: donationError,
-  } = await supabaseAdmin
-    .from("donations")
-    .insert({
-      campaign_id:
-        campaignId,
-
-      donor_id:
-        donorId,
-
-      display_name:
-        displayName,
-
-      amount_cents:
-        donationAmountCents,
-
-      fee_amount_cents:
-        Number.isFinite(
-          feeAmountCents,
-        )
-          ? feeAmountCents
-          : 0,
-
-      total_amount_cents:
-        totalAmountCents,
-
-      currency:
-        invoice.currency
-          ?.toUpperCase() ??
-        "USD",
-
-      frequency:
-        "monthly",
-
-      status:
-        "succeeded",
-
-      is_anonymous:
-        isAnonymous,
-
-      stripe_customer_id:
+    await getOrCreateDonor(
+      {
+        email,
+        firstName,
+        lastName,
+        phone,
         stripeCustomerId,
-
-      stripe_payment_intent_id:
-        paymentIntentId,
-
-      stripe_checkout_session_id:
-        null,
-
-      stripe_subscription_id:
-        subscriptionId,
-    });
-if (donationError) {
-  if (
-    donationError.code ===
-    "23505"
-  ) {
-    console.log(
-      "Recurring donation already processed:",
-      invoice.id,
+      },
     );
 
-    return;
+  const {
+    error:
+      donationError,
+  } =
+    await supabaseAdmin
+      .from(
+        "donations",
+      )
+      .insert({
+        campaign_id:
+          campaignId,
+
+        donor_id:
+          donorId,
+
+        display_name:
+          displayName,
+
+        amount_cents:
+          normalizedDonationUsdCents,
+
+        fee_amount_cents:
+          normalizedFeeUsdCents,
+
+        total_amount_cents:
+          normalizedTotalUsdCents,
+
+        currency:
+          "USD",
+
+        charged_amount_cents:
+          chargedDonationAmountCents,
+
+        charged_fee_amount_cents:
+          chargedFeeAmountCents,
+
+        charged_total_amount_cents:
+          chargedTotalAmountCents,
+
+        charged_currency:
+          chargedCurrency,
+
+        usd_exchange_rate:
+          exchangeRate,
+
+        frequency:
+          "monthly",
+
+        status:
+          "succeeded",
+
+        is_anonymous:
+          isAnonymous,
+
+        stripe_customer_id:
+          stripeCustomerId,
+
+        stripe_payment_intent_id:
+          paymentIntentId,
+
+        stripe_checkout_session_id:
+          null,
+
+        stripe_subscription_id:
+          subscriptionId,
+      });
+
+  if (
+    donationError
+  ) {
+    if (
+      donationError.code ===
+      "23505"
+    ) {
+      console.log(
+        "Recurring donation already processed:",
+        invoice.id,
+      );
+
+      return;
+    }
+
+    console.error(
+      "Recurring donation insert error:",
+      donationError,
+    );
+
+    throw donationError;
   }
-
-  console.error(
-    "Recurring donation insert error:",
-    donationError,
-  );
-
-  throw donationError;
-}
 
   console.log(
     "Recurring monthly donation saved:",
     invoice.id,
-    "Subscription:",
-    subscriptionId,
-    "Donor:",
-    donorId,
+    "Charged:",
+    chargedDonationAmountCents,
+    chargedCurrency,
+    "Normalized USD:",
+    normalizedDonationUsdCents,
   );
 }
 
-/*
- * ============================================================
- * GET OR CREATE DONOR
- *
- * Email tồn tại:
- * → reuse donor
- *
- * Email chưa tồn tại:
- * → tạo donor mới
- * ============================================================
- */
+// =========================================================
+// HELPERS
+// =========================================================
+
+function normalizeCurrency(
+  value:
+    | string
+    | null
+    | undefined,
+): Currency | null {
+  const normalized =
+    value
+      ?.trim()
+      .toUpperCase();
+
+  return isCurrency(
+    normalized,
+  )
+    ? normalized
+    : null;
+}
+
+function readPositiveInteger(
+  value:
+    | string
+    | undefined,
+) {
+  const parsed =
+    Number(
+      value,
+    );
+
+  return Number.isInteger(
+    parsed,
+  ) &&
+    parsed >
+      0
+    ? parsed
+    : 0;
+}
+
+function readNonNegativeInteger(
+  value:
+    | string
+    | undefined,
+) {
+  const parsed =
+    Number(
+      value ??
+        0,
+    );
+
+  return Number.isInteger(
+    parsed,
+  ) &&
+    parsed >=
+      0
+    ? parsed
+    : 0;
+}
+
+function readPositiveNumber(
+  value:
+    | string
+    | undefined,
+) {
+  const parsed =
+    Number(
+      value,
+    );
+
+  return Number.isFinite(
+    parsed,
+  ) &&
+    parsed >
+      0
+    ? parsed
+    : 1;
+}
+
+// =========================================================
+// GET OR CREATE DONOR
+// =========================================================
 
 async function getOrCreateDonor({
   email,
@@ -735,8 +972,10 @@ async function getOrCreateDonor({
   email: string;
   firstName: string;
   lastName: string;
-  phone: string | null;
-  stripeCustomerId: string | null;
+  phone:
+    string | null;
+  stripeCustomerId:
+    string | null;
 }) {
   const normalizedEmail =
     email
@@ -744,27 +983,34 @@ async function getOrCreateDonor({
       .toLowerCase();
 
   const {
-    data: existingDonor,
-    error: donorLookupError,
-  } = await supabaseAdmin
-    .from("donors")
-    .select(
-      `
-        id,
-        first_name,
-        last_name,
-        email,
-        phone,
-        stripe_customer_id
-      `,
-    )
-    .ilike(
-      "email",
-      normalizedEmail,
-    )
-    .maybeSingle();
+    data:
+      existingDonor,
+    error:
+      donorLookupError,
+  } =
+    await supabaseAdmin
+      .from(
+        "donors",
+      )
+      .select(
+        `
+          id,
+          first_name,
+          last_name,
+          email,
+          phone,
+          stripe_customer_id
+        `,
+      )
+      .ilike(
+        "email",
+        normalizedEmail,
+      )
+      .maybeSingle();
 
-  if (donorLookupError) {
+  if (
+    donorLookupError
+  ) {
     console.error(
       "Donor lookup error:",
       donorLookupError,
@@ -773,37 +1019,46 @@ async function getOrCreateDonor({
     throw donorLookupError;
   }
 
-  /*
-   * Donor đã tồn tại.
-   */
-  if (existingDonor) {
+  if (
+    existingDonor
+  ) {
     const {
-      error: donorUpdateError,
-    } = await supabaseAdmin
-      .from("donors")
-      .update({
-        first_name:
-          firstName ||
-          existingDonor.first_name,
+      error:
+        donorUpdateError,
+    } =
+      await supabaseAdmin
+        .from(
+          "donors",
+        )
+        .update({
+          first_name:
+            firstName ||
+            existingDonor
+              .first_name,
 
-        last_name:
-          lastName ||
-          existingDonor.last_name,
+          last_name:
+            lastName ||
+            existingDonor
+              .last_name,
 
-        phone:
-          phone ||
-          existingDonor.phone,
+          phone:
+            phone ||
+            existingDonor
+              .phone,
 
-        stripe_customer_id:
-          stripeCustomerId ||
-          existingDonor.stripe_customer_id,
-      })
-      .eq(
-        "id",
-        existingDonor.id,
-      );
+          stripe_customer_id:
+            stripeCustomerId ||
+            existingDonor
+              .stripe_customer_id,
+        })
+        .eq(
+          "id",
+          existingDonor.id,
+        );
 
-    if (donorUpdateError) {
+    if (
+      donorUpdateError
+    ) {
       console.error(
         "Donor update error:",
         donorUpdateError,
@@ -812,42 +1067,43 @@ async function getOrCreateDonor({
       throw donorUpdateError;
     }
 
-    console.log(
-      "Existing donor reused:",
-      existingDonor.id,
-      normalizedEmail,
-    );
-
     return existingDonor.id;
   }
 
-  /*
-   * Donor chưa tồn tại.
-   */
   const {
-    data: newDonor,
-    error: donorInsertError,
-  } = await supabaseAdmin
-    .from("donors")
-    .insert({
-      first_name:
-        firstName || "Donor",
+    data:
+      newDonor,
+    error:
+      donorInsertError,
+  } =
+    await supabaseAdmin
+      .from(
+        "donors",
+      )
+      .insert({
+        first_name:
+          firstName ||
+          "Donor",
 
-      last_name:
-        lastName,
+        last_name:
+          lastName,
 
-      email:
-        normalizedEmail,
+        email:
+          normalizedEmail,
 
-      phone,
+        phone,
 
-      stripe_customer_id:
-        stripeCustomerId,
-    })
-    .select("id")
-    .single();
+        stripe_customer_id:
+          stripeCustomerId,
+      })
+      .select(
+        "id",
+      )
+      .single();
 
-  if (donorInsertError) {
+  if (
+    donorInsertError
+  ) {
     console.error(
       "Donor insert error:",
       donorInsertError,
@@ -855,12 +1111,6 @@ async function getOrCreateDonor({
 
     throw donorInsertError;
   }
-
-  console.log(
-    "New donor created:",
-    newDonor.id,
-    normalizedEmail,
-  );
 
   return newDonor.id;
 }

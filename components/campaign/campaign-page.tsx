@@ -69,6 +69,7 @@ export function CampaignPage({
   content,
   locale,
   currency,
+  exchangeRate,
 }: {
   campaign: Campaign;
 
@@ -80,6 +81,9 @@ export function CampaignPage({
 
   currency:
     Currency;
+
+  exchangeRate:
+    number;
 }) {
   const t =
     getUiTranslations(
@@ -209,8 +213,18 @@ export function CampaignPage({
           campaign={
             campaignWithGoal
           }
-          content={content}
-          locale={locale}
+          content={
+            content
+          }
+          locale={
+            locale
+          }
+          currency={
+            currency
+          }
+          exchangeRate={
+            exchangeRate
+          }
         />
 
         {/* =====================================================
@@ -449,6 +463,15 @@ export function CampaignPage({
               content={
                 content
               }
+              locale={
+                locale
+              }
+              currency={
+                currency
+              }
+              exchangeRate={
+                exchangeRate
+              }
             />
           </div>
 
@@ -477,6 +500,15 @@ export function CampaignPage({
               content={
                 content
               }
+              locale={
+                locale
+              }
+              currency={
+                currency
+              }
+              exchangeRate={
+                exchangeRate
+              }
             />
 
             <RecentDonations
@@ -486,6 +518,12 @@ export function CampaignPage({
               }
               locale={
                 locale
+              }
+              currency={
+                currency
+              }
+              exchangeRate={
+                exchangeRate
               }
             />
 
@@ -513,6 +551,12 @@ export function CampaignPage({
               }
               locale={
                 locale
+              }
+              currency={
+                currency
+              }
+              exchangeRate={
+                exchangeRate
               }
             />
           </div>
@@ -566,6 +610,12 @@ export function CampaignPage({
               locale={
                 locale
               }
+              currency={
+                currency
+              }
+              exchangeRate={
+                exchangeRate
+              }
             />
           </div>
         </aside>
@@ -584,6 +634,12 @@ export function CampaignPage({
         }
         locale={
           locale
+        }
+        currency={
+          currency
+        }
+        exchangeRate={
+          exchangeRate
         }
       />
     </main>

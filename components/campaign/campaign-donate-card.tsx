@@ -19,9 +19,14 @@ import type {
 } from "@/sanity/types/campaign";
 
 import {
-  formatUsd,
+  convertUsdToCurrencyMinor,
+  formatMoney,
   progressPercent,
 } from "@/lib/money";
+
+import type {
+  Currency,
+} from "@/lib/currency";
 
 import {
   ShareMenu,
@@ -35,12 +40,16 @@ type CampaignDonateCardProps = {
   campaign: Campaign;
   content: SanityCampaign;
   locale: Locale;
+  currency: Currency;
+  exchangeRate: number;
 };
 
 export function CampaignDonateCard({
   campaign,
   content,
   locale,
+  currency,
+  exchangeRate,
 }: CampaignDonateCardProps) {
   const t =
     getUiTranslations(
@@ -63,6 +72,26 @@ export function CampaignDonateCard({
       .recentDonations
       ?.[0];
 
+  const raisedAmount =
+    convertUsdToCurrencyMinor(
+      campaign.raisedAmountUsd,
+      exchangeRate,
+    );
+
+  const goalAmount =
+    convertUsdToCurrencyMinor(
+      campaign.goalAmountUsd,
+      exchangeRate,
+    );
+
+  const latestDonationAmount =
+    latestDonation
+      ? convertUsdToCurrencyMinor(
+          latestDonation.amountUsd,
+          exchangeRate,
+        )
+      : 0;
+
   return (
     <section
       dir="ltr"
@@ -76,10 +105,6 @@ export function CampaignDonateCard({
         shadow-[0_18px_50px_rgba(15,35,60,0.08)]
       "
     >
-      {/* =====================================
-          PROGRESS
-      ====================================== */}
-
       <div
         className="
           flex
@@ -127,8 +152,6 @@ export function CampaignDonateCard({
           </div>
         </div>
 
-        {/* TEXT ONLY RTL */}
-
         <div
           dir={
             textDirection
@@ -152,9 +175,10 @@ export function CampaignDonateCard({
               dir="ltr"
               className="inline-block"
             >
-              {formatUsd(
-                campaign
-                  .raisedAmountUsd,
+              {formatMoney(
+                raisedAmount,
+                currency,
+                locale,
               )}
             </span>{" "}
 
@@ -182,12 +206,14 @@ export function CampaignDonateCard({
               underline-offset-2
             "
           >
-            {formatUsd(
-              campaign
-                .goalAmountUsd,
-            ).replace(
-              ".00",
-              "",
+            {formatMoney(
+              goalAmount,
+              currency,
+              locale,
+              {
+                hideZeroDecimals:
+                  true,
+              },
             )}
           </p>
 
@@ -211,22 +237,20 @@ export function CampaignDonateCard({
                 dir="ltr"
                 className="inline-block"
               >
-                {formatUsd(
-                  latestDonation
-                    .amountUsd,
-                ).replace(
-                  ".00",
-                  "",
+                {formatMoney(
+                  latestDonationAmount,
+                  currency,
+                  locale,
+                  {
+                    hideZeroDecimals:
+                      true,
+                  },
                 )}
               </span>
             </p>
           )}
         </div>
       </div>
-
-      {/* =====================================
-          DONATE
-      ====================================== */}
 
       <div className="mt-6">
         <DonationModal
@@ -238,6 +262,12 @@ export function CampaignDonateCard({
           }
           locale={
             locale
+          }
+          currency={
+            currency
+          }
+          exchangeRate={
+            exchangeRate
           }
           triggerClassName="
             flex
@@ -261,10 +291,6 @@ export function CampaignDonateCard({
         />
       </div>
 
-      {/* =====================================
-          SHARE
-      ====================================== */}
-
       <div
         className="
           mt-3
@@ -281,10 +307,6 @@ export function CampaignDonateCard({
           }
         />
       </div>
-
-      {/* =====================================
-          SECURE
-      ====================================== */}
 
       <div
         dir="ltr"

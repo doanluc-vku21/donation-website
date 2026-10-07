@@ -1,14 +1,33 @@
 import type {
+  Currency,
+} from "@/lib/currency";
+
+import type {
+  Locale,
+} from "@/lib/i18n";
+
+import {
+  convertUsdToCurrencyMinor,
+  formatMoney,
+} from "@/lib/money";
+
+import type {
   FundUsageItem,
   SanityCampaign,
 } from "@/sanity/types/campaign";
 
 type FundUsageProps = {
   content: SanityCampaign;
+  locale: Locale;
+  currency: Currency;
+  exchangeRate: number;
 };
 
 export function FundUsage({
   content,
+  locale,
+  currency,
+  exchangeRate,
 }: FundUsageProps) {
   const items =
     content.fundUsageItems ??
@@ -41,10 +60,6 @@ export function FundUsage({
       "
       aria-labelledby="fund-usage-title"
     >
-      {/* =========================================
-          SECTION HEADER
-      ========================================== */}
-
       <h2
         id="fund-usage-title"
         className="
@@ -75,10 +90,6 @@ export function FundUsage({
         </p>
       )}
 
-      {/* =========================================
-          ITEMS
-      ========================================== */}
-
       <div
         className="
           mt-6
@@ -105,9 +116,14 @@ export function FundUsage({
               item={
                 item
               }
+              locale={
+                locale
+              }
               currency={
-                content.currency ||
-                "USD"
+                currency
+              }
+              exchangeRate={
+                exchangeRate
               }
               showDivider={
                 index > 0
@@ -126,33 +142,47 @@ export function FundUsage({
 
 function FundUsageRow({
   item,
+  locale,
   currency,
+  exchangeRate,
   showDivider,
 }: {
   item: FundUsageItem;
-
-  currency: string;
-
+  locale: Locale;
+  currency: Currency;
+  exchangeRate: number;
   showDivider: boolean;
 }) {
-  // Existing items created before itemType
-  // remain normal allocation items.
   const itemType =
     item.itemType ||
     "allocation";
 
   // ========================================================
-  // TITLE + TEXT
+  // TEXT ITEM
   // ========================================================
 
   if (
     itemType === "text"
   ) {
     const title =
-      item.title?.trim();
+      item.title?.trim()
+        ? convertEmbeddedUsdAmounts(
+            item.title.trim(),
+            currency,
+            locale,
+            exchangeRate,
+          )
+        : undefined;
 
     const content =
-      item.content?.trim();
+      item.content?.trim()
+        ? convertEmbeddedUsdAmounts(
+            item.content.trim(),
+            currency,
+            locale,
+            exchangeRate,
+          )
+        : undefined;
 
     if (
       !title &&
@@ -214,14 +244,29 @@ function FundUsageRow({
 
   // ========================================================
   // ALLOCATION
+  //
+  // Sanity `item.amount` is the base USD major-unit amount.
+  // Example: 7000 = $7,000.
+  // Convert it into minor units first, then to local currency.
   // ========================================================
 
   const amount =
     typeof item.amount ===
     "number"
-      ? formatAmount(
-          item.amount,
+      ? formatMoney(
+          convertUsdToCurrencyMinor(
+            Math.round(
+              item.amount *
+                100,
+            ),
+            exchangeRate,
+          ),
           currency,
+          locale,
+          {
+            hideZeroDecimals:
+              true,
+          },
         )
       : null;
 
@@ -265,7 +310,12 @@ function FundUsageRow({
         >
           {amount && (
             <>
-              {amount}
+              <span
+                dir="ltr"
+                className="inline-block"
+              >
+                {amount}
+              </span>
 
               {title
                 ? ": "
@@ -297,31 +347,97 @@ function FundUsageRow({
 }
 
 // ==========================================================
-// FORMAT AMOUNT
+// CONVERT USD AMOUNTS EMBEDDED INSIDE TEXT
+//
+// Handles examples like:
+//   $20,000
+//   $20 000
+//   20,000 $
+//   20 000 $
+//
+// Sanity text is treated as base USD content.
 // ==========================================================
 
-function formatAmount(
-  amount: number,
-  currency: string,
+function convertEmbeddedUsdAmounts(
+  value: string,
+  currency: Currency,
+  locale: Locale,
+  exchangeRate: number,
 ) {
-  try {
-    return new Intl.NumberFormat(
-      "en-US",
+  const convertNumber = (
+    rawNumber: string,
+  ) => {
+    const normalized =
+      rawNumber
+        .replace(
+          /[\s\u00A0\u202F,]/g,
+          "",
+        )
+        .replace(
+          /[.](?=\d{3}(?:\D|$))/g,
+          "",
+        );
+
+    const usdAmount =
+      Number(
+        normalized,
+      );
+
+    if (
+      !Number.isFinite(
+        usdAmount,
+      )
+    ) {
+      return null;
+    }
+
+    const localMinor =
+      convertUsdToCurrencyMinor(
+        Math.round(
+          usdAmount *
+            100,
+        ),
+        exchangeRate,
+      );
+
+    return formatMoney(
+      localMinor,
+      currency,
+      locale,
       {
-        style:
-          "currency",
-
-        currency,
-
-        maximumFractionDigits:
-          0,
+        hideZeroDecimals:
+          true,
       },
-    ).format(
-      amount,
     );
-  } catch {
-    return `$${amount.toLocaleString(
-      "en-US",
-    )}`;
-  }
+  };
+
+  let result =
+    value.replace(
+      /\$\s*([\d][\d\s\u00A0\u202F,\.]*)/g,
+      (
+        full,
+        rawNumber:
+          string,
+      ) =>
+        convertNumber(
+          rawNumber,
+        ) ??
+        full,
+    );
+
+  result =
+    result.replace(
+      /([\d][\d\s\u00A0\u202F,\.]*)\s*\$/g,
+      (
+        full,
+        rawNumber:
+          string,
+      ) =>
+        convertNumber(
+          rawNumber,
+        ) ??
+        full,
+    );
+
+  return result;
 }
