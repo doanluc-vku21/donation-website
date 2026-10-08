@@ -432,6 +432,44 @@ async function handleCheckoutSessionCompleted(
       ? session.subscription
       : null;
 
+  /*
+   * Express Checkout donor fields can be added to the Checkout
+   * Session immediately before wallet confirmation.
+   *
+   * For monthly donations, copy those final values onto the
+   * Subscription so future invoice.payment_succeeded events
+   * keep the donor identity/email.
+   */
+  if (
+    subscriptionId
+  ) {
+    await stripe.subscriptions.update(
+      subscriptionId,
+      {
+        metadata: {
+          ...metadata,
+
+          donor_first_name:
+            firstName,
+
+          donor_last_name:
+            lastName,
+
+          donor_email:
+            email,
+
+          display_name:
+            displayName,
+
+          is_anonymous:
+            isAnonymous
+              ? "true"
+              : "false",
+        },
+      },
+    );
+  }
+
   const stripeCustomerId =
     typeof session
       .customer ===

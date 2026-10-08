@@ -69,6 +69,9 @@ type DonationStep =
 export type ExpressPrefetchResult = {
   clientSecret:
     string;
+
+  sessionId:
+    string;
 };
 
 export type ExpressPrefetch = {
@@ -244,6 +247,9 @@ export function DonationFlow({
     clientSecret:
       string;
 
+    sessionId:
+      string;
+
     available:
       boolean;
   };
@@ -413,8 +419,8 @@ export function DonationFlow({
      * but Stripe still charges the correct selected amount.
      */
     if (
-      step !==
-        "amount" ||
+      step ===
+        "payment" ||
       !hasValidAmount
     ) {
       return;
@@ -532,7 +538,8 @@ export function DonationFlow({
 
               if (
                 !response.ok ||
-                !responseData.clientSecret
+                !responseData.clientSecret ||
+                !responseData.sessionId
               ) {
                 throw new Error(
                   responseData.error ??
@@ -543,6 +550,9 @@ export function DonationFlow({
               data = {
                 clientSecret:
                   responseData.clientSecret,
+
+                sessionId:
+                  responseData.sessionId,
               };
             }
 
@@ -581,6 +591,9 @@ export function DonationFlow({
 
                     clientSecret:
                       data.clientSecret,
+
+                    sessionId:
+                      data.sessionId,
 
                     available:
                       false,
@@ -1000,6 +1013,135 @@ export function DonationFlow({
     }
   }
 
+  async function prepareExpressDonorInfo(
+    expressSessionId:
+      string,
+  ) {
+    setError(
+      "",
+    );
+
+    if (
+      !firstName.trim()
+    ) {
+      const message =
+        t.errorFirstName;
+
+      setError(
+        message,
+      );
+
+      throw new Error(
+        message,
+      );
+    }
+
+    if (
+      !lastName.trim()
+    ) {
+      const message =
+        t.errorLastName;
+
+      setError(
+        message,
+      );
+
+      throw new Error(
+        message,
+      );
+    }
+
+    if (
+      !email.trim()
+    ) {
+      const message =
+        t.errorEmail;
+
+      setError(
+        message,
+      );
+
+      throw new Error(
+        message,
+      );
+    }
+
+    const emailPattern =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (
+      !emailPattern.test(
+        email.trim(),
+      )
+    ) {
+      const message =
+        t.errorValidEmail;
+
+      setError(
+        message,
+      );
+
+      throw new Error(
+        message,
+      );
+    }
+
+    const response =
+      await fetch(
+        "/api/stripe/express-checkout/update",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body:
+            JSON.stringify(
+              {
+                sessionId:
+                  expressSessionId,
+
+                donor: {
+                  firstName:
+                    firstName.trim(),
+
+                  lastName:
+                    lastName.trim(),
+
+                  email:
+                    email.trim(),
+
+                  displayPublicly:
+                    !isAnonymous,
+                },
+              },
+            ),
+        },
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok
+    ) {
+      const message =
+        data.error ??
+        "Unable to update donor information.";
+
+      setError(
+        message,
+      );
+
+      throw new Error(
+        message,
+      );
+    }
+  }
+
   // =========================================================
   // PAYMENT STEP
   // =========================================================
@@ -1042,739 +1184,8 @@ export function DonationFlow({
   }
 
   // =========================================================
-  // AMOUNT STEP
-  // =========================================================
-
-  if (
-    step ===
-    "amount"
-  ) {
-    return (
-      <section
-        dir={
-          locale ===
-          "ar"
-            ? "rtl"
-            : "ltr"
-        }
-      >
-        <fieldset
-          className="
-            grid
-            grid-cols-2
-            gap-1
-            rounded-[13px]
-            bg-[#eef1ea]
-            p-1
-          "
-        >
-          <legend className="sr-only">
-            {
-              t.donationFrequency
-            }
-          </legend>
-
-          {(
-            [
-              "one_time",
-              "monthly",
-            ] as const
-          ).map(
-            (
-              value,
-            ) => (
-              <label
-                key={
-                  value
-                }
-                className="
-                  cursor-pointer
-                "
-              >
-                <input
-                  className="
-                    peer
-                    sr-only
-                  "
-                  type="radio"
-                  name="frequency"
-                  value={
-                    value
-                  }
-                  checked={
-                    frequency ===
-                    value
-                  }
-                  onChange={() => {
-                    setFrequency(
-                      value,
-                    );
-
-                    resetCheckoutSession();
-                    resetExpressCheckout();
-
-                    setError(
-                      "",
-                    );
-                  }}
-                />
-
-                <span
-                  className="
-                    flex
-                    min-h-[42px]
-                    items-center
-                    justify-center
-                    gap-2
-                    rounded-[10px]
-                    px-3
-                    text-[13px]
-                    font-semibold
-                    text-[#6d766f]
-                    transition
-
-                    peer-checked:bg-white
-                    peer-checked:text-[#173e2a]
-                    peer-checked:shadow-sm
-                  "
-                >
-                  {value ===
-                    "monthly" && (
-                    <Heart
-                      aria-hidden="true"
-                      className="
-                        size-3.5
-                        fill-current
-                      "
-                    />
-                  )}
-
-                  {value ===
-                  "one_time"
-                    ? t.giveOnce
-                    : t.monthly}
-                </span>
-              </label>
-            ),
-          )}
-        </fieldset>
-
-        <h2
-          className="
-            mt-4
-            text-[16px]
-            font-bold
-            text-[#171717]
-          "
-        >
-          {
-            t.chooseYourGift
-          }
-        </h2>
-
-        <fieldset
-          className="
-            mt-3
-            grid
-            grid-cols-3
-            gap-2
-          "
-        >
-          <legend className="sr-only">
-            {
-              t.donationAmount
-            }
-          </legend>
-
-          {donationOptions.map(
-            (
-              option,
-            ) => {
-              const selected =
-                selectedPreset ===
-                option.amountUsd;
-
-              return (
-                <label
-                  key={
-                    option
-                      .amountUsd
-                  }
-                  className="
-                    min-w-0
-                    cursor-pointer
-                  "
-                >
-                  <input
-                    type="radio"
-                    name="amount"
-                    className="
-                      peer
-                      sr-only
-                    "
-                    checked={
-                      selected
-                    }
-                    onChange={() =>
-                      selectAmount(
-                        option
-                          .amountUsd,
-                      )
-                    }
-                  />
-
-                  <span
-                    className="
-                      relative
-                      flex
-                      min-h-[56px]
-                      items-center
-                      justify-center
-                      rounded-[12px]
-                      border
-                      border-[#d5d8d2]
-                      bg-white
-                      px-1
-                      text-center
-                      transition
-
-                      hover:border-[#78947f]
-
-                      peer-checked:border-[#1f6a47]
-                      peer-checked:bg-[#f4faef]
-                      peer-checked:ring-1
-                      peer-checked:ring-[#1f6a47]
-                    "
-                  >
-                    <span>
-                      <strong
-                        className="
-                          block
-                          whitespace-nowrap
-                          text-[18px]
-                          font-extrabold
-                          leading-none
-                          text-[#161616]
-                        "
-                      >
-                        {formatMoney(
-                          convertUsdToCurrencyMinor(
-                            option
-                              .amountUsd,
-                            exchangeRate,
-                          ),
-                          currency,
-                          locale,
-                          {
-                            hideZeroDecimals:
-                              true,
-                          },
-                        )}
-                      </strong>
-
-                      {option
-                        .featured && (
-                        <small
-                          className="
-                            mt-1
-                            block
-                            whitespace-nowrap
-                            text-[8px]
-                            font-bold
-                            leading-none
-                            text-[#1d6b46]
-                          "
-                        >
-                          {
-                            t.recommended
-                          }
-                        </small>
-                      )}
-                    </span>
-
-                    {selected && (
-                      <span
-                        className="
-                          absolute
-                          right-1.5
-                          top-1.5
-                          grid
-                          size-[14px]
-                          place-items-center
-                          rounded-full
-                          bg-[#1f6a47]
-                          text-white
-                        "
-                      >
-                        <Check
-                          aria-hidden="true"
-                          className="size-[9px]"
-                        />
-                      </span>
-                    )}
-                  </span>
-                </label>
-              );
-            },
-          )}
-        </fieldset>
-
-        <label
-          className="
-            mt-3
-            flex
-            min-h-[48px]
-            items-center
-            rounded-[12px]
-            border
-            border-[#cfd5cf]
-            bg-white
-            px-3
-            transition
-
-            focus-within:border-[#1f6a47]
-            focus-within:ring-1
-            focus-within:ring-[#1f6a47]
-          "
-        >
-          <span
-            className="
-              font-semibold
-              text-[#657069]
-            "
-          >
-            {
-              currencySymbol
-            }
-          </span>
-
-          <input
-            type="number"
-            min={
-              minimumCustomAmount /
-              100
-            }
-            step="1"
-            inputMode="decimal"
-            placeholder={
-              t.enterAmount
-            }
-            value={
-              customAmount
-            }
-            onChange={(
-              event,
-            ) =>
-              chooseCustom(
-                event.target
-                  .value,
-              )
-            }
-            className="
-              min-w-0
-              flex-1
-              bg-transparent
-              px-2.5
-              py-2
-              text-[14px]
-              text-[#182136]
-              outline-none
-
-              placeholder:text-[#9aa29d]
-            "
-          />
-
-          <span
-            className="
-              shrink-0
-              text-[11px]
-              font-medium
-              text-[#7c8580]
-            "
-          >
-            {
-              currency
-            }
-          </span>
-        </label>
-
-        <p
-          className={`
-            mt-1.5
-            text-[11px]
-            leading-4
-
-            ${
-              customAmountBelowMinimum
-                ? "text-red-600"
-                : "text-[#7c8580]"
-            }
-          `}
-        >
-          {getMinimumCustomAmountText(
-            locale,
-            minimumCustomAmountLabel,
-          )}
-        </p>
-
-        <div
-          className="
-            mt-3
-            space-y-1
-          "
-        >
-          <CompactCheck
-            checked={
-              isAnonymous
-            }
-            onChange={(
-              checked,
-            ) => {
-              setIsAnonymous(
-                checked,
-              );
-
-              resetExpressCheckout();
-            }}
-          >
-            {
-              getAnonymousDonationLabel(
-                locale,
-              )
-            }
-          </CompactCheck>
-
-          <CompactCheck
-            checked={
-              coverFee
-            }
-            onChange={(
-              checked,
-            ) => {
-              setCoverFee(
-                checked,
-              );
-
-              resetCheckoutSession();
-              resetExpressCheckout();
-
-              setError(
-                "",
-              );
-            }}
-          >
-            {hasValidAmount
-              ? `${t.addFeePrefix} ${formatMoney(
-                  calculateFeeContribution(
-                    amount,
-                    exchangeRate,
-                  ),
-                  currency,
-                  locale,
-                )} ${t.addFeeSuffix}`
-              : t.coverProcessingFees}
-          </CompactCheck>
-        </div>
-
-        {hasValidAmount && (
-          <div
-            className="
-              mt-3
-              flex
-              items-center
-              justify-between
-              border-t
-              border-[#e7eae6]
-              pt-3
-            "
-          >
-            <span
-              className="
-                text-[13px]
-                font-semibold
-                text-[#4f5d55]
-              "
-            >
-              {frequency ===
-              "monthly"
-                ? t.totalPerMonth
-                : t.total}
-            </span>
-
-            <strong
-              className="
-                text-[15px]
-                text-[#12233d]
-              "
-            >
-              {formatMoney(
-                total,
-                currency,
-                locale,
-              )}
-            </strong>
-          </div>
-        )}
-
-        {hasValidAmount && (
-          <div
-            className="
-              mt-4
-            "
-          >
-            <div
-              className="
-                relative
-                min-h-[48px]
-              "
-            >
-              {expressSessions.map(
-                (
-                  session,
-                ) => {
-                  const isActive =
-                    session.key ===
-                    activeExpressKey;
-
-                  const isTarget =
-                    session.key ===
-                    desiredExpressKey;
-
-                  return (
-                    <div
-                      key={
-                        session.clientSecret
-                      }
-                      className={`
-                        ${
-                          isActive
-                            ? "relative z-[2] opacity-100"
-                            : isTarget
-                              ? "absolute inset-0 z-[1] opacity-0 pointer-events-none"
-                              : "absolute inset-0 z-0 opacity-0 pointer-events-none"
-                        }
-                      `}
-                    >
-                      <DonationExpressCheckout
-                        clientSecret={
-                          session.clientSecret
-                        }
-                        locale={
-                          locale
-                        }
-                        onAvailabilityChange={(
-                          available,
-                        ) => {
-                          setExpressSessions(
-                            (
-                              current,
-                            ) =>
-                              current.map(
-                                (
-                                  item,
-                                ) =>
-                                  item.key ===
-                                  session.key
-                                    ? {
-                                        ...item,
-                                        available,
-                                      }
-                                    : item,
-                              ),
-                          );
-
-                          if (
-                            available &&
-                            session.key ===
-                              desiredExpressKey
-                          ) {
-                            setActiveExpressKey(
-                              session.key,
-                            );
-
-                            setExpressAvailable(
-                              true,
-                            );
-
-                            setExpressLoading(
-                              false,
-                            );
-                          }
-                        }}
-                        onError={(
-                          message,
-                        ) => {
-                          setError(
-                            message,
-                          );
-                        }}
-                      />
-                    </div>
-                  );
-                },
-              )}
-
-              {expressSessions.length ===
-                0 &&
-                expressLoading && (
-                  <div
-                    className="
-                      h-[48px]
-                      w-full
-                      animate-pulse
-                      rounded-[12px]
-                      bg-[#eef1ed]
-                    "
-                  />
-                )}
-
-              {activeExpressKey &&
-                (
-                  expressLoading ||
-                  activeExpressKey !==
-                    desiredExpressKey
-                ) && (
-                  <div
-                    aria-hidden="true"
-                    className="
-                      absolute
-                      inset-0
-                      z-[20]
-                      cursor-wait
-                      rounded-[12px]
-                      bg-transparent
-                    "
-                  />
-                )}
-            </div>
-
-            {expressAvailable && (
-              <div
-                dir="ltr"
-                className="
-                  my-4
-                  flex
-                  items-center
-                  gap-3
-                "
-              >
-                <span
-                  className="
-                    h-px
-                    flex-1
-                    bg-[#e2e7e3]
-                  "
-                />
-
-                <span
-                  className="
-                    shrink-0
-                    text-[10px]
-                    font-semibold
-                    uppercase
-                    tracking-[0.08em]
-                    text-[#89918c]
-                  "
-                >
-                  OR
-                </span>
-
-                <span
-                  className="
-                    h-px
-                    flex-1
-                    bg-[#e2e7e3]
-                  "
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {error && (
-          <p
-            role="alert"
-            className="
-              mt-2
-              rounded-lg
-              bg-red-50
-              px-3
-              py-2
-              text-[12px]
-              text-red-700
-            "
-          >
-            {
-              error
-            }
-          </p>
-        )}
-
-        <button
-          type="button"
-          disabled={
-            !hasValidAmount
-          }
-          onClick={
-            continueToDonor
-          }
-          className="
-            group
-            mt-3
-            flex
-            min-h-[50px]
-            w-full
-            items-center
-            justify-center
-            gap-2
-            rounded-[14px]
-            bg-[#24543d]
-            px-4
-            text-[15px]
-            font-bold
-            text-white
-            shadow-[0_7px_18px_rgba(36,84,61,.18)]
-            transition
-
-            hover:bg-[#1f4d38]
-
-            disabled:cursor-not-allowed
-            disabled:bg-[#eef1ed]
-            disabled:text-[#a0a8a2]
-            disabled:shadow-none
-          "
-        >
-          {hasValidAmount
-            ? `${t.continueWith} ${formatMoney(
-                total,
-                currency,
-                locale,
-                {
-                  hideZeroDecimals:
-                    true,
-                },
-              )}`
-            : t.selectAmountToContinue}
-
-          {hasValidAmount && (
-            <ArrowRight
-              aria-hidden="true"
-              className="size-4"
-            />
-          )}
-        </button>
-
-        <SecureText>
-          {
-            t.securePaymentByStripe
-          }
-        </SecureText>
-      </section>
-    );
-  }
-
-  // =========================================================
-  // DONOR STEP
+  // AMOUNT + DONOR STEPS
+  // Keep Express Checkout mounted across both steps.
   // =========================================================
 
   return (
@@ -1786,212 +1197,864 @@ export function DonationFlow({
           : "ltr"
       }
     >
-      <button
-        type="button"
-        disabled={
-          isLoading
-        }
-        onClick={() => {
-          setError(
-            "",
-          );
-
-          resetCheckoutSession();
-
-          goToStep(
-            "amount",
-          );
-        }}
-        className="
-          inline-flex
-          min-h-[30px]
-          items-center
-          gap-1.5
-          text-[13px]
-          font-medium
-          text-[#56675e]
-
-          disabled:opacity-50
-        "
-      >
-        <ArrowLeft
-          aria-hidden="true"
-          className="size-3.5"
-        />
-
-        {
-          t.back
-        }
-      </button>
-
-      <div className="mt-1">
-        <h2
-          className="
-            text-[22px]
-            font-bold
-            tracking-[-0.025em]
-            text-[#161616]
-          "
-        >
-          {
-            t.yourInformation
-          }
-        </h2>
-
-        <p
-          className="
-            mt-1
-            text-[12px]
-            leading-4
-            text-[#66736b]
-          "
-        >
-          {
-            t.enterDetails
-          }
-        </p>
-      </div>
-
-      <div
-        className="
-          mt-4
-          grid
-          grid-cols-2
-          gap-2.5
-        "
-      >
-        <FormField
-          label={
-            t.firstName
-          }
-          name="firstName"
-          autoComplete="given-name"
-          value={
-            firstName
-          }
-          onChange={
-            setFirstName
-          }
-          disabled={
-            isLoading
-          }
-          required
-        />
-
-        <FormField
-          label={
-            t.lastName
-          }
-          name="lastName"
-          autoComplete="family-name"
-          value={
-            lastName
-          }
-          onChange={
-            setLastName
-          }
-          disabled={
-            isLoading
-          }
-          required
-        />
-      </div>
-
-      <div className="mt-3">
-        <FormField
-          label={
-            t.emailAddress
-          }
-          name="email"
-          type="email"
-          autoComplete="email"
-          value={
-            email
-          }
-          onChange={
-            setEmail
-          }
-          disabled={
-            isLoading
-          }
-          required
-        />
-      </div>
-
-      <div
-        className="
-          mt-4
-          flex
-          min-h-[48px]
-          items-center
-          justify-between
-          gap-3
-          rounded-[12px]
-          border
-          border-[#dfe4de]
-          bg-[#fbfcf9]
-          px-3
-        "
-      >
-        <div
-          className="
-            min-w-0
-          "
-        >
-          <p
+      {step ===
+        "amount" && (
+        <>
+          <fieldset
             className="
-              text-[11px]
-              text-[#778079]
+              grid
+              grid-cols-2
+              gap-1
+              rounded-[13px]
+              bg-[#eef1ea]
+              p-1
             "
           >
-            {frequency ===
-            "monthly"
-              ? t.monthlyGift
-              : t.oneTimeGift}
-          </p>
+            <legend className="sr-only">
+              {
+                t.donationFrequency
+              }
+            </legend>
 
-          {coverFee && (
-            <p
+            {(
+              [
+                "one_time",
+                "monthly",
+              ] as const
+            ).map(
+              (
+                value,
+              ) => (
+                <label
+                  key={
+                    value
+                  }
+                  className="
+                    cursor-pointer
+                  "
+                >
+                  <input
+                    className="
+                      peer
+                      sr-only
+                    "
+                    type="radio"
+                    name="frequency"
+                    value={
+                      value
+                    }
+                    checked={
+                      frequency ===
+                      value
+                    }
+                    onChange={() => {
+                      setFrequency(
+                        value,
+                      );
+
+                      resetCheckoutSession();
+                      resetExpressCheckout();
+
+                      setError(
+                        "",
+                      );
+                    }}
+                  />
+
+                  <span
+                    className="
+                      flex
+                      min-h-[42px]
+                      items-center
+                      justify-center
+                      gap-2
+                      rounded-[10px]
+                      px-3
+                      text-[13px]
+                      font-semibold
+                      text-[#6d766f]
+                      transition
+
+                      peer-checked:bg-white
+                      peer-checked:text-[#173e2a]
+                      peer-checked:shadow-sm
+                    "
+                  >
+                    {value ===
+                      "monthly" && (
+                      <Heart
+                        aria-hidden="true"
+                        className="
+                          size-3.5
+                          fill-current
+                        "
+                      />
+                    )}
+
+                    {value ===
+                    "one_time"
+                      ? t.giveOnce
+                      : t.monthly}
+                  </span>
+                </label>
+              ),
+            )}
+          </fieldset>
+
+          <h2
+            className="
+              mt-4
+              text-[16px]
+              font-bold
+              text-[#171717]
+            "
+          >
+            {
+              t.chooseYourGift
+            }
+          </h2>
+
+          <fieldset
+            className="
+              mt-3
+              grid
+              grid-cols-3
+              gap-2
+            "
+          >
+            <legend className="sr-only">
+              {
+                t.donationAmount
+              }
+            </legend>
+
+            {donationOptions.map(
+              (
+                option,
+              ) => {
+                const selected =
+                  selectedPreset ===
+                  option.amountUsd;
+
+                return (
+                  <label
+                    key={
+                      option
+                        .amountUsd
+                    }
+                    className="
+                      min-w-0
+                      cursor-pointer
+                    "
+                  >
+                    <input
+                      type="radio"
+                      name="amount"
+                      className="
+                        peer
+                        sr-only
+                      "
+                      checked={
+                        selected
+                      }
+                      onChange={() =>
+                        selectAmount(
+                          option
+                            .amountUsd,
+                        )
+                      }
+                    />
+
+                    <span
+                      className="
+                        relative
+                        flex
+                        min-h-[56px]
+                        items-center
+                        justify-center
+                        rounded-[12px]
+                        border
+                        border-[#d5d8d2]
+                        bg-white
+                        px-1
+                        text-center
+                        transition
+
+                        hover:border-[#78947f]
+
+                        peer-checked:border-[#1f6a47]
+                        peer-checked:bg-[#f4faef]
+                        peer-checked:ring-1
+                        peer-checked:ring-[#1f6a47]
+                      "
+                    >
+                      <span>
+                        <strong
+                          className="
+                            block
+                            whitespace-nowrap
+                            text-[18px]
+                            font-extrabold
+                            leading-none
+                            text-[#161616]
+                          "
+                        >
+                          {formatMoney(
+                            convertUsdToCurrencyMinor(
+                              option
+                                .amountUsd,
+                              exchangeRate,
+                            ),
+                            currency,
+                            locale,
+                            {
+                              hideZeroDecimals:
+                                true,
+                            },
+                          )}
+                        </strong>
+
+                        {option
+                          .featured && (
+                          <small
+                            className="
+                              mt-1
+                              block
+                              whitespace-nowrap
+                              text-[8px]
+                              font-bold
+                              leading-none
+                              text-[#1d6b46]
+                            "
+                          >
+                            {
+                              t.recommended
+                            }
+                          </small>
+                        )}
+                      </span>
+
+                      {selected && (
+                        <span
+                          className="
+                            absolute
+                            right-1.5
+                            top-1.5
+                            grid
+                            size-[14px]
+                            place-items-center
+                            rounded-full
+                            bg-[#1f6a47]
+                            text-white
+                          "
+                        >
+                          <Check
+                            aria-hidden="true"
+                            className="size-[9px]"
+                          />
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                );
+              },
+            )}
+          </fieldset>
+
+          <label
+            className="
+              mt-3
+              flex
+              min-h-[48px]
+              items-center
+              rounded-[12px]
+              border
+              border-[#cfd5cf]
+              bg-white
+              px-3
+              transition
+
+              focus-within:border-[#1f6a47]
+              focus-within:ring-1
+              focus-within:ring-[#1f6a47]
+            "
+          >
+            <span
               className="
-                text-[10px]
-                text-[#859087]
+                font-semibold
+                text-[#657069]
               "
             >
               {
-                t.includes
-              }{" "}
+                currencySymbol
+              }
+            </span>
 
-              {formatMoney(
-                fee,
-                currency,
-                locale,
-              )}{" "}
+            <input
+              type="number"
+              min={
+                minimumCustomAmount /
+                100
+              }
+              step="1"
+              inputMode="decimal"
+              placeholder={
+                t.enterAmount
+              }
+              value={
+                customAmount
+              }
+              onChange={(
+                event,
+              ) =>
+                chooseCustom(
+                  event.target
+                    .value,
+                )
+              }
+              className="
+                min-w-0
+                flex-1
+                bg-transparent
+                px-2.5
+                py-2
+                text-[14px]
+                text-[#182136]
+                outline-none
 
+                placeholder:text-[#9aa29d]
+              "
+            />
+
+            <span
+              className="
+                shrink-0
+                text-[11px]
+                font-medium
+                text-[#7c8580]
+              "
+            >
               {
-                t.fee
+                currency
+              }
+            </span>
+          </label>
+
+          <p
+            className={`
+              mt-1.5
+              text-[11px]
+              leading-4
+
+              ${
+                customAmountBelowMinimum
+                  ? "text-red-600"
+                  : "text-[#7c8580]"
+              }
+            `}
+          >
+            {getMinimumCustomAmountText(
+              locale,
+              minimumCustomAmountLabel,
+            )}
+          </p>
+
+          <div
+            className="
+              mt-3
+              space-y-1
+            "
+          >
+            <CompactCheck
+              checked={
+                isAnonymous
+              }
+              onChange={(
+                checked,
+              ) => {
+                setIsAnonymous(
+                  checked,
+                );
+
+                resetExpressCheckout();
+              }}
+            >
+              {
+                getAnonymousDonationLabel(
+                  locale,
+                )
+              }
+            </CompactCheck>
+
+            <CompactCheck
+              checked={
+                coverFee
+              }
+              onChange={(
+                checked,
+              ) => {
+                setCoverFee(
+                  checked,
+                );
+
+                resetCheckoutSession();
+                resetExpressCheckout();
+
+                setError(
+                  "",
+                );
+              }}
+            >
+              {hasValidAmount
+                ? `${t.addFeePrefix} ${formatMoney(
+                    calculateFeeContribution(
+                      amount,
+                      exchangeRate,
+                    ),
+                    currency,
+                    locale,
+                  )} ${t.addFeeSuffix}`
+                : t.coverProcessingFees}
+            </CompactCheck>
+          </div>
+
+          {hasValidAmount && (
+            <div
+              className="
+                mt-3
+                flex
+                items-center
+                justify-between
+                border-t
+                border-[#e7eae6]
+                pt-3
+              "
+            >
+              <span
+                className="
+                  text-[13px]
+                  font-semibold
+                  text-[#4f5d55]
+                "
+              >
+                {frequency ===
+                "monthly"
+                  ? t.totalPerMonth
+                  : t.total}
+              </span>
+
+              <strong
+                className="
+                  text-[15px]
+                  text-[#12233d]
+                "
+              >
+                {formatMoney(
+                  total,
+                  currency,
+                  locale,
+                )}
+              </strong>
+            </div>
+          )}
+        </>
+      )}
+
+      {step ===
+        "donor" && (
+        <>
+          <button
+            type="button"
+            disabled={
+              isLoading
+            }
+            onClick={() => {
+              setError(
+                "",
+              );
+
+              resetCheckoutSession();
+
+              goToStep(
+                "amount",
+              );
+            }}
+            className="
+              inline-flex
+              min-h-[30px]
+              items-center
+              gap-1.5
+              text-[13px]
+              font-medium
+              text-[#56675e]
+
+              disabled:opacity-50
+            "
+          >
+            <ArrowLeft
+              aria-hidden="true"
+              className="size-3.5"
+            />
+
+            {
+              t.back
+            }
+          </button>
+
+          <div className="mt-1">
+            <h2
+              className="
+                text-[22px]
+                font-bold
+                tracking-[-0.025em]
+                text-[#161616]
+              "
+            >
+              {
+                t.yourInformation
+              }
+            </h2>
+
+            <p
+              className="
+                mt-1
+                text-[12px]
+                leading-4
+                text-[#66736b]
+              "
+            >
+              {
+                t.enterDetails
               }
             </p>
-          )}
-        </div>
+          </div>
 
-        <strong
+          <div
+            className="
+              mt-4
+              grid
+              grid-cols-2
+              gap-2.5
+            "
+          >
+            <FormField
+              label={
+                t.firstName
+              }
+              name="firstName"
+              autoComplete="given-name"
+              value={
+                firstName
+              }
+              onChange={
+                setFirstName
+              }
+              disabled={
+                isLoading
+              }
+              required
+            />
+
+            <FormField
+              label={
+                t.lastName
+              }
+              name="lastName"
+              autoComplete="family-name"
+              value={
+                lastName
+              }
+              onChange={
+                setLastName
+              }
+              disabled={
+                isLoading
+              }
+              required
+            />
+          </div>
+
+          <div className="mt-3">
+            <FormField
+              label={
+                t.emailAddress
+              }
+              name="email"
+              type="email"
+              autoComplete="email"
+              value={
+                email
+              }
+              onChange={
+                setEmail
+              }
+              disabled={
+                isLoading
+              }
+              required
+            />
+          </div>
+
+          <div
+            className="
+              mt-4
+              flex
+              min-h-[48px]
+              items-center
+              justify-between
+              gap-3
+              rounded-[12px]
+              border
+              border-[#dfe4de]
+              bg-[#fbfcf9]
+              px-3
+            "
+          >
+            <div
+              className="
+                min-w-0
+              "
+            >
+              <p
+                className="
+                  text-[11px]
+                  text-[#778079]
+                "
+              >
+                {frequency ===
+                "monthly"
+                  ? t.monthlyGift
+                  : t.oneTimeGift}
+              </p>
+
+              {coverFee && (
+                <p
+                  className="
+                    text-[10px]
+                    text-[#859087]
+                  "
+                >
+                  {
+                    t.includes
+                  }{" "}
+
+                  {formatMoney(
+                    fee,
+                    currency,
+                    locale,
+                  )}{" "}
+
+                  {
+                    t.fee
+                  }
+                </p>
+              )}
+            </div>
+
+            <strong
+              className="
+                shrink-0
+                text-[16px]
+                text-[#182136]
+              "
+            >
+              {formatMoney(
+                total,
+                currency,
+                locale,
+              )}
+
+              {frequency ===
+                "monthly" &&
+                "/mo"}
+            </strong>
+          </div>
+        </>
+      )}
+
+      {hasValidAmount && (
+        <div
           className="
-            shrink-0
-            text-[16px]
-            text-[#182136]
+            mt-4
           "
         >
-          {formatMoney(
-            total,
-            currency,
-            locale,
-          )}
+          <div
+            className="
+              relative
+              min-h-[48px]
+            "
+          >
+            {expressSessions.map(
+              (
+                session,
+              ) => {
+                const isActive =
+                  session.key ===
+                  activeExpressKey;
 
-          {frequency ===
-            "monthly" &&
-            "/mo"}
-        </strong>
-      </div>
+                const isTarget =
+                  session.key ===
+                  desiredExpressKey;
+
+                return (
+                  <div
+                    key={
+                      session.clientSecret
+                    }
+                    className={`
+                      ${
+                        isActive
+                          ? "relative z-[2] opacity-100"
+                          : isTarget
+                            ? "absolute inset-0 z-[1] opacity-0 pointer-events-none"
+                            : "absolute inset-0 z-0 opacity-0 pointer-events-none"
+                      }
+                    `}
+                  >
+                    <DonationExpressCheckout
+                      clientSecret={
+                        session.clientSecret
+                      }
+                      locale={
+                        locale
+                      }
+                      beforeConfirm={
+                        step ===
+                        "donor"
+                          ? () =>
+                              prepareExpressDonorInfo(
+                                session.sessionId,
+                              )
+                          : undefined
+                      }
+                      onAvailabilityChange={(
+                        available,
+                      ) => {
+                        setExpressSessions(
+                          (
+                            current,
+                          ) =>
+                            current.map(
+                              (
+                                item,
+                              ) =>
+                                item.key ===
+                                session.key
+                                  ? {
+                                      ...item,
+                                      available,
+                                    }
+                                  : item,
+                            ),
+                        );
+
+                        if (
+                          available &&
+                          session.key ===
+                            desiredExpressKey
+                        ) {
+                          setActiveExpressKey(
+                            session.key,
+                          );
+
+                          setExpressAvailable(
+                            true,
+                          );
+
+                          setExpressLoading(
+                            false,
+                          );
+                        }
+                      }}
+                      onError={(
+                        message,
+                      ) => {
+                        setError(
+                          message,
+                        );
+                      }}
+                    />
+                  </div>
+                );
+              },
+            )}
+
+            {expressSessions.length ===
+              0 &&
+              expressLoading && (
+                <div
+                  className="
+                    h-[48px]
+                    w-full
+                    animate-pulse
+                    rounded-[12px]
+                    bg-[#eef1ed]
+                  "
+                />
+              )}
+
+            {activeExpressKey &&
+              (
+                expressLoading ||
+                activeExpressKey !==
+                  desiredExpressKey
+              ) && (
+                <div
+                  aria-hidden="true"
+                  className="
+                    absolute
+                    inset-0
+                    z-[20]
+                    cursor-wait
+                    rounded-[12px]
+                    bg-transparent
+                  "
+                />
+              )}
+          </div>
+
+          {expressAvailable && (
+            <div
+              dir="ltr"
+              className="
+                my-4
+                flex
+                items-center
+                gap-3
+              "
+            >
+              <span
+                className="
+                  h-px
+                  flex-1
+                  bg-[#e2e7e3]
+                "
+              />
+
+              <span
+                className="
+                  shrink-0
+                  text-[10px]
+                  font-semibold
+                  uppercase
+                  tracking-[0.08em]
+                  text-[#89918c]
+                "
+              >
+                OR
+              </span>
+
+              <span
+                className="
+                  h-px
+                  flex-1
+                  bg-[#e2e7e3]
+                "
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <p
@@ -2012,49 +2075,120 @@ export function DonationFlow({
         </p>
       )}
 
-      <button
-        type="button"
-        disabled={
-          isLoading
-        }
-        onClick={
-          handleCheckout
-        }
-        className="
-          mt-4
-          flex
-          min-h-[50px]
-          w-full
-          items-center
-          justify-center
-          rounded-[14px]
-          bg-[#24543d]
-          px-4
-          text-[14px]
-          font-bold
-          text-white
-          shadow-[0_7px_18px_rgba(36,84,61,.16)]
-          transition
+      {step ===
+        "amount" && (
+        <>
+          <button
+            type="button"
+            disabled={
+              !hasValidAmount
+            }
+            onClick={
+              continueToDonor
+            }
+            className="
+              group
+              mt-3
+              flex
+              min-h-[50px]
+              w-full
+              items-center
+              justify-center
+              gap-2
+              rounded-[14px]
+              bg-[#24543d]
+              px-4
+              text-[15px]
+              font-bold
+              text-white
+              shadow-[0_7px_18px_rgba(36,84,61,.18)]
+              transition
 
-          hover:bg-[#1f4d38]
+              hover:bg-[#1f4d38]
 
-          disabled:cursor-not-allowed
-          disabled:opacity-60
-        "
-      >
-        {isLoading
-          ? t.openingCheckout
-          : t.continueSecureCheckout}
-      </button>
+              disabled:cursor-not-allowed
+              disabled:bg-[#eef1ed]
+              disabled:text-[#a0a8a2]
+              disabled:shadow-none
+            "
+          >
+            {hasValidAmount
+              ? `${t.continueWith} ${formatMoney(
+                  total,
+                  currency,
+                  locale,
+                  {
+                    hideZeroDecimals:
+                      true,
+                  },
+                )}`
+              : t.selectAmountToContinue}
 
-      <SecureText>
-        {
-          t.paymentProcessedStripe
-        }
-      </SecureText>
+            {hasValidAmount && (
+              <ArrowRight
+                aria-hidden="true"
+                className="size-4"
+              />
+            )}
+          </button>
+
+          <SecureText>
+            {
+              t.securePaymentByStripe
+            }
+          </SecureText>
+        </>
+      )}
+
+      {step ===
+        "donor" && (
+        <>
+          <button
+            type="button"
+            disabled={
+              isLoading
+            }
+            onClick={
+              handleCheckout
+            }
+            className="
+              mt-3
+              flex
+              min-h-[50px]
+              w-full
+              items-center
+              justify-center
+              rounded-[14px]
+              bg-[#24543d]
+              px-4
+              text-[14px]
+              font-bold
+              text-white
+              shadow-[0_7px_18px_rgba(36,84,61,.16)]
+              transition
+
+              hover:bg-[#1f4d38]
+
+              disabled:cursor-not-allowed
+              disabled:opacity-60
+            "
+          >
+            {isLoading
+              ? t.openingCheckout
+              : t.continueSecureCheckout}
+          </button>
+
+          <SecureText>
+            {
+              t.paymentProcessedStripe
+            }
+          </SecureText>
+        </>
+      )}
     </section>
   );
 }
+
 
 // =========================================================
 // CURRENCY SYMBOL

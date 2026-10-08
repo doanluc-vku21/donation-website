@@ -52,6 +52,10 @@ type DonationExpressCheckoutProps = {
       message:
         string,
     ) => void;
+
+  beforeConfirm?:
+    () =>
+      Promise<void>;
 };
 
 export function DonationExpressCheckout({
@@ -59,6 +63,7 @@ export function DonationExpressCheckout({
   locale,
   onAvailabilityChange,
   onError,
+  beforeConfirm,
 }: DonationExpressCheckoutProps) {
   return (
     <CheckoutElementsProvider
@@ -103,6 +108,9 @@ export function DonationExpressCheckout({
         onError={
           onError
         }
+        beforeConfirm={
+          beforeConfirm
+        }
       />
     </CheckoutElementsProvider>
   );
@@ -112,6 +120,7 @@ function ExpressCheckoutForm({
   locale,
   onAvailabilityChange,
   onError,
+  beforeConfirm,
 }: {
   locale:
     Locale;
@@ -127,6 +136,10 @@ function ExpressCheckoutForm({
       message:
         string,
     ) => void;
+
+  beforeConfirm?:
+    () =>
+      Promise<void>;
 }) {
   const checkoutResult =
     useCheckoutElements();
@@ -196,6 +209,12 @@ function ExpressCheckoutForm({
       setSubmitting(
         true,
       );
+
+      if (
+        beforeConfirm
+      ) {
+        await beforeConfirm();
+      }
 
       const result =
         await checkoutResult

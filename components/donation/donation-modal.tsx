@@ -198,7 +198,8 @@ function getOrCreateExpressPrefetch({
 
             if (
               !response.ok ||
-              !data.clientSecret
+              !data.clientSecret ||
+              !data.sessionId
             ) {
               throw new Error(
                 data.error ??
@@ -209,6 +210,9 @@ function getOrCreateExpressPrefetch({
             return {
               clientSecret:
                 data.clientSecret as string,
+
+              sessionId:
+                data.sessionId as string,
             };
           },
         )
