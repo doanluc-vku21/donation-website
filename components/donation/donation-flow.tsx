@@ -66,6 +66,19 @@ type DonationStep =
   | "donor"
   | "payment";
 
+export type ExpressPrefetchResult = {
+  clientSecret:
+    string;
+};
+
+export type ExpressPrefetch = {
+  key:
+    string;
+
+  promise:
+    Promise<ExpressPrefetchResult>;
+};
+
 type DonationFlowProps = {
   campaign: Campaign;
 
@@ -74,6 +87,13 @@ type DonationFlowProps = {
   currency: Currency;
 
   exchangeRate: number;
+
+  prefetchedExpress?: Partial<
+    Record<
+      DonationFrequency,
+      ExpressPrefetch
+    >
+  >;
 
   embedded?: boolean;
 
@@ -87,6 +107,7 @@ export function DonationFlow({
   locale,
   currency,
   exchangeRate,
+  prefetchedExpress,
   embedded = false,
   onStepChange,
 }: DonationFlowProps) {
@@ -216,17 +237,28 @@ export function DonationFlow({
       number | null
     >(null);
 
-  const [
-    expressClientSecret,
-    setExpressClientSecret,
-  ] =
-    useState<
-      string | null
-    >(null);
+  type ExpressRenderedSession = {
+    key:
+      string;
+
+    clientSecret:
+      string;
+
+    available:
+      boolean;
+  };
 
   const [
-    expressSessionKey,
-    setExpressSessionKey,
+    expressSessions,
+    setExpressSessions,
+  ] =
+    useState<
+      ExpressRenderedSession[]
+    >([]);
+
+  const [
+    activeExpressKey,
+    setActiveExpressKey,
   ] =
     useState(
       "",
@@ -331,40 +363,8 @@ export function DonationFlow({
         .donationOptions,
     ]);
 
-  function resetExpressCheckout() {
-    setExpressClientSecret(
-      null,
-    );
-
-    setExpressSessionKey(
-      "",
-    );
-
-    setExpressAvailable(
-      false,
-    );
-  }
-
-  useEffect(() => {
-    /*
-     * Create an Express Checkout Session for both:
-     * - one-time donations
-     * - monthly recurring donations
-     *
-     * A short debounce avoids creating a Stripe session for
-     * every keystroke in the custom amount field.
-     */
-    if (
-      step !==
-        "amount" ||
-      !hasValidAmount
-    ) {
-      resetExpressCheckout();
-
-      return;
-    }
-
-    const key = [
+  const desiredExpressKey =
+    [
       campaign.id,
       frequency,
       amount,
@@ -380,13 +380,83 @@ export function DonationFlow({
       ":",
     );
 
+  function resetExpressCheckout() {
+    /*
+     * Keep the currently visible Express Checkout mounted.
+     * The next valid configuration will load in the background.
+     *
+     * This prevents Apple Pay / Google Pay from disappearing
+     * every time the donor changes amount, fee, frequency,
+     * or anonymity.
+     */
+    setExpressLoading(
+      true,
+    );
+  }
+
+  useEffect(() => {
+    /*
+     * IMPORTANT UX RULE
+     * ------------------
+     * Never remove the currently visible Express Checkout
+     * while a new amount/session is loading.
+     *
+     * Example:
+     * $50 is visible
+     * -> donor clicks $100
+     * -> $50 wallet buttons stay visually in place
+     * -> pointer interaction is blocked
+     * -> $100 Stripe session loads invisibly
+     * -> once $100 wallet is ready, switch instantly
+     *
+     * So the donor never sees the wallet area disappear,
+     * but Stripe still charges the correct selected amount.
+     */
     if (
-      expressSessionKey ===
-        key &&
-      expressClientSecret
+      step !==
+        "amount" ||
+      !hasValidAmount
     ) {
       return;
     }
+
+    const existing =
+      expressSessions.find(
+        (
+          session,
+        ) =>
+          session.key ===
+          desiredExpressKey,
+      );
+
+    if (
+      existing
+    ) {
+      if (
+        existing.available
+      ) {
+        setActiveExpressKey(
+          desiredExpressKey,
+        );
+
+        setExpressAvailable(
+          true,
+        );
+
+        setExpressLoading(
+          false,
+        );
+      } else {
+        setExpressLoading(
+          true,
+        );
+      }
+
+      return;
+    }
+
+    let cancelled =
+      false;
 
     const controller =
       new AbortController();
@@ -399,80 +469,140 @@ export function DonationFlow({
               true,
             );
 
-            setExpressAvailable(
-              false,
-            );
+            const prefetched =
+              prefetchedExpress?.[
+                frequency
+              ];
 
-            const response =
-              await fetch(
-                "/api/stripe/express-checkout",
-                {
-                  method:
-                    "POST",
-
-                  headers: {
-                    "Content-Type":
-                      "application/json",
-                  },
-
-                  signal:
-                    controller.signal,
-
-                  body:
-                    JSON.stringify(
-                      {
-                        campaignId:
-                          campaign.id,
-
-                        campaignSlug:
-                          campaign.slug,
-
-                        amountCents:
-                          amount,
-
-                        currency,
-
-                        coverFee,
-
-                        frequency,
-
-                        locale,
-
-                        displayPublicly:
-                          !isAnonymous,
-                      },
-                    ),
-                },
-              );
-
-            const data =
-              await response.json();
+            let data:
+              ExpressPrefetchResult;
 
             if (
-              !response.ok ||
-              !data.clientSecret
+              prefetched &&
+              prefetched.key ===
+                desiredExpressKey
             ) {
-              throw new Error(
-                data.error ??
-                  "Unable to load express checkout.",
-              );
+              data =
+                await prefetched.promise;
+            } else {
+              const response =
+                await fetch(
+                  "/api/stripe/express-checkout",
+                  {
+                    method:
+                      "POST",
+
+                    headers: {
+                      "Content-Type":
+                        "application/json",
+                    },
+
+                    signal:
+                      controller.signal,
+
+                    body:
+                      JSON.stringify(
+                        {
+                          campaignId:
+                            campaign.id,
+
+                          campaignSlug:
+                            campaign.slug,
+
+                          amountCents:
+                            amount,
+
+                          currency,
+
+                          coverFee,
+
+                          frequency,
+
+                          locale,
+
+                          displayPublicly:
+                            !isAnonymous,
+                        },
+                      ),
+                  },
+                );
+
+              const responseData =
+                await response.json();
+
+              if (
+                !response.ok ||
+                !responseData.clientSecret
+              ) {
+                throw new Error(
+                  responseData.error ??
+                    "Unable to load express checkout.",
+                );
+              }
+
+              data = {
+                clientSecret:
+                  responseData.clientSecret,
+              };
             }
 
-            setExpressClientSecret(
-              data.clientSecret,
-            );
+            if (
+              cancelled
+            ) {
+              return;
+            }
 
-            setExpressSessionKey(
-              key,
+            setExpressSessions(
+              (
+                current,
+              ) => {
+                if (
+                  current.some(
+                    (
+                      session,
+                    ) =>
+                      session.key ===
+                      desiredExpressKey,
+                  )
+                ) {
+                  return current;
+                }
+
+                /*
+                 * Keep a small cache of already-mounted sessions.
+                 * This makes switching back to a previous amount
+                 * instant as well.
+                 */
+                const next = [
+                  ...current,
+                  {
+                    key:
+                      desiredExpressKey,
+
+                    clientSecret:
+                      data.clientSecret,
+
+                    available:
+                      false,
+                  },
+                ];
+
+                return next.slice(
+                  -6,
+                );
+              },
             );
           } catch (
             expressError
           ) {
             if (
-              expressError instanceof
-                DOMException &&
-              expressError.name ===
-                "AbortError"
+              cancelled ||
+              (
+                expressError instanceof
+                  DOMException &&
+                expressError.name ===
+                  "AbortError"
+              )
             ) {
               return;
             }
@@ -482,8 +612,6 @@ export function DonationFlow({
               expressError,
             );
 
-            resetExpressCheckout();
-          } finally {
             setExpressLoading(
               false,
             );
@@ -495,6 +623,9 @@ export function DonationFlow({
       );
 
     return () => {
+      cancelled =
+        true;
+
       window.clearTimeout(
         timeout,
       );
@@ -508,12 +639,13 @@ export function DonationFlow({
     coverFee,
     currency,
     customAmount,
-    isAnonymous,
-    expressClientSecret,
-    expressSessionKey,
+    desiredExpressKey,
+    expressSessions,
     frequency,
     hasValidAmount,
+    isAnonymous,
     locale,
+    prefetchedExpress,
     step,
   ]);
 
@@ -1390,82 +1522,172 @@ export function DonationFlow({
               mt-4
             "
           >
-            {expressClientSecret ? (
-              <>
-                <DonationExpressCheckout
-                  key={
-                    expressSessionKey
-                  }
-                  clientSecret={
-                    expressClientSecret
-                  }
-                  locale={
-                    locale
-                  }
-                  onAvailabilityChange={
-                    setExpressAvailable
-                  }
-                  onError={(
-                    message,
-                  ) => {
-                    setError(
-                      message,
-                    );
-                  }}
+            <div
+              className="
+                relative
+                min-h-[48px]
+              "
+            >
+              {expressSessions.map(
+                (
+                  session,
+                ) => {
+                  const isActive =
+                    session.key ===
+                    activeExpressKey;
+
+                  const isTarget =
+                    session.key ===
+                    desiredExpressKey;
+
+                  return (
+                    <div
+                      key={
+                        session.clientSecret
+                      }
+                      className={`
+                        ${
+                          isActive
+                            ? "relative z-[2] opacity-100"
+                            : isTarget
+                              ? "absolute inset-0 z-[1] opacity-0 pointer-events-none"
+                              : "absolute inset-0 z-0 opacity-0 pointer-events-none"
+                        }
+                      `}
+                    >
+                      <DonationExpressCheckout
+                        clientSecret={
+                          session.clientSecret
+                        }
+                        locale={
+                          locale
+                        }
+                        onAvailabilityChange={(
+                          available,
+                        ) => {
+                          setExpressSessions(
+                            (
+                              current,
+                            ) =>
+                              current.map(
+                                (
+                                  item,
+                                ) =>
+                                  item.key ===
+                                  session.key
+                                    ? {
+                                        ...item,
+                                        available,
+                                      }
+                                    : item,
+                              ),
+                          );
+
+                          if (
+                            available &&
+                            session.key ===
+                              desiredExpressKey
+                          ) {
+                            setActiveExpressKey(
+                              session.key,
+                            );
+
+                            setExpressAvailable(
+                              true,
+                            );
+
+                            setExpressLoading(
+                              false,
+                            );
+                          }
+                        }}
+                        onError={(
+                          message,
+                        ) => {
+                          setError(
+                            message,
+                          );
+                        }}
+                      />
+                    </div>
+                  );
+                },
+              )}
+
+              {expressSessions.length ===
+                0 &&
+                expressLoading && (
+                  <div
+                    className="
+                      h-[48px]
+                      w-full
+                      animate-pulse
+                      rounded-[12px]
+                      bg-[#eef1ed]
+                    "
+                  />
+                )}
+
+              {activeExpressKey &&
+                (
+                  expressLoading ||
+                  activeExpressKey !==
+                    desiredExpressKey
+                ) && (
+                  <div
+                    aria-hidden="true"
+                    className="
+                      absolute
+                      inset-0
+                      z-[20]
+                      cursor-wait
+                      rounded-[12px]
+                      bg-transparent
+                    "
+                  />
+                )}
+            </div>
+
+            {expressAvailable && (
+              <div
+                dir="ltr"
+                className="
+                  my-4
+                  flex
+                  items-center
+                  gap-3
+                "
+              >
+                <span
+                  className="
+                    h-px
+                    flex-1
+                    bg-[#e2e7e3]
+                  "
                 />
 
-                {expressAvailable && (
-                  <div
-                    dir="ltr"
-                    className="
-                      my-4
-                      flex
-                      items-center
-                      gap-3
-                    "
-                  >
-                    <span
-                      className="
-                        h-px
-                        flex-1
-                        bg-[#e2e7e3]
-                      "
-                    />
+                <span
+                  className="
+                    shrink-0
+                    text-[10px]
+                    font-semibold
+                    uppercase
+                    tracking-[0.08em]
+                    text-[#89918c]
+                  "
+                >
+                  OR
+                </span>
 
-                    <span
-                      className="
-                        shrink-0
-                        text-[10px]
-                        font-semibold
-                        uppercase
-                        tracking-[0.08em]
-                        text-[#89918c]
-                      "
-                    >
-                      OR
-                    </span>
-
-                    <span
-                      className="
-                        h-px
-                        flex-1
-                        bg-[#e2e7e3]
-                      "
-                    />
-                  </div>
-                )}
-              </>
-            ) : expressLoading ? (
-              <div
-                className="
-                  h-[48px]
-                  w-full
-                  animate-pulse
-                  rounded-[12px]
-                  bg-[#eef1ed]
-                "
-              />
-            ) : null}
+                <span
+                  className="
+                    h-px
+                    flex-1
+                    bg-[#e2e7e3]
+                  "
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -1917,23 +2139,21 @@ function getMinimumCustomAmountText(
   locale: Locale,
   amountLabel: string,
 ) {
-  switch (
-    locale
-  ) {
+  switch (locale) {
     case "fr":
-      return `Montant personnalisé minimum : ${amountLabel}`;
+      return `❤️ Chaque don commence à seulement ${amountLabel}`;
 
     case "de":
-      return `Mindestbetrag für einen eigenen Betrag: ${amountLabel}`;
+      return `❤️ Jede Spende beginnt bereits bei ${amountLabel}`;
 
     case "es":
-      return `Importe personalizado mínimo: ${amountLabel}`;
+      return `❤️ Cada donación comienza desde solo ${amountLabel}`;
 
     case "ar":
-      return `الحد الأدنى للمبلغ المخصص: ${amountLabel}`;
+      return `❤️ يبدأ كل تبرع من ${amountLabel} فقط`;
 
     default:
-      return `Minimum custom amount: ${amountLabel}`;
+      return `❤️ Every donation starts at just ${amountLabel}`;
   }
 }
 

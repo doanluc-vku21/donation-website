@@ -14,6 +14,7 @@ import {
 
 import type {
   Campaign,
+  DonationFrequency,
 } from "@/lib/sample-data";
 
 import type {
@@ -30,11 +31,17 @@ import type {
 
 import {
   DonationFlow,
+  type ExpressPrefetch,
+  type ExpressPrefetchResult,
 } from "./donation-flow";
 
 import type {
   Currency,
 } from "@/lib/currency";
+
+import {
+  convertUsdToCurrencyMinor,
+} from "@/lib/money";
 
 type DonationStep =
   | "amount"
@@ -54,6 +61,184 @@ type DonationModalProps = {
 
   showHeart?: boolean;
 };
+
+/*
+ * Shared across every DonationModal on the page.
+ *
+ * The campaign page can render more than one Donate button
+ * (desktop card, mobile hero, sticky bar). This Map prevents
+ * those buttons from creating duplicate prefetch requests for
+ * the same Stripe Checkout Session configuration.
+ */
+const expressPrefetchCache =
+  new Map<
+    string,
+    Promise<ExpressPrefetchResult>
+  >();
+
+function buildExpressKey({
+  campaignId,
+  frequency,
+  amount,
+  currency,
+  locale,
+}: {
+  campaignId:
+    string;
+
+  frequency:
+    DonationFrequency;
+
+  amount:
+    number;
+
+  currency:
+    Currency;
+
+  locale:
+    Locale;
+}) {
+  return [
+    campaignId,
+    frequency,
+    amount,
+    currency,
+    "no-fee",
+    "public",
+    locale,
+  ].join(
+    ":",
+  );
+}
+
+function getOrCreateExpressPrefetch({
+  campaignId,
+  campaignSlug,
+  frequency,
+  amount,
+  currency,
+  locale,
+}: {
+  campaignId:
+    string;
+
+  campaignSlug:
+    string;
+
+  frequency:
+    DonationFrequency;
+
+  amount:
+    number;
+
+  currency:
+    Currency;
+
+  locale:
+    Locale;
+}): ExpressPrefetch {
+  const key =
+    buildExpressKey({
+      campaignId,
+      frequency,
+      amount,
+      currency,
+      locale,
+    });
+
+  let promise =
+    expressPrefetchCache.get(
+      key,
+    );
+
+  if (!promise) {
+    promise =
+      fetch(
+        "/api/stripe/express-checkout",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body:
+            JSON.stringify(
+              {
+                campaignId,
+
+                campaignSlug,
+
+                amountCents:
+                  amount,
+
+                currency,
+
+                coverFee:
+                  false,
+
+                frequency,
+
+                locale,
+
+                displayPublicly:
+                  true,
+              },
+            ),
+        },
+      )
+        .then(
+          async (
+            response,
+          ) => {
+            const data =
+              await response.json();
+
+            if (
+              !response.ok ||
+              !data.clientSecret
+            ) {
+              throw new Error(
+                data.error ??
+                  "Unable to prefetch express checkout.",
+              );
+            }
+
+            return {
+              clientSecret:
+                data.clientSecret as string,
+            };
+          },
+        )
+        .catch(
+          (
+            error,
+          ) => {
+            /*
+             * Remove failed entries so a later interaction
+             * can retry instead of keeping a rejected Promise.
+             */
+            expressPrefetchCache.delete(
+              key,
+            );
+
+            throw error;
+          },
+        );
+
+    expressPrefetchCache.set(
+      key,
+      promise,
+    );
+  }
+
+  return {
+    key,
+    promise,
+  };
+}
 
 export function DonationModal({
   campaign,
@@ -83,6 +268,36 @@ export function DonationModal({
       "amount",
     );
 
+  const [
+    prefetchedExpress,
+    setPrefetchedExpress,
+  ] =
+    useState<
+      Partial<
+        Record<
+          DonationFrequency,
+          ExpressPrefetch
+        >
+      >
+    >({});
+
+  const defaultDonationOptionUsd =
+    campaign.donationOptions.find(
+      (
+        option,
+      ) =>
+        option.featured,
+    )?.amountUsd ??
+    campaign.donationOptions[0]
+      ?.amountUsd ??
+    1000;
+
+  const defaultAmount =
+    convertUsdToCurrencyMinor(
+      defaultDonationOptionUsd,
+      exchangeRate,
+    );
+
   const heroUrl =
     content.heroImage
       ?.asset?.url;
@@ -105,7 +320,114 @@ export function DonationModal({
     content.organizationName ||
     campaign.organizationName;
 
+  function prefetchExpressCheckout() {
+    const oneTime =
+      getOrCreateExpressPrefetch(
+        {
+          campaignId:
+            campaign.id,
+
+          campaignSlug:
+            campaign.slug,
+
+          frequency:
+            "one_time",
+
+          amount:
+            defaultAmount,
+
+          currency,
+
+          locale,
+        },
+      );
+
+    const monthly =
+      getOrCreateExpressPrefetch(
+        {
+          campaignId:
+            campaign.id,
+
+          campaignSlug:
+            campaign.slug,
+
+          frequency:
+            "monthly",
+
+          amount:
+            defaultAmount,
+
+          currency,
+
+          locale,
+        },
+      );
+
+    setPrefetchedExpress(
+      (
+        current,
+      ) => {
+        if (
+          current
+            .one_time
+            ?.key ===
+            oneTime.key &&
+          current
+            .monthly
+            ?.key ===
+            monthly.key
+        ) {
+          return current;
+        }
+
+        return {
+          one_time:
+            oneTime,
+
+          monthly,
+        };
+      },
+    );
+  }
+
+  /*
+   * Warm both Give once and Monthly shortly after the page is
+   * interactive. By the time the donor clicks Donate, Stripe
+   * usually already has the client_secret ready.
+   *
+   * Every visible Donate button shares the module-level cache,
+   * so the same campaign configuration only sends one request
+   * per frequency.
+   */
+  useEffect(() => {
+    const timeout =
+      window.setTimeout(
+        () => {
+          prefetchExpressCheckout();
+        },
+        120,
+      );
+
+    return () => {
+      window.clearTimeout(
+        timeout,
+      );
+    };
+  }, [
+    campaign.id,
+    campaign.slug,
+    currency,
+    defaultAmount,
+    locale,
+  ]);
+
   function openModal() {
+    /*
+     * Also warm on the actual interaction in case the user
+     * clicks before the short background prefetch fires.
+     */
+    prefetchExpressCheckout();
+
     setStep(
       "amount",
     );
@@ -174,6 +496,15 @@ export function DonationModal({
     <>
       <button
         type="button"
+        onPointerEnter={
+          prefetchExpressCheckout
+        }
+        onPointerDown={
+          prefetchExpressCheckout
+        }
+        onFocus={
+          prefetchExpressCheckout
+        }
         onClick={
           openModal
         }
@@ -192,21 +523,31 @@ export function DonationModal({
           t.donate}
       </button>
 
-      {open && (
-        <div
-          className="
-            fixed
-            inset-0
-            z-[300]
-            flex
-            items-end
-            justify-center
-            bg-[#10233f]/45
-            backdrop-blur-[3px]
+      <div
+        aria-hidden={
+          !open
+        }
+        className={`
+          fixed
+          inset-0
+          z-[300]
+          flex
+          items-end
+          justify-center
+          bg-[#10233f]/45
+          backdrop-blur-[3px]
+          transition-opacity
+          duration-150
 
-            sm:items-center
-            sm:p-4
-          "
+          sm:items-center
+          sm:p-4
+
+          ${
+            open
+              ? "visible pointer-events-auto opacity-100"
+              : "invisible pointer-events-none opacity-0"
+          }
+        `}
           onMouseDown={(
             event,
           ) => {
@@ -226,12 +567,13 @@ export function DonationModal({
                 : "ltr"
             }
             role="dialog"
-            aria-modal="true"
+            aria-modal={
+              open
+            }
             aria-labelledby="donation-modal-title"
             className="
               w-full
-              min-h-[640px]
-              max-h-[94dvh]
+              max-h-[calc(100dvh-12px)]
               overflow-hidden
               rounded-t-[30px]
               bg-[#fffdfb]
@@ -247,15 +589,19 @@ export function DonationModal({
             <div
               className="
                 flex
-                min-h-[640px]
+                max-h-[calc(100dvh-12px)]
+                min-h-0
                 flex-col
+                overflow-y-auto
+                overscroll-contain
                 px-4
-                pb-[max(20px,env(safe-area-inset-bottom))]
+                pb-[max(88px,calc(env(safe-area-inset-bottom)+72px))]
                 pt-5
+                [-webkit-overflow-scrolling:touch]
 
-                sm:min-h-0
+                sm:max-h-[90vh]
                 sm:px-6
-                sm:pb-6
+                sm:pb-8
                 sm:pt-6
               "
             >
@@ -463,6 +809,9 @@ export function DonationModal({
                   exchangeRate={
                     exchangeRate
                   }
+                  prefetchedExpress={
+                    prefetchedExpress
+                  }
                   embedded
                   onStepChange={(
                     nextStep,
@@ -475,8 +824,7 @@ export function DonationModal({
               </div>
             </div>
           </section>
-        </div>
-      )}
+      </div>
     </>
   );
 }
