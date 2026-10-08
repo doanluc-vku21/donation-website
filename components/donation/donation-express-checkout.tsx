@@ -137,36 +137,50 @@ function ExpressCheckoutForm({
   ] =
     useState(false);
 
-  const isIOS =
+  const platform =
     useMemo(() => {
       if (
         typeof navigator ===
         "undefined"
       ) {
-        return false;
+        return "desktop";
       }
 
       const ua =
         navigator.userAgent;
 
-      const platform =
+      const platformName =
         navigator.platform;
 
       const maxTouchPoints =
         navigator.maxTouchPoints ??
         0;
 
-      return (
+      const isIOS =
         /iPhone|iPad|iPod/i.test(
           ua,
         ) ||
         (
-          platform ===
+          platformName ===
             "MacIntel" &&
           maxTouchPoints >
             1
-        )
-      );
+        );
+
+      if (isIOS) {
+        return "ios";
+      }
+
+      const isAndroid =
+        /Android/i.test(
+          ua,
+        );
+
+      if (isAndroid) {
+        return "android";
+      }
+
+      return "desktop";
     }, []);
 
   async function handleConfirm() {
@@ -245,6 +259,14 @@ function ExpressCheckoutForm({
     );
   }
 
+  const isIOS =
+    platform ===
+    "ios";
+
+  const isAndroid =
+    platform ===
+    "android";
+
   return (
     <div
       dir="ltr"
@@ -275,7 +297,8 @@ function ExpressCheckoutForm({
 
           layout: {
             maxColumns:
-              isIOS
+              isIOS ||
+              isAndroid
                 ? 1
                 : 2,
 
@@ -291,15 +314,21 @@ function ExpressCheckoutForm({
               ? [
                   "applePay",
                 ]
-              : [
-                  "googlePay",
-                  "applePay",
-                  "link",
-                ],
+              : isAndroid
+                ? [
+                    "googlePay",
+                  ]
+                : [
+                    "googlePay",
+                    "applePay",
+                    "link",
+                  ],
 
           paymentMethods: {
             applePay:
-              "always",
+              isAndroid
+                ? "never"
+                : "always",
 
             googlePay:
               isIOS
@@ -317,6 +346,11 @@ function ExpressCheckoutForm({
 
           onAvailabilityChange?.(
             available,
+          );
+
+          console.log(
+            "Express Checkout platform:",
+            platform,
           );
 
           console.log(
