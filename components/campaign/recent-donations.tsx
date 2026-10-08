@@ -766,6 +766,12 @@ function ContributionRow({
       locale,
     );
 
+  const isAnonymous =
+    donation.displayName
+      .trim()
+      .toLowerCase() ===
+    "anonymous";
+
   return (
     <li
       dir="ltr"
@@ -887,42 +893,44 @@ function ContributionRow({
           AMOUNT
       ====================================== */}
 
-      <div
-        dir="ltr"
-        className="
-          shrink-0
-        "
-      >
-        <strong
+      {!isAnonymous && (
+        <div
           dir="ltr"
           className="
-            inline-flex
-            min-w-[48px]
-            items-center
-            justify-center
-            rounded-full
-            bg-[#eef6e8]
-            px-3
-            py-2
-            text-[14px]
-            font-bold
-            text-[#14623f]
+            shrink-0
           "
         >
-          {formatMoney(
-            convertUsdToCurrencyMinor(
-              donation.amountUsd,
-              exchangeRate,
-            ),
-            currency,
-            locale,
-            {
-              hideZeroDecimals:
-                true,
-            },
-          )}
-        </strong>
-      </div>
+          <strong
+            dir="ltr"
+            className="
+              inline-flex
+              min-w-[48px]
+              items-center
+              justify-center
+              rounded-full
+              bg-[#eef6e8]
+              px-3
+              py-2
+              text-[14px]
+              font-bold
+              text-[#14623f]
+            "
+          >
+            {formatMoney(
+              convertUsdToCurrencyMinor(
+                donation.amountUsd,
+                exchangeRate,
+              ),
+              currency,
+              locale,
+              {
+                hideZeroDecimals:
+                  true,
+              },
+            )}
+          </strong>
+        </div>
+      )}
     </li>
   );
 }

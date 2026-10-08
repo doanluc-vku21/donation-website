@@ -45,6 +45,9 @@ import type {
   Currency,
 } from "@/lib/currency";
 
+const MIN_CUSTOM_DONATION_USD_CENTS =
+  2000;
+
 declare global {
   interface Window {
     fbq?: (
@@ -146,8 +149,8 @@ export function DonationFlow({
     useState(false);
 
   const [
-    displayPublicly,
-    setDisplayPublicly,
+    isAnonymous,
+    setIsAnonymous,
   ] =
     useState(false);
 
@@ -245,11 +248,47 @@ export function DonationFlow({
       false,
     );
 
+  const minimumCustomAmount =
+    convertUsdToCurrencyMinor(
+      MIN_CUSTOM_DONATION_USD_CENTS,
+      exchangeRate,
+    );
+
+  const isCustomAmount =
+    selectedPreset ===
+      null &&
+    customAmount.trim() !==
+      "";
+
+  const customAmountBelowMinimum =
+    isCustomAmount &&
+    amount >
+      0 &&
+    amount <
+      minimumCustomAmount;
+
   const hasValidAmount =
     Number.isInteger(
       amount,
     ) &&
-    amount >= 100;
+    amount >=
+      100 &&
+    (
+      !isCustomAmount ||
+      amount >=
+        minimumCustomAmount
+    );
+
+  const minimumCustomAmountLabel =
+    formatMoney(
+      minimumCustomAmount,
+      currency,
+      locale,
+      {
+        hideZeroDecimals:
+          true,
+      },
+    );
 
   // `amount`, `fee`, `total` từ đây là LOCAL CURRENCY minor units.
   // Ví dụ GBP: 100 = £1.00.
@@ -308,10 +347,9 @@ export function DonationFlow({
 
   useEffect(() => {
     /*
-     * Fast wallet checkout is intentionally one-time only.
-     *
-     * We create a lightweight Checkout Session as soon as
-     * the amount step has a valid one-time amount.
+     * Create an Express Checkout Session for both:
+     * - one-time donations
+     * - monthly recurring donations
      *
      * A short debounce avoids creating a Stripe session for
      * every keystroke in the custom amount field.
@@ -319,8 +357,6 @@ export function DonationFlow({
     if (
       step !==
         "amount" ||
-      frequency !==
-        "one_time" ||
       !hasValidAmount
     ) {
       resetExpressCheckout();
@@ -330,14 +366,15 @@ export function DonationFlow({
 
     const key = [
       campaign.id,
+      frequency,
       amount,
       currency,
       coverFee
         ? "fee"
         : "no-fee",
-      displayPublicly
-        ? "public"
-        : "anonymous",
+      isAnonymous
+        ? "anonymous"
+        : "public",
       locale,
     ].join(
       ":",
@@ -397,9 +434,12 @@ export function DonationFlow({
 
                         coverFee,
 
+                        frequency,
+
                         locale,
 
-                        displayPublicly,
+                        displayPublicly:
+                          !isAnonymous,
                       },
                     ),
                 },
@@ -468,7 +508,7 @@ export function DonationFlow({
     coverFee,
     currency,
     customAmount,
-    displayPublicly,
+    isAnonymous,
     expressClientSecret,
     expressSessionKey,
     frequency,
@@ -725,7 +765,8 @@ export function DonationFlow({
                     email:
                       email.trim(),
 
-                    displayPublicly,
+                    displayPublicly:
+                      !isAnonymous,
                   },
                 },
               ),
@@ -1177,7 +1218,10 @@ export function DonationFlow({
 
           <input
             type="number"
-            min="1"
+            min={
+              minimumCustomAmount /
+              100
+            }
             step="1"
             inputMode="decimal"
             placeholder={
@@ -1222,6 +1266,25 @@ export function DonationFlow({
           </span>
         </label>
 
+        <p
+          className={`
+            mt-1.5
+            text-[11px]
+            leading-4
+
+            ${
+              customAmountBelowMinimum
+                ? "text-red-600"
+                : "text-[#7c8580]"
+            }
+          `}
+        >
+          {getMinimumCustomAmountText(
+            locale,
+            minimumCustomAmountLabel,
+          )}
+        </p>
+
         <div
           className="
             mt-3
@@ -1230,12 +1293,12 @@ export function DonationFlow({
         >
           <CompactCheck
             checked={
-              displayPublicly
+              isAnonymous
             }
             onChange={(
               checked,
             ) => {
-              setDisplayPublicly(
+              setIsAnonymous(
                 checked,
               );
 
@@ -1243,7 +1306,9 @@ export function DonationFlow({
             }}
           >
             {
-              t.displayNamePublicly
+              getAnonymousDonationLabel(
+                locale,
+              )
             }
           </CompactCheck>
 
@@ -1319,9 +1384,7 @@ export function DonationFlow({
           </div>
         )}
 
-        {frequency ===
-          "one_time" &&
-          hasValidAmount && (
+        {hasValidAmount && (
           <div
             className="
               mt-4
@@ -1817,6 +1880,61 @@ function getCurrencySymbol(
     )?.value ??
     currency
   );
+}
+
+// =========================================================
+// ANONYMOUS DONATION LABEL
+// =========================================================
+
+function getAnonymousDonationLabel(
+  locale: Locale,
+) {
+  switch (
+    locale
+  ) {
+    case "fr":
+      return "Faire un don anonymement";
+
+    case "de":
+      return "Anonym spenden";
+
+    case "es":
+      return "Donar de forma anónima";
+
+    case "ar":
+      return "التبرع بشكل مجهول";
+
+    default:
+      return "Donate anonymously";
+  }
+}
+
+// =========================================================
+// MINIMUM CUSTOM AMOUNT TEXT
+// =========================================================
+
+function getMinimumCustomAmountText(
+  locale: Locale,
+  amountLabel: string,
+) {
+  switch (
+    locale
+  ) {
+    case "fr":
+      return `Montant personnalisé minimum : ${amountLabel}`;
+
+    case "de":
+      return `Mindestbetrag für einen eigenen Betrag: ${amountLabel}`;
+
+    case "es":
+      return `Importe personalizado mínimo: ${amountLabel}`;
+
+    case "ar":
+      return `الحد الأدنى للمبلغ المخصص: ${amountLabel}`;
+
+    default:
+      return `Minimum custom amount: ${amountLabel}`;
+  }
 }
 
 // =========================================================

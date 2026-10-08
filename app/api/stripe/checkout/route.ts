@@ -29,29 +29,21 @@ type DonationFrequency =
   | "one_time"
   | "monthly";
 
-type StripeSupportedLocale =
-  | "en"
-  | "fr"
-  | "de"
-  | "es";
+type ExpressCheckoutBody = {
+  campaignId:
+    string;
 
-type CheckoutBody = {
-  campaignId: string;
+  campaignSlug:
+    string;
 
-  campaignSlug: string;
+  amountCents:
+    number;
 
-  /**
-   * LOCAL CURRENCY minor units.
-   *
-   * Example:
-   * GBP 4000 = £40.00
-   * EUR 5000 = €50.00
-   */
-  amountCents: number;
+  currency:
+    Currency;
 
-  currency: Currency;
-
-  coverFee: boolean;
+  coverFee:
+    boolean;
 
   frequency:
     DonationFrequency;
@@ -59,27 +51,19 @@ type CheckoutBody = {
   locale:
     Locale;
 
-  donor: {
-    firstName:
-      string;
-
-    lastName:
-      string;
-
-    email:
-      string;
-
-    displayPublicly:
-      boolean;
-  };
+  displayPublicly:
+    boolean;
 };
 
-// =========================================================
-// PUBLIC CAMPAIGN PATH
-// =========================================================
+type StripeSupportedLocale =
+  | "en"
+  | "fr"
+  | "de"
+  | "es";
 
 function getCampaignPublicPath(
-  campaignSlug: string,
+  campaignSlug:
+    string,
 ) {
   switch (
     campaignSlug
@@ -95,118 +79,117 @@ function getCampaignPublicPath(
   }
 }
 
-// =========================================================
-// STRIPE PRODUCT TRANSLATIONS
-// =========================================================
-
-const stripeProductTranslations:
+const productTranslations:
   Record<
     StripeSupportedLocale,
     {
-      monthlyName: string;
-
-      oneTimeName: string;
-
-      monthlyWithFeeDescription:
+      oneTimeName:
         string;
 
-      oneTimeWithFeeDescription:
+      monthlyName:
+        string;
+
+      oneTimeDescription:
         string;
 
       monthlyDescription:
         string;
 
-      oneTimeDescription:
+      oneTimeDescriptionWithFee:
+        string;
+
+      monthlyDescriptionWithFee:
         string;
     }
   > = {
   en: {
-    monthlyName:
-      "Monthly donation",
-
     oneTimeName:
       "One-time donation",
 
-    monthlyWithFeeDescription:
-      "Monthly donation including transaction cost contribution",
+    monthlyName:
+      "Monthly donation",
 
-    oneTimeWithFeeDescription:
-      "One-time donation including transaction cost contribution",
+    oneTimeDescription:
+      "One-time campaign donation",
 
     monthlyDescription:
       "Monthly campaign donation",
 
-    oneTimeDescription:
-      "One-time campaign donation",
+    oneTimeDescriptionWithFee:
+      "One-time donation including transaction cost contribution",
+
+    monthlyDescriptionWithFee:
+      "Monthly donation including transaction cost contribution",
   },
 
   fr: {
-    monthlyName:
-      "Don mensuel",
-
     oneTimeName:
       "Don unique",
 
-    monthlyWithFeeDescription:
-      "Don mensuel incluant une contribution aux frais de transaction",
+    monthlyName:
+      "Don mensuel",
 
-    oneTimeWithFeeDescription:
-      "Don unique incluant une contribution aux frais de transaction",
+    oneTimeDescription:
+      "Don unique à la campagne",
 
     monthlyDescription:
       "Don mensuel à la campagne",
 
-    oneTimeDescription:
-      "Don unique à la campagne",
+    oneTimeDescriptionWithFee:
+      "Don unique incluant une contribution aux frais de transaction",
+
+    monthlyDescriptionWithFee:
+      "Don mensuel incluant une contribution aux frais de transaction",
   },
 
   de: {
-    monthlyName:
-      "Monatliche Spende",
-
     oneTimeName:
       "Einmalige Spende",
 
-    monthlyWithFeeDescription:
-      "Monatliche Spende einschließlich eines Beitrags zu den Transaktionskosten",
+    monthlyName:
+      "Monatliche Spende",
 
-    oneTimeWithFeeDescription:
-      "Einmalige Spende einschließlich eines Beitrags zu den Transaktionskosten",
+    oneTimeDescription:
+      "Einmalige Kampagnenspende",
 
     monthlyDescription:
       "Monatliche Kampagnenspende",
 
-    oneTimeDescription:
-      "Einmalige Kampagnenspende",
+    oneTimeDescriptionWithFee:
+      "Einmalige Spende einschließlich eines Beitrags zu den Transaktionskosten",
+
+    monthlyDescriptionWithFee:
+      "Monatliche Spende einschließlich eines Beitrags zu den Transaktionskosten",
   },
 
   es: {
-    monthlyName:
-      "Donación mensual",
-
     oneTimeName:
       "Donación única",
 
-    monthlyWithFeeDescription:
-      "Donación mensual que incluye una contribución a los gastos de transacción",
+    monthlyName:
+      "Donación mensual",
 
-    oneTimeWithFeeDescription:
-      "Donación única que incluye una contribución a los gastos de transacción",
+    oneTimeDescription:
+      "Donación única a la campaña",
 
     monthlyDescription:
       "Donación mensual a la campaña",
 
-    oneTimeDescription:
-      "Donación única a la campaña",
+    oneTimeDescriptionWithFee:
+      "Donación única que incluye una contribución a los gastos de transacción",
+
+    monthlyDescriptionWithFee:
+      "Donación mensual que incluye una contribución a los gastos de transacción",
   },
 };
 
 export async function POST(
-  request: Request,
+  request:
+    Request,
 ) {
   try {
     const body =
-      (await request.json()) as CheckoutBody;
+      (await request.json()) as ExpressCheckoutBody;
 
     const {
       campaignId,
@@ -216,12 +199,8 @@ export async function POST(
       coverFee,
       frequency,
       locale,
-      donor,
+      displayPublicly,
     } = body;
-
-    // =======================================================
-    // CAMPAIGN
-    // =======================================================
 
     if (!campaignId) {
       return NextResponse.json(
@@ -252,38 +231,6 @@ export async function POST(
       );
     }
 
-    const campaignPath =
-      getCampaignPublicPath(
-        campaignSlug,
-      );
-
-    // =======================================================
-    // LOCALE
-    // =======================================================
-
-    const siteLocale:
-      Locale =
-      isLocale(
-        locale,
-      )
-        ? locale
-        : "en";
-
-    const stripeLocale:
-      StripeSupportedLocale =
-      siteLocale === "ar"
-        ? "en"
-        : siteLocale;
-
-    const stripeText =
-      stripeProductTranslations[
-        stripeLocale
-      ];
-
-    // =======================================================
-    // CURRENCY
-    // =======================================================
-
     if (
       !isCurrency(
         currency,
@@ -299,46 +246,6 @@ export async function POST(
         },
       );
     }
-
-    const siteCurrency:
-      Currency =
-      currency;
-
-    /*
-     * SERVER is source of truth for FX.
-     * Never trust an exchange rate sent by the browser.
-     *
-     * 1 USD = exchangeRate local currency.
-     */
-    const exchangeRate =
-      await getUsdToCurrencyRate(
-        siteCurrency,
-      );
-
-    // =======================================================
-    // AMOUNT
-    // =======================================================
-
-    if (
-      !Number.isInteger(
-        amountCents,
-      ) ||
-      amountCents < 100
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Invalid donation amount.",
-        },
-        {
-          status: 400,
-        },
-      );
-    }
-
-    // =======================================================
-    // FREQUENCY
-    // =======================================================
 
     if (
       frequency !==
@@ -357,25 +264,17 @@ export async function POST(
       );
     }
 
-    // =======================================================
-    // DONOR
-    // =======================================================
-
     if (
-      !donor
-        ?.firstName
-        ?.trim() ||
-      !donor
-        ?.lastName
-        ?.trim() ||
-      !donor
-        ?.email
-        ?.trim()
+      !Number.isInteger(
+        amountCents,
+      ) ||
+      amountCents <
+        100
     ) {
       return NextResponse.json(
         {
           error:
-            "Please enter your name and email.",
+            "Invalid donation amount.",
         },
         {
           status: 400,
@@ -383,33 +282,29 @@ export async function POST(
       );
     }
 
-    const email =
-      donor.email
-        .trim()
-        .toLowerCase();
-
-    const emailPattern =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (
-      !emailPattern.test(
-        email,
+    const siteLocale:
+      Locale =
+      isLocale(
+        locale,
       )
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Please enter a valid email address.",
-        },
-        {
-          status: 400,
-        },
-      );
-    }
+        ? locale
+        : "en";
 
-    // =======================================================
-    // LOCAL CHARGE AMOUNTS
-    // =======================================================
+    const stripeLocale:
+      StripeSupportedLocale =
+      siteLocale ===
+      "ar"
+        ? "en"
+        : siteLocale;
+
+    const siteCurrency:
+      Currency =
+      currency;
+
+    const exchangeRate =
+      await getUsdToCurrencyRate(
+        siteCurrency,
+      );
 
     const feeAmountCents =
       coverFee
@@ -422,12 +317,6 @@ export async function POST(
     const totalAmountCents =
       amountCents +
       feeAmountCents;
-
-    // =======================================================
-    // NORMALIZED USD AMOUNTS
-    //
-    // Existing campaign stats/RPC expect amount_cents in USD.
-    // =======================================================
 
     const normalizedDonationUsdCents =
       convertCurrencyMinorToUsd(
@@ -462,31 +351,55 @@ export async function POST(
       );
     }
 
-    // =======================================================
-    // URL
-    // =======================================================
+    const campaignPath =
+      getCampaignPublicPath(
+        campaignSlug,
+      );
 
     const siteUrl =
       process.env
         .NEXT_PUBLIC_SITE_URL ??
       "http://localhost:3000";
 
-    // =======================================================
-    // DISPLAY NAME
-    // =======================================================
+    const stripeText =
+      productTranslations[
+        stripeLocale
+      ];
 
-    const displayName =
-      donor.displayPublicly
-        ? `${donor.firstName.trim()} ${donor.lastName
-            .trim()
-            .charAt(0)}.`
-        : "Anonymous";
+    const productName =
+      frequency ===
+      "monthly"
+        ? stripeText
+            .monthlyName
+        : stripeText
+            .oneTimeName;
 
-    // =======================================================
-    // METADATA
-    // =======================================================
+    const productDescription =
+      coverFee
+        ? frequency ===
+          "monthly"
+          ? stripeText
+              .monthlyDescriptionWithFee
+          : stripeText
+              .oneTimeDescriptionWithFee
+        : frequency ===
+          "monthly"
+          ? stripeText
+              .monthlyDescription
+          : stripeText
+              .oneTimeDescription;
 
+    /*
+     * Express Checkout does not require donor name/email
+     * before creating the Session.
+     *
+     * Wallets provide customer details during checkout.
+     * The webhook already falls back to session.customer_details.
+     */
     const metadata = {
+      checkout_source:
+        "express_amount_step",
+
       campaign_id:
         campaignId,
 
@@ -540,53 +453,22 @@ export async function POST(
       frequency,
 
       donor_first_name:
-        donor.firstName.trim(),
+        "",
 
       donor_last_name:
-        donor.lastName.trim(),
+        "",
 
       donor_email:
-        email,
+        "",
 
       display_name:
-        displayName,
+        "",
 
       is_anonymous:
-        donor.displayPublicly
+        displayPublicly
           ? "false"
           : "true",
     };
-
-    // =======================================================
-    // PRODUCT
-    // =======================================================
-
-    const productName =
-      frequency ===
-      "monthly"
-        ? stripeText
-            .monthlyName
-        : stripeText
-            .oneTimeName;
-
-    const productDescription =
-      coverFee
-        ? frequency ===
-          "monthly"
-          ? stripeText
-              .monthlyWithFeeDescription
-          : stripeText
-              .oneTimeWithFeeDescription
-        : frequency ===
-          "monthly"
-          ? stripeText
-              .monthlyDescription
-          : stripeText
-              .oneTimeDescription;
-
-    // =======================================================
-    // CREATE CHECKOUT SESSION
-    // =======================================================
 
     const session =
       await stripe.checkout.sessions.create(
@@ -603,12 +485,23 @@ export async function POST(
           locale:
             stripeLocale,
 
-          customer_email:
-            email,
+          /*
+           * customer_creation is valid/useful for payment mode.
+           * Subscription Checkout creates a Customer as part
+           * of the subscription flow, so don't send it there.
+           */
+          ...(frequency ===
+          "one_time"
+            ? {
+                customer_creation:
+                  "always" as const,
+              }
+            : {}),
 
           line_items: [
             {
-              quantity: 1,
+              quantity:
+                1,
 
               price_data: {
                 currency:
@@ -660,7 +553,7 @@ export async function POST(
       !session.client_secret
     ) {
       throw new Error(
-        "Checkout Session client secret was not created.",
+        "Express Checkout Session client secret was not created.",
       );
     }
 
@@ -672,14 +565,13 @@ export async function POST(
         sessionId:
           session.id,
 
-        returnUrl:
-          `${siteUrl}/thank-you?session_id=${session.id}`,
-
         mode:
           frequency ===
           "monthly"
             ? "subscription"
             : "payment",
+
+        frequency,
 
         currency:
           siteCurrency,
@@ -698,14 +590,14 @@ export async function POST(
     error
   ) {
     console.error(
-      "Stripe checkout error:",
+      "Express checkout session error:",
       error,
     );
 
     return NextResponse.json(
       {
         error:
-          "Unable to create checkout session.",
+          "Unable to create express checkout session.",
       },
       {
         status: 500,

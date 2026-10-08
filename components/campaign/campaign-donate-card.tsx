@@ -92,6 +92,13 @@ export function CampaignDonateCard({
         )
       : 0;
 
+  const latestDonationIsAnonymous =
+    latestDonation
+      ?.displayName
+      .trim()
+      .toLowerCase() ===
+    "anonymous";
+
   return (
     <section
       dir="ltr"
@@ -105,13 +112,7 @@ export function CampaignDonateCard({
         shadow-[0_18px_50px_rgba(15,35,60,0.08)]
       "
     >
-      <div
-        className="
-          flex
-          items-start
-          gap-4
-        "
-      >
+      <div className="flex items-start gap-4">
         <div
           className="
             grid
@@ -130,22 +131,10 @@ export function CampaignDonateCard({
             )`,
           }}
         >
-          <div
-            className="
-              grid
-              size-[50px]
-              place-items-center
-              rounded-full
-              bg-white
-            "
-          >
+          <div className="grid size-[50px] place-items-center rounded-full bg-white">
             <strong
               dir="ltr"
-              className="
-                text-[15px]
-                font-bold
-                text-[#18263b]
-              "
+              className="text-[15px] font-bold text-[#18263b]"
             >
               {progress}%
             </strong>
@@ -153,58 +142,26 @@ export function CampaignDonateCard({
         </div>
 
         <div
-          dir={
-            textDirection
-          }
-          className="
-            min-w-0
-            flex-1
-            pt-1
-          "
+          dir={textDirection}
+          className="min-w-0 flex-1 pt-1"
         >
-          <p
-            className="
-              text-[18px]
-              font-bold
-              leading-[1.25]
-              tracking-[-0.02em]
-              text-[#162338]
-            "
-          >
-            <span
-              dir="ltr"
-              className="inline-block"
-            >
+          <p className="text-[18px] font-bold leading-[1.25] tracking-[-0.02em] text-[#162338]">
+            <span dir="ltr" className="inline-block">
               {formatMoney(
                 raisedAmount,
                 currency,
                 locale,
               )}
             </span>{" "}
-
             {t.raised}{" "}
-
-            <span
-              className="
-                font-normal
-                text-[#6e7a8b]
-              "
-            >
+            <span className="font-normal text-[#6e7a8b]">
               {t.of}
             </span>
           </p>
 
           <p
             dir="ltr"
-            className="
-              mt-1
-              inline-block
-              text-[16px]
-              text-[#647187]
-              underline
-              decoration-[#aab3bf]
-              underline-offset-2
-            "
+            className="mt-1 inline-block text-[16px] text-[#647187] underline decoration-[#aab3bf] underline-offset-2"
           >
             {formatMoney(
               goalAmount,
@@ -218,35 +175,29 @@ export function CampaignDonateCard({
           </p>
 
           {latestDonation && (
-            <p
-              className="
-                mt-2
-                line-clamp-1
-                text-[12px]
-                text-[#6b7687]
-              "
-            >
-              {
-                latestDonation
-                  .displayName
-              }{" "}
+            <p className="mt-2 line-clamp-1 text-[12px] text-[#6b7687]">
+              {latestDonation.displayName}
 
-              {t.donated}{" "}
-
-              <span
-                dir="ltr"
-                className="inline-block"
-              >
-                {formatMoney(
-                  latestDonationAmount,
-                  currency,
-                  locale,
-                  {
-                    hideZeroDecimals:
-                      true,
-                  },
-                )}
-              </span>
+              {!latestDonationIsAnonymous && (
+                <>
+                  {" "}
+                  {t.donated}{" "}
+                  <span
+                    dir="ltr"
+                    className="inline-block"
+                  >
+                    {formatMoney(
+                      latestDonationAmount,
+                      currency,
+                      locale,
+                      {
+                        hideZeroDecimals:
+                          true,
+                      },
+                    )}
+                  </span>
+                </>
+              )}
             </p>
           )}
         </div>
@@ -254,21 +205,11 @@ export function CampaignDonateCard({
 
       <div className="mt-6">
         <DonationModal
-          campaign={
-            campaign
-          }
-          content={
-            content
-          }
-          locale={
-            locale
-          }
-          currency={
-            currency
-          }
-          exchangeRate={
-            exchangeRate
-          }
+          campaign={campaign}
+          content={content}
+          locale={locale}
+          currency={currency}
+          exchangeRate={exchangeRate}
           triggerClassName="
             flex
             min-h-[52px]
@@ -291,20 +232,10 @@ export function CampaignDonateCard({
         />
       </div>
 
-      <div
-        className="
-          mt-3
-          flex
-          justify-center
-        "
-      >
+      <div className="mt-3 flex justify-center">
         <ShareMenu
-          title={
-            content.title
-          }
-          locale={
-            locale
-          }
+          title={content.title}
+          locale={locale}
         />
       </div>
 
@@ -326,20 +257,11 @@ export function CampaignDonateCard({
       >
         <LockKeyhole
           aria-hidden="true"
-          className="
-            size-4
-            shrink-0
-          "
+          className="size-4 shrink-0"
         />
 
-        <span
-          dir={
-            textDirection
-          }
-        >
-          {
-            t.securePaymentThroughStripe
-          }
+        <span dir={textDirection}>
+          {t.securePaymentThroughStripe}
         </span>
       </div>
     </section>

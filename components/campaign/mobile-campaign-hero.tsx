@@ -96,6 +96,13 @@ export function MobileCampaignHero({
         )
       : 0;
 
+  const latestDonationIsAnonymous =
+    latestDonation
+      ?.displayName
+      .trim()
+      .toLowerCase() ===
+    "anonymous";
+
   const heroUrl =
     content.heroImage
       ?.asset?.url;
@@ -519,22 +526,26 @@ export function MobileCampaignHero({
                   }
                 </span>{" "}
 
-                {t.donated}{" "}
+                {!latestDonationIsAnonymous && (
+                  <>
+                    {t.donated}{" "}
 
-                <span
-                  dir="ltr"
-                  className="inline-block"
-                >
-                  {formatMoney(
-                    latestDonationAmount,
-                    currency,
-                    locale,
-                    {
-                      hideZeroDecimals:
-                        true,
-                    },
-                  )}
-                </span>{" "}
+                    <span
+                      dir="ltr"
+                      className="inline-block"
+                    >
+                      {formatMoney(
+                        latestDonationAmount,
+                        currency,
+                        locale,
+                        {
+                          hideZeroDecimals:
+                            true,
+                        },
+                      )}
+                    </span>{" "}
+                  </>
+                )}
 
                 ›
               </p>

@@ -249,7 +249,6 @@ buttonType: {
             "applePay",
             "googlePay",
             "link",
-            "amazonPay",
           ],
 
           paymentMethods: {

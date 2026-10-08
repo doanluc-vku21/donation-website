@@ -88,6 +88,13 @@ export function MobileDonateBar({
         )
       : 0;
 
+  const latestDonationIsAnonymous =
+    latestDonation
+      ?.displayName
+      .trim()
+      .toLowerCase() ===
+    "anonymous";
+
   useEffect(() => {
     const target =
       document.getElementById(
@@ -165,78 +172,51 @@ export function MobileDonateBar({
           shadow-[0_-8px_28px_rgba(15,30,40,0.14)]
         "
       >
-        <div
-          className="
-            flex
-            items-center
-            gap-3
-          "
-        >
+        <div className="flex items-center gap-3">
           <ProgressCircle
-            progress={
-              progress
-            }
+            progress={progress}
           />
 
           <div
-            dir={
-              textDirection
-            }
-            className="
-              min-w-0
-              flex-1
-            "
+            dir={textDirection}
+            className="min-w-0 flex-1"
           >
             <RaisedText
-              campaign={
-                campaign
-              }
-              locale={
-                locale
-              }
-              currency={
-                currency
-              }
-              exchangeRate={
-                exchangeRate
-              }
+              campaign={campaign}
+              locale={locale}
+              currency={currency}
+              exchangeRate={exchangeRate}
             />
 
             {latestDonation && (
-              <p
-                className="
-                  mt-1
-                  truncate
-                  text-[12px]
-                  text-[#697387]
-                "
-              >
+              <p className="mt-1 truncate text-[12px] text-[#697387]">
                 <span
                   dir="ltr"
                   className="inline-block"
                 >
-                  {
-                    latestDonation
-                      .displayName
-                  }
-                </span>{" "}
+                  {latestDonation.displayName}
+                </span>
 
-                {t.donated}{" "}
-
-                <span
-                  dir="ltr"
-                  className="inline-block"
-                >
-                  {formatMoney(
-                    latestDonationAmount,
-                    currency,
-                    locale,
-                    {
-                      hideZeroDecimals:
-                        true,
-                    },
-                  )}
-                </span>{" "}
+                {!latestDonationIsAnonymous && (
+                  <>
+                    {" "}
+                    {t.donated}{" "}
+                    <span
+                      dir="ltr"
+                      className="inline-block"
+                    >
+                      {formatMoney(
+                        latestDonationAmount,
+                        currency,
+                        locale,
+                        {
+                          hideZeroDecimals:
+                            true,
+                        },
+                      )}
+                    </span>{" "}
+                  </>
+                )}
 
                 ›
               </p>
@@ -246,29 +226,14 @@ export function MobileDonateBar({
 
         <div
           dir="ltr"
-          className="
-            mt-4
-            grid
-            grid-cols-2
-            gap-3
-          "
+          className="mt-4 grid grid-cols-2 gap-3"
         >
           <DonationModal
-            campaign={
-              campaign
-            }
-            content={
-              content
-            }
-            locale={
-              locale
-            }
-            currency={
-              currency
-            }
-            exchangeRate={
-              exchangeRate
-            }
+            campaign={campaign}
+            content={content}
+            locale={locale}
+            currency={currency}
+            exchangeRate={exchangeRate}
             triggerClassName="
               flex
               min-h-[50px]
@@ -286,12 +251,8 @@ export function MobileDonateBar({
           />
 
           <ShareMenu
-            title={
-              content.title
-            }
-            locale={
-              locale
-            }
+            title={content.title}
+            locale={locale}
             triggerVariant="solid"
           />
         </div>
@@ -308,13 +269,7 @@ function ProgressCircle({
   return (
     <div
       dir="ltr"
-      className="
-        grid
-        size-[62px]
-        shrink-0
-        place-items-center
-        rounded-full
-      "
+      className="grid size-[62px] shrink-0 place-items-center rounded-full"
       style={{
         background: `conic-gradient(
           #74c943 ${Math.min(
@@ -325,22 +280,10 @@ function ProgressCircle({
         )`,
       }}
     >
-      <div
-        className="
-          grid
-          size-[49px]
-          place-items-center
-          rounded-full
-          bg-white
-        "
-      >
+      <div className="grid size-[49px] place-items-center rounded-full bg-white">
         <strong
           dir="ltr"
-          className="
-            text-[14px]
-            font-bold
-            text-[#162034]
-          "
+          className="text-[14px] font-bold text-[#162034]"
         >
           {progress}%
         </strong>
@@ -384,17 +327,8 @@ function RaisedText({
 
   return (
     <p
-      dir={
-        textDirection
-      }
-      className="
-        truncate
-        text-[17px]
-        font-bold
-        leading-tight
-        tracking-[-0.02em]
-        text-[#172033]
-      "
+      dir={textDirection}
+      className="truncate text-[17px] font-bold leading-tight tracking-[-0.02em] text-[#172033]"
     >
       <span
         dir="ltr"
@@ -409,21 +343,11 @@ function RaisedText({
 
       {t.raised}{" "}
 
-      <span
-        className="
-          font-normal
-          text-[#758092]
-        "
-      >
+      <span className="font-normal text-[#758092]">
         {t.of}{" "}
-
         <span
           dir="ltr"
-          className="
-            inline-block
-            underline
-            underline-offset-2
-          "
+          className="inline-block underline underline-offset-2"
         >
           {formatMoney(
             goalAmount,
