@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useMemo,
   useState,
 } from "react";
 
@@ -136,6 +137,38 @@ function ExpressCheckoutForm({
   ] =
     useState(false);
 
+  const isIOS =
+    useMemo(() => {
+      if (
+        typeof navigator ===
+        "undefined"
+      ) {
+        return false;
+      }
+
+      const ua =
+        navigator.userAgent;
+
+      const platform =
+        navigator.platform;
+
+      const maxTouchPoints =
+        navigator.maxTouchPoints ??
+        0;
+
+      return (
+        /iPhone|iPad|iPod/i.test(
+          ua,
+        ) ||
+        (
+          platform ===
+            "MacIntel" &&
+          maxTouchPoints >
+            1
+        )
+      );
+    }, []);
+
   async function handleConfirm() {
     if (
       submitting ||
@@ -225,18 +258,26 @@ function ExpressCheckoutForm({
             48,
 
           buttonTheme: {
-  applePay: "black",
-  googlePay: "black",
-},
+            applePay:
+              "black",
 
-buttonType: {
-  applePay: "plain",
-  googlePay: "plain",
-},
+            googlePay:
+              "black",
+          },
+
+          buttonType: {
+            applePay:
+              "plain",
+
+            googlePay:
+              "plain",
+          },
 
           layout: {
             maxColumns:
-              2,
+              isIOS
+                ? 1
+                : 2,
 
             maxRows:
               1,
@@ -245,18 +286,25 @@ buttonType: {
               "auto",
           },
 
-          paymentMethodOrder: [
-            "applePay",
-            "googlePay",
-            "link",
-          ],
+          paymentMethodOrder:
+            isIOS
+              ? [
+                  "applePay",
+                ]
+              : [
+                  "googlePay",
+                  "applePay",
+                  "link",
+                ],
 
           paymentMethods: {
             applePay:
               "always",
 
             googlePay:
-              "always",
+              isIOS
+                ? "never"
+                : "always",
           },
         }}
         onReady={({
