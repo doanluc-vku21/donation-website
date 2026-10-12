@@ -135,7 +135,7 @@ export function DonationFlow({
     setFrequency,
   ] =
     useState<DonationFrequency>(
-      "one_time",
+      "monthly",
     );
 
   const [
