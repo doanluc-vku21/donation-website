@@ -4,8 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title:
-    "Give a Child a Brighter Tomorrow | Open Hands Relief",
+  title: "Give a Child a Brighter Tomorrow | Open Hands Relief",
   description:
     "Join a caring community helping children learn, grow, and look toward a brighter future.",
 };
@@ -15,7 +14,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const metaPixelId = "3261317487388799";
+  const metaPixelId = "2187720428848027";
 
   return (
     <html lang="en">
