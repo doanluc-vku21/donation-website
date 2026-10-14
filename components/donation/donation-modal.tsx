@@ -268,7 +268,9 @@ export function DonationModal({
 
   const disableExpressPrefetch =
     pathname ===
-    "/akram-shake-1";
+      "/akram-shake-1" ||
+    pathname ===
+      "/gaza-help";
 
   const [
     open,

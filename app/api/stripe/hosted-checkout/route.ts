@@ -72,11 +72,17 @@ type StripeSupportedLocale =
   | "de"
   | "es";
 
-const EXPECTED_CAMPAIGN_SLUG =
-  "akram-shake";
+const DIRECT_CAMPAIGN_PATHS:
+  Record<
+    string,
+    string
+  > = {
+  "akram-shake":
+    "/akram-shake-1",
 
-const DIRECT_PUBLIC_PATH =
-  "/akram-shake-1";
+  "give-a-child-a-brighter-tomorrow":
+    "/gaza-help",
+};
 
 const productTranslations:
   Record<
@@ -237,17 +243,21 @@ export async function POST(
     }
 
     /*
-     * /akram-shake-1 must stay attached to the original
-     * "akram-shake" Supabase campaign.
+     * Direct pages use a second public URL only.
+     * The underlying Supabase campaign slug remains unchanged.
      */
+    const directPublicPath =
+      DIRECT_CAMPAIGN_PATHS[
+        campaignSlug
+      ];
+
     if (
-      campaignSlug !==
-      EXPECTED_CAMPAIGN_SLUG
+      !directPublicPath
     ) {
       return NextResponse.json(
         {
           error:
-            "Invalid campaign.",
+            "Invalid direct checkout campaign.",
         },
         {
           status: 400,
@@ -477,16 +487,19 @@ export async function POST(
      */
     const metadata = {
       checkout_source:
-        "hosted_checkout_akram_shake_1",
+        campaignSlug ===
+        "akram-shake"
+          ? "hosted_checkout_akram_shake_1"
+          : "hosted_checkout_gaza_help",
 
       campaign_id:
         campaignId,
 
       campaign_slug:
-        EXPECTED_CAMPAIGN_SLUG,
+        campaignSlug,
 
       campaign_path:
-        DIRECT_PUBLIC_PATH,
+        directPublicPath,
 
       locale:
         siteLocale,
@@ -612,7 +625,7 @@ export async function POST(
             `${siteUrl}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
 
           cancel_url:
-            `${siteUrl}${DIRECT_PUBLIC_PATH}`,
+            `${siteUrl}${directPublicPath}`,
 
           metadata,
 
