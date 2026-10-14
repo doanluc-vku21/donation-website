@@ -7,6 +7,10 @@ import {
 } from "react";
 
 import {
+  usePathname,
+} from "next/navigation";
+
+import {
   ArrowLeft,
   ArrowRight,
   Check,
@@ -118,6 +122,13 @@ export function DonationFlow({
     getUiTranslations(
       locale,
     );
+
+  const pathname =
+    usePathname();
+
+  const isHostedCheckoutPage =
+    pathname ===
+    "/akram-shake-1";
 
   const defaultDonationOptionUsd =
     campaign.donationOptions.find(
@@ -410,6 +421,7 @@ export function DonationFlow({
      * but Stripe still charges the correct selected amount.
      */
     if (
+      isHostedCheckoutPage ||
       step !==
         "amount" ||
       !hasValidAmount
@@ -641,6 +653,7 @@ export function DonationFlow({
     frequency,
     hasValidAmount,
     isAnonymous,
+    isHostedCheckoutPage,
     locale,
     prefetchedExpress,
     step,
@@ -852,9 +865,14 @@ export function DonationFlow({
 
       resetCheckoutSession();
 
+      const endpoint =
+        isHostedCheckoutPage
+          ? "/api/stripe/hosted-checkout"
+          : "/api/stripe/checkout";
+
       const response =
         await fetch(
-          "/api/stripe/checkout",
+          endpoint,
           {
             method:
               "POST",
@@ -870,6 +888,10 @@ export function DonationFlow({
                   campaignId:
                     campaign.id,
 
+                  /*
+                   * /akram-shake-1 is only a second public URL.
+                   * The real campaign remains "akram-shake".
+                   */
                   campaignSlug:
                     campaign.slug,
 
@@ -883,6 +905,13 @@ export function DonationFlow({
                   frequency,
 
                   locale,
+
+                  /*
+                   * Kept for compatibility with the existing
+                   * embedded endpoint.
+                   */
+                  displayPublicly:
+                    !isAnonymous,
 
                   donor: {
                     firstName:
@@ -912,6 +941,59 @@ export function DonationFlow({
           data.error ??
             t.errorCheckout,
         );
+      }
+
+      if (
+        isHostedCheckoutPage
+      ) {
+        if (
+          !data.url ||
+          !data.sessionId ||
+          !Number.isInteger(
+            data.totalAmountMinor,
+          ) ||
+          typeof data.currency !==
+            "string"
+        ) {
+          throw new Error(
+            t.errorCheckout,
+          );
+        }
+
+        if (
+          typeof window !==
+            "undefined" &&
+          typeof window.fbq ===
+            "function"
+        ) {
+          window.fbq(
+            "track",
+            "InitiateCheckout",
+            {
+              value:
+                data.totalAmountMinor /
+                100,
+
+              currency:
+                data.currency,
+
+              content_name:
+                "Donation",
+
+              content_category:
+                frequency ===
+                "monthly"
+                  ? "Monthly donation"
+                  : "One-time donation",
+            },
+          );
+        }
+
+        window.location.assign(
+          data.url,
+        );
+
+        return;
       }
 
       if (
@@ -1454,7 +1536,8 @@ export function DonationFlow({
           </div>
         )}
 
-        {hasValidAmount && (
+        {!isHostedCheckoutPage &&
+          hasValidAmount && (
           <div
             className="
               mt-4

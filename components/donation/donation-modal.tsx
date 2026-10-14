@@ -3,6 +3,10 @@
 import Image from "next/image";
 
 import {
+  usePathname,
+} from "next/navigation";
+
+import {
   Heart,
   X,
 } from "lucide-react";
@@ -259,6 +263,13 @@ export function DonationModal({
       locale,
     );
 
+  const pathname =
+    usePathname();
+
+  const disableExpressPrefetch =
+    pathname ===
+    "/akram-shake-1";
+
   const [
     open,
     setOpen,
@@ -325,6 +336,12 @@ export function DonationModal({
     campaign.organizationName;
 
   function prefetchExpressCheckout() {
+    if (
+      disableExpressPrefetch
+    ) {
+      return;
+    }
+
     const oneTime =
       getOrCreateExpressPrefetch(
         {
@@ -422,6 +439,7 @@ export function DonationModal({
     campaign.slug,
     currency,
     defaultAmount,
+    disableExpressPrefetch,
     locale,
   ]);
 
