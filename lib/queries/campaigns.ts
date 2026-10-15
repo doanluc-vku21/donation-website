@@ -50,6 +50,9 @@ type DonationOptionRow = {
 
   sort_order:
     number;
+
+  frequency:
+    DonationFrequency;
 };
 
 type CampaignStatsRow = {
@@ -218,7 +221,8 @@ export async function getCampaignBySlug(
             amount_cents,
             impact_text,
             featured,
-            sort_order
+            sort_order,
+            frequency
           `,
         )
         .eq(
@@ -291,6 +295,9 @@ export async function getCampaignBySlug(
 
         featured:
           row.featured,
+
+        frequency:
+          row.frequency,
       }),
     );
 

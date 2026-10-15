@@ -6,6 +6,7 @@ export type DonationOption = {
   amountUsd: number;
   impactText: string;
   featured?: boolean;
+  frequency: DonationFrequency;
 };
 
 export type RecentDonation = {
@@ -79,6 +80,9 @@ export const sampleCampaign:
 
       impactText:
         "Helps provide nourishing meals",
+
+      frequency:
+        "one_time",
     },
 
     {
@@ -90,6 +94,9 @@ export const sampleCampaign:
 
       featured:
         true,
+
+      frequency:
+        "one_time",
     },
 
     {
@@ -98,6 +105,9 @@ export const sampleCampaign:
 
       impactText:
         "Strengthens health and learning",
+
+      frequency:
+        "one_time",
     },
 
     {
@@ -106,6 +116,9 @@ export const sampleCampaign:
 
       impactText:
         "Extends care to a whole family",
+
+      frequency:
+        "one_time",
     },
   ],
 

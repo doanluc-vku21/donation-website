@@ -132,14 +132,33 @@ export function DonationFlow({
     pathname ===
       "/gaza-help";
 
+  const defaultFrequency:
+    DonationFrequency =
+    "monthly";
+
+  const defaultFrequencyOptions =
+    campaign.donationOptions.filter(
+      (
+        option,
+      ) =>
+        option.frequency ===
+        defaultFrequency,
+    );
+
+  const defaultDonationOptions =
+    defaultFrequencyOptions.length >
+    0
+      ? defaultFrequencyOptions
+      : campaign.donationOptions;
+
   const defaultDonationOptionUsd =
-    campaign.donationOptions.find(
+    defaultDonationOptions.find(
       (
         option,
       ) =>
         option.featured,
     )?.amountUsd ??
-    campaign.donationOptions[0]
+    defaultDonationOptions[0]
       ?.amountUsd ??
     1000;
 
@@ -148,7 +167,7 @@ export function DonationFlow({
     setFrequency,
   ] =
     useState<DonationFrequency>(
-      "monthly",
+      defaultFrequency,
     );
 
   const [
@@ -357,9 +376,23 @@ export function DonationFlow({
 
   const donationOptions =
     useMemo(() => {
+      const frequencyOptions =
+        campaign.donationOptions.filter(
+          (
+            option,
+          ) =>
+            option.frequency ===
+            frequency,
+        );
+
+      const availableOptions =
+        frequencyOptions.length >
+        0
+          ? frequencyOptions
+          : campaign.donationOptions;
+
       return [
-        ...campaign
-          .donationOptions,
+        ...availableOptions,
       ].sort(
         (
           a,
@@ -371,6 +404,7 @@ export function DonationFlow({
     }, [
       campaign
         .donationOptions,
+      frequency,
     ]);
 
   const desiredExpressKey =
@@ -1190,6 +1224,49 @@ export function DonationFlow({
                     setFrequency(
                       value,
                     );
+
+                    const nextFrequencyOptions =
+                      campaign.donationOptions.filter(
+                        (
+                          option,
+                        ) =>
+                          option.frequency ===
+                          value,
+                      );
+
+                    const nextAvailableOptions =
+                      nextFrequencyOptions.length >
+                      0
+                        ? nextFrequencyOptions
+                        : campaign.donationOptions;
+
+                    const nextDefaultOption =
+                      nextAvailableOptions.find(
+                        (
+                          option,
+                        ) =>
+                          option.featured,
+                      ) ??
+                      nextAvailableOptions[0];
+
+                    if (
+                      nextDefaultOption
+                    ) {
+                      setAmount(
+                        convertUsdToCurrencyMinor(
+                          nextDefaultOption.amountUsd,
+                          exchangeRate,
+                        ),
+                      );
+
+                      setSelectedPreset(
+                        nextDefaultOption.amountUsd,
+                      );
+
+                      setCustomAmount(
+                        "",
+                      );
+                    }
 
                     resetCheckoutSession();
                     resetExpressCheckout();
