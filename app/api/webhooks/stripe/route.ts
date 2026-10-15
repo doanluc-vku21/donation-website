@@ -595,15 +595,46 @@ async function handleInvoicePaymentSucceeded(
   invoice:
     Stripe.Invoice,
 ) {
+  /*
+   * Stripe API 2026-08-26.dahlia can expose the subscription at
+   * invoice.parent.subscription_details.subscription instead of
+   * invoice.subscription.
+   *
+   * Support both shapes so old and new Stripe events work.
+   */
+  const invoiceWithSubscription =
+    invoice as Stripe.Invoice & {
+      subscription?:
+        | string
+        | Stripe.Subscription
+        | null;
+
+      parent?: {
+        type?: string | null;
+
+        subscription_details?: {
+          subscription?:
+            | string
+            | Stripe.Subscription
+            | null;
+        } | null;
+      } | null;
+    };
+
+  const legacySubscriptionValue =
+    invoiceWithSubscription
+      .subscription;
+
+  const parentSubscriptionValue =
+    invoiceWithSubscription
+      .parent
+      ?.subscription_details
+      ?.subscription;
+
   const subscriptionValue =
-    (
-      invoice as Stripe.Invoice & {
-        subscription?:
-          | string
-          | Stripe.Subscription
-          | null;
-      }
-    ).subscription;
+    legacySubscriptionValue ??
+    parentSubscriptionValue ??
+    null;
 
   const subscriptionId =
     typeof subscriptionValue ===
