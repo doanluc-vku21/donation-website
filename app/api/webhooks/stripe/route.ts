@@ -104,29 +104,30 @@ export async function POST(
     switch (
       event.type
     ) {
-      case "checkout.session.completed": {
-        const session =
-          event.data
-            .object as Stripe.Checkout.Session;
+      case "checkout.session.completed":
+case "checkout.session.async_payment_succeeded": {
+  const session =
+    event.data
+      .object as Stripe.Checkout.Session;
 
-        await handleCheckoutSessionCompleted(
-          session,
-        );
+  await handleCheckoutSessionCompleted(
+    session,
+  );
 
-        break;
-      }
+  break;
+}
 
-      case "invoice.payment_succeeded": {
-        const invoice =
-          event.data
-            .object as Stripe.Invoice;
+case "invoice.payment_succeeded": {
+  const invoice =
+    event.data
+      .object as Stripe.Invoice;
 
-        await handleInvoicePaymentSucceeded(
-          invoice,
-        );
+  await handleInvoicePaymentSucceeded(
+    invoice,
+  );
 
-        break;
-      }
+  break;
+}
 
       default: {
         console.log(
@@ -618,21 +619,9 @@ async function handleInvoicePaymentSucceeded(
     return;
   }
 
-  /*
-   * First subscription invoice was already saved by
-   * checkout.session.completed.
-   */
-  if (
-    invoice.billing_reason ===
-    "subscription_create"
-  ) {
-    console.log(
-      "Initial subscription invoice ignored:",
-      invoice.id,
-    );
-
-    return;
-  }
+  // =========================================================
+  // SUBSCRIPTION
+  // =========================================================
 
   const subscription =
     await stripe
@@ -695,6 +684,10 @@ async function handleInvoicePaymentSucceeded(
     );
   }
 
+  // =========================================================
+  // CURRENCY
+  // =========================================================
+
   const chargedCurrency =
     normalizeCurrency(
       invoice.currency ??
@@ -706,7 +699,7 @@ async function handleInvoicePaymentSucceeded(
     !chargedCurrency
   ) {
     throw new Error(
-      `Invalid currency in recurring invoice ${invoice.id}`,
+      `Invalid currency in invoice ${invoice.id}`,
     );
   }
 
@@ -734,15 +727,17 @@ async function handleInvoicePaymentSucceeded(
   const chargedTotalAmountCents =
     Number.isFinite(
       invoice.amount_paid,
-    )
+    ) &&
+    invoice.amount_paid >
+      0
       ? invoice.amount_paid
       : chargedDonationAmountCents +
         chargedFeeAmountCents;
 
-  /*
-   * Recurring payments happen in the future, so normalize them
-   * using the FX rate at payment time rather than the old rate.
-   */
+  // =========================================================
+  // CURRENT FX RATE
+  // =========================================================
+
   const exchangeRate =
     await getUsdToCurrencyRate(
       chargedCurrency,
@@ -766,6 +761,10 @@ async function handleInvoicePaymentSucceeded(
       exchangeRate,
     );
 
+  // =========================================================
+  // PAYMENT INTENT
+  // =========================================================
+
   const paymentIntentValue =
     (
       invoice as Stripe.Invoice & {
@@ -784,12 +783,102 @@ async function handleInvoicePaymentSucceeded(
           ?.id ??
         null;
 
+  // =========================================================
+  // MONTHLY FIRST PAYMENT
+  // =========================================================
+
+  const isInitialSubscriptionPayment =
+    invoice.billing_reason ===
+    "subscription_create";
+
+  let checkoutSessionId:
+    string | null =
+    null;
+
+  /*
+   * Trước đây subscription_create bị return luôn.
+   *
+   * Bây giờ tìm Checkout Session của subscription.
+   * Nếu checkout.session.completed đã lưu donation rồi
+   * thì không lưu lần nữa.
+   */
+  if (
+    isInitialSubscriptionPayment
+  ) {
+    const checkoutSessions =
+      await stripe.checkout
+        .sessions.list({
+          subscription:
+            subscriptionId,
+
+          limit:
+            1,
+        });
+
+    checkoutSessionId =
+      checkoutSessions
+        .data[0]
+        ?.id ??
+      null;
+
+    if (
+      checkoutSessionId
+    ) {
+      const {
+        data:
+          existingInitialDonation,
+
+        error:
+          initialLookupError,
+      } =
+        await supabaseAdmin
+          .from(
+            "donations",
+          )
+          .select(
+            "id",
+          )
+          .eq(
+            "stripe_checkout_session_id",
+            checkoutSessionId,
+          )
+          .maybeSingle();
+
+      if (
+        initialLookupError
+      ) {
+        console.error(
+          "Initial subscription donation lookup error:",
+          initialLookupError,
+        );
+
+        throw initialLookupError;
+      }
+
+      if (
+        existingInitialDonation
+      ) {
+        console.log(
+          "Initial subscription donation already saved:",
+          invoice.id,
+        );
+
+        return;
+      }
+    }
+  }
+
+  // =========================================================
+  // DUPLICATE PAYMENT INTENT CHECK
+  // =========================================================
+
   if (
     paymentIntentId
   ) {
     const {
       data:
         existingDonation,
+
       error:
         existingDonationError,
     } =
@@ -821,13 +910,17 @@ async function handleInvoicePaymentSucceeded(
       existingDonation
     ) {
       console.log(
-        "Recurring donation already saved:",
+        "Donation already saved:",
         invoice.id,
       );
 
       return;
     }
   }
+
+  // =========================================================
+  // CUSTOMER
+  // =========================================================
 
   const customerValue =
     invoice.customer;
@@ -850,6 +943,10 @@ async function handleInvoicePaymentSucceeded(
         stripeCustomerId,
       },
     );
+
+  // =========================================================
+  // INSERT DONATION
+  // =========================================================
 
   const {
     error:
@@ -911,8 +1008,14 @@ async function handleInvoicePaymentSucceeded(
         stripe_payment_intent_id:
           paymentIntentId,
 
+        /*
+         * Với payment Monthly đầu tiên,
+         * lưu luôn Checkout Session ID.
+         *
+         * Các tháng tiếp theo = null.
+         */
         stripe_checkout_session_id:
-          null,
+          checkoutSessionId,
 
         stripe_subscription_id:
           subscriptionId,
@@ -921,12 +1024,21 @@ async function handleInvoicePaymentSucceeded(
   if (
     donationError
   ) {
+    /*
+     * Hai Stripe events có thể chạy gần như cùng lúc:
+     *
+     * checkout.session.completed
+     * invoice.payment_succeeded
+     *
+     * Nếu event còn lại đã insert trước thì unique constraint
+     * sẽ trả 23505. Đây không phải lỗi payment.
+     */
     if (
       donationError.code ===
       "23505"
     ) {
       console.log(
-        "Recurring donation already processed:",
+        "Donation already processed by another Stripe event:",
         invoice.id,
       );
 
@@ -934,7 +1046,7 @@ async function handleInvoicePaymentSucceeded(
     }
 
     console.error(
-      "Recurring donation insert error:",
+      "Monthly donation insert error:",
       donationError,
     );
 
@@ -942,7 +1054,9 @@ async function handleInvoicePaymentSucceeded(
   }
 
   console.log(
-    "Recurring monthly donation saved:",
+    isInitialSubscriptionPayment
+      ? "Initial monthly donation saved:"
+      : "Recurring monthly donation saved:",
     invoice.id,
     "Charged:",
     chargedDonationAmountCents,
