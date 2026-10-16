@@ -1278,7 +1278,7 @@ export function DonationFlow({
                 />
 
                 <span
-                  className="
+                  className={`
                     flex
                     min-h-[42px]
                     items-center
@@ -1288,13 +1288,15 @@ export function DonationFlow({
                     px-3
                     text-[13px]
                     font-semibold
-                    text-[#6d766f]
                     transition
 
-                    peer-checked:bg-white
-                    peer-checked:text-[#173e2a]
-                    peer-checked:shadow-sm
-                  "
+                    ${
+                      frequency ===
+                      value
+                        ? "bg-white text-[#173e2a] shadow-sm"
+                        : "text-[#6d766f]"
+                    }
+                  `}
                 >
                   {value ===
                     "monthly" && (
