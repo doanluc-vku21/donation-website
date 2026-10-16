@@ -82,6 +82,9 @@ const DIRECT_CAMPAIGN_PATHS:
 
   "give-a-child-a-brighter-tomorrow":
     "/gaza-help",
+
+  "child-health":
+    "/child-health",
 };
 
 const productTranslations:
@@ -490,7 +493,10 @@ export async function POST(
         campaignSlug ===
         "akram-shake"
           ? "hosted_checkout_akram_shake_1"
-          : "hosted_checkout_gaza_help",
+          : campaignSlug ===
+              "child-health"
+            ? "hosted_checkout_child_health"
+            : "hosted_checkout_gaza_help",
 
       campaign_id:
         campaignId,

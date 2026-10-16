@@ -130,7 +130,9 @@ export function DonationFlow({
     pathname ===
       "/akram-shake-1" ||
     pathname ===
-      "/gaza-help";
+      "/gaza-help" ||
+    pathname ===
+      "/child-health";
 
   const defaultFrequency:
     DonationFrequency =

@@ -270,7 +270,9 @@ export function DonationModal({
     pathname ===
       "/akram-shake-1" ||
     pathname ===
-      "/gaza-help";
+      "/gaza-help" ||
+    pathname ===
+      "/child-health";
 
   const [
     open,
