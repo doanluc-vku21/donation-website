@@ -1191,8 +1191,8 @@ export function DonationFlow({
 
           {(
             [
-              "one_time",
               "monthly",
+              "one_time",
             ] as const
           ).map(
             (
