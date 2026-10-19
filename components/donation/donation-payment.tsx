@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useState,
 } from "react";
 
@@ -188,6 +189,10 @@ type DonationPaymentProps = {
 
   onBack:
     () => void;
+
+  preloadOnly?: boolean;
+
+  onReady?: () => void;
 };
 
 export function DonationPayment({
@@ -195,9 +200,21 @@ export function DonationPayment({
   locale,
   amountLabel,
   onBack,
+  preloadOnly = false,
+  onReady,
 }: DonationPaymentProps) {
   return (
-    <CheckoutElementsProvider
+    <div
+      className={
+        preloadOnly
+          ? "fixed left-[-10000px] top-0 z-[-1] w-[420px] pointer-events-none opacity-0"
+          : ""
+      }
+      aria-hidden={
+        preloadOnly
+      }
+    >
+      <CheckoutElementsProvider
       stripe={
         stripePromise
       }
@@ -229,18 +246,22 @@ export function DonationPayment({
         },
       }}
     >
-      <PaymentForm
-        locale={
-          locale
-        }
-        amountLabel={
-          amountLabel
-        }
-        onBack={
-          onBack
-        }
-      />
-    </CheckoutElementsProvider>
+        <PaymentForm
+          locale={
+            locale
+          }
+          amountLabel={
+            amountLabel
+          }
+          onBack={
+            onBack
+          }
+          onReady={
+            onReady
+          }
+        />
+      </CheckoutElementsProvider>
+    </div>
   );
 }
 
@@ -248,6 +269,7 @@ function PaymentForm({
   locale,
   amountLabel,
   onBack,
+  onReady,
 }: {
   locale:
     Locale;
@@ -256,6 +278,9 @@ function PaymentForm({
     string;
 
   onBack:
+    () => void;
+
+  onReady?:
     () => void;
 }) {
   const checkoutResult =
@@ -281,6 +306,18 @@ function PaymentForm({
     useState(
       "",
     );
+
+  useEffect(() => {
+    if (
+      checkoutResult.type ===
+      "success"
+    ) {
+      onReady?.();
+    }
+  }, [
+    checkoutResult.type,
+    onReady,
+  ]);
 
   async function handleSubmit(
     event:

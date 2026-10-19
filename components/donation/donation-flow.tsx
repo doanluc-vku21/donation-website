@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -267,6 +268,36 @@ export function DonationFlow({
     useState<
       number | null
     >(null);
+
+  const embeddedCheckoutKeyRef =
+    useRef("");
+
+  const embeddedCheckoutPromiseRef =
+    useRef<
+      Promise<{
+        clientSecret:
+          string;
+
+        sessionId:
+          string;
+
+        totalAmountMinor:
+          number;
+
+        currency:
+          string;
+      }> | null
+    >(null);
+
+  const paymentReadyRef =
+    useRef(false);
+
+  const paymentReadyResolversRef =
+    useRef<
+      Array<
+        () => void
+      >
+    >([]);
 
   type ExpressRenderedSession = {
     key:
@@ -697,6 +728,55 @@ export function DonationFlow({
     step,
   ]);
 
+  useEffect(() => {
+    if (
+      isHostedCheckoutPage ||
+      step !==
+        "amount" ||
+      !hasValidAmount
+    ) {
+      return;
+    }
+
+    const timeout =
+      window.setTimeout(
+        () => {
+          void ensureEmbeddedCheckoutSession().catch(
+            (
+              preloadError,
+            ) => {
+              console.error(
+                "Embedded checkout preload failed:",
+                preloadError,
+              );
+            },
+          );
+        },
+        customAmount.trim()
+          ? 450
+          : 120,
+      );
+
+    return () => {
+      window.clearTimeout(
+        timeout,
+      );
+    };
+  }, [
+    amount,
+    campaign.id,
+    campaign.slug,
+    coverFee,
+    currency,
+    customAmount,
+    frequency,
+    hasValidAmount,
+    isAnonymous,
+    isHostedCheckoutPage,
+    locale,
+    step,
+  ]);
+
   function goToStep(
     nextStep:
       DonationStep,
@@ -730,6 +810,243 @@ export function DonationFlow({
     setCheckoutTotalMinor(
       null,
     );
+
+    embeddedCheckoutKeyRef.current =
+      "";
+
+    embeddedCheckoutPromiseRef.current =
+      null;
+
+    paymentReadyRef.current =
+      false;
+
+    paymentReadyResolversRef.current =
+      [];
+  }
+
+  function markPaymentReady() {
+    if (
+      paymentReadyRef.current
+    ) {
+      return;
+    }
+
+    paymentReadyRef.current =
+      true;
+
+    const resolvers =
+      paymentReadyResolversRef.current;
+
+    paymentReadyResolversRef.current =
+      [];
+
+    for (
+      const resolve
+      of resolvers
+    ) {
+      resolve();
+    }
+  }
+
+  function waitForPaymentReady() {
+    if (
+      paymentReadyRef.current
+    ) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>(
+      (
+        resolve,
+      ) => {
+        paymentReadyResolversRef.current.push(
+          resolve,
+        );
+      },
+    );
+  }
+
+  function getEmbeddedCheckoutKey() {
+    return [
+      campaign.id,
+      frequency,
+      amount,
+      currency,
+      coverFee
+        ? "fee"
+        : "no-fee",
+      locale,
+      isAnonymous
+        ? "anonymous"
+        : "public",
+    ].join(
+      ":",
+    );
+  }
+
+  async function ensureEmbeddedCheckoutSession() {
+    if (
+      isHostedCheckoutPage
+    ) {
+      throw new Error(
+        "Embedded checkout is disabled for this route.",
+      );
+    }
+
+    const key =
+      getEmbeddedCheckoutKey();
+
+    if (
+      embeddedCheckoutKeyRef.current ===
+        key &&
+      clientSecret &&
+      sessionId &&
+      checkoutTotalMinor !=
+        null
+    ) {
+      return {
+        clientSecret,
+        sessionId,
+        totalAmountMinor:
+          checkoutTotalMinor,
+        currency,
+      };
+    }
+
+    if (
+      embeddedCheckoutKeyRef.current ===
+        key &&
+      embeddedCheckoutPromiseRef.current
+    ) {
+      return embeddedCheckoutPromiseRef.current;
+    }
+
+    paymentReadyRef.current =
+      false;
+
+    paymentReadyResolversRef.current =
+      [];
+
+    embeddedCheckoutKeyRef.current =
+      key;
+
+    const promise =
+      fetch(
+        "/api/stripe/checkout",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body:
+            JSON.stringify(
+              {
+                campaignId:
+                  campaign.id,
+
+                campaignSlug:
+                  campaign.slug,
+
+                amountCents:
+                  amount,
+
+                currency,
+
+                coverFee,
+
+                frequency,
+
+                locale,
+
+                displayPublicly:
+                  !isAnonymous,
+              },
+            ),
+        },
+      )
+        .then(
+          async (
+            response,
+          ) => {
+            const data =
+              await response.json();
+
+            if (
+              !response.ok ||
+              !data.clientSecret ||
+              !data.sessionId ||
+              !Number.isInteger(
+                data.totalAmountMinor,
+              ) ||
+              typeof data.currency !==
+                "string"
+            ) {
+              throw new Error(
+                data.error ??
+                  t.errorCheckout,
+              );
+            }
+
+            if (
+              embeddedCheckoutKeyRef.current !==
+              key
+            ) {
+              throw new Error(
+                "Checkout configuration changed.",
+              );
+            }
+
+            setClientSecret(
+              data.clientSecret,
+            );
+
+            setSessionId(
+              data.sessionId,
+            );
+
+            setCheckoutTotalMinor(
+              data.totalAmountMinor,
+            );
+
+            return {
+              clientSecret:
+                data.clientSecret as string,
+
+              sessionId:
+                data.sessionId as string,
+
+              totalAmountMinor:
+                data.totalAmountMinor as number,
+
+              currency:
+                data.currency as string,
+            };
+          },
+        )
+        .catch(
+          (
+            checkoutError,
+          ) => {
+            if (
+              embeddedCheckoutKeyRef.current ===
+              key
+            ) {
+              embeddedCheckoutPromiseRef.current =
+                null;
+            }
+
+            throw checkoutError;
+          },
+        );
+
+    embeddedCheckoutPromiseRef.current =
+      promise;
+
+    return promise;
   }
 
   function selectAmount(
@@ -834,6 +1151,21 @@ export function DonationFlow({
     goToStep(
       "donor",
     );
+
+    if (
+      !isHostedCheckoutPage
+    ) {
+      void ensureEmbeddedCheckoutSession().catch(
+        (
+          preloadError,
+        ) => {
+          console.error(
+            "Embedded checkout preload failed:",
+            preloadError,
+          );
+        },
+      );
+    }
   }
 
   async function handleCheckout() {
@@ -901,90 +1233,67 @@ export function DonationFlow({
         true,
       );
 
-      resetCheckoutSession();
-
-      const endpoint =
+      if (
         isHostedCheckoutPage
-          ? "/api/stripe/hosted-checkout"
-          : "/api/stripe/checkout";
+      ) {
+        const response =
+          await fetch(
+            "/api/stripe/hosted-checkout",
+            {
+              method:
+                "POST",
 
-      const response =
-        await fetch(
-          endpoint,
-          {
-            method:
-              "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+              body:
+                JSON.stringify(
+                  {
+                    campaignId:
+                      campaign.id,
 
-            body:
-              JSON.stringify(
-                {
-                  campaignId:
-                    campaign.id,
+                    campaignSlug:
+                      campaign.slug,
 
-                  /*
-                   * /akram-shake-1 is only a second public URL.
-                   * The real campaign remains "akram-shake".
-                   */
-                  campaignSlug:
-                    campaign.slug,
+                    amountCents:
+                      amount,
 
-                  amountCents:
-                    amount,
+                    currency,
 
-                  currency,
+                    coverFee,
 
-                  coverFee,
+                    frequency,
 
-                  frequency,
-
-                  locale,
-
-                  /*
-                   * Kept for compatibility with the existing
-                   * embedded endpoint.
-                   */
-                  displayPublicly:
-                    !isAnonymous,
-
-                  donor: {
-                    firstName:
-                      firstName.trim(),
-
-                    lastName:
-                      lastName.trim(),
-
-                    email:
-                      email.trim(),
+                    locale,
 
                     displayPublicly:
                       !isAnonymous,
+
+                    donor: {
+                      firstName:
+                        firstName.trim(),
+
+                      lastName:
+                        lastName.trim(),
+
+                      email:
+                        email.trim(),
+
+                      displayPublicly:
+                        !isAnonymous,
+                    },
                   },
-                },
-              ),
-          },
-        );
+                ),
+            },
+          );
 
-      const data =
-        await response.json();
+        const data =
+          await response.json();
 
-      if (
-        !response.ok
-      ) {
-        throw new Error(
-          data.error ??
-            t.errorCheckout,
-        );
-      }
-
-      if (
-        isHostedCheckoutPage
-      ) {
         if (
+          !response.ok ||
           !data.url ||
           !data.sessionId ||
           !Number.isInteger(
@@ -994,7 +1303,8 @@ export function DonationFlow({
             "string"
         ) {
           throw new Error(
-            t.errorCheckout,
+            data.error ??
+              t.errorCheckout,
           );
         }
 
@@ -1034,19 +1344,10 @@ export function DonationFlow({
         return;
       }
 
-      if (
-        !data.clientSecret ||
-        !data.sessionId ||
-        !Number.isInteger(
-          data.totalAmountMinor,
-        ) ||
-        typeof data.currency !==
-          "string"
-      ) {
-        throw new Error(
-          t.errorCheckout,
-        );
-      }
+      const data =
+        await ensureEmbeddedCheckoutSession();
+
+      await waitForPaymentReady();
 
       if (
         typeof window !==
@@ -1060,7 +1361,7 @@ export function DonationFlow({
           {
             value:
               data.totalAmountMinor /
-              100,
+                100,
 
             currency:
               data.currency,
@@ -1076,18 +1377,6 @@ export function DonationFlow({
           },
         );
       }
-
-      setClientSecret(
-        data.clientSecret,
-      );
-
-      setSessionId(
-        data.sessionId,
-      );
-
-      setCheckoutTotalMinor(
-        data.totalAmountMinor,
-      );
 
       goToStep(
         "payment",
@@ -1129,32 +1418,45 @@ export function DonationFlow({
     checkoutTotalMinor != null
   ) {
     return (
-      <DonationPayment
-        clientSecret={
-          clientSecret
+      <section
+        dir={
+          locale ===
+          "ar"
+            ? "rtl"
+            : "ltr"
         }
-        locale={
-          locale
-        }
-        amountLabel={
-          formatMoney(
-            checkoutTotalMinor,
-            currency,
-            locale,
-          )
-        }
-        onBack={() => {
-          resetCheckoutSession();
+      >
+        <DonationPayment
+          key={
+            sessionId
+          }
+          clientSecret={
+            clientSecret
+          }
+          locale={
+            locale
+          }
+          amountLabel={
+            formatMoney(
+              checkoutTotalMinor,
+              currency,
+              locale,
+            )
+          }
+          onReady={
+            markPaymentReady
+          }
+          onBack={() => {
+            setError(
+              "",
+            );
 
-          setError(
-            "",
-          );
-
-          goToStep(
-            "donor",
-          );
-        }}
-      />
+            goToStep(
+              "donor",
+            );
+          }}
+        />
+      </section>
     );
   }
 
@@ -1936,6 +2238,35 @@ export function DonationFlow({
             t.securePaymentByStripe
           }
         </SecureText>
+        {!isHostedCheckoutPage &&
+          clientSecret &&
+          sessionId &&
+          checkoutTotalMinor != null && (
+            <DonationPayment
+              key={
+                sessionId
+              }
+              clientSecret={
+                clientSecret
+              }
+              locale={
+                locale
+              }
+              amountLabel={
+                formatMoney(
+                  checkoutTotalMinor,
+                  currency,
+                  locale,
+                )
+              }
+              onReady={
+                markPaymentReady
+              }
+              onBack={() => {}}
+              preloadOnly
+            />
+          )}
+
       </section>
     );
   }
@@ -2219,6 +2550,35 @@ export function DonationFlow({
           t.paymentProcessedStripe
         }
       </SecureText>
+
+      {!isHostedCheckoutPage &&
+        clientSecret &&
+        sessionId &&
+        checkoutTotalMinor != null && (
+          <DonationPayment
+            key={
+              sessionId
+            }
+            clientSecret={
+              clientSecret
+            }
+            locale={
+              locale
+            }
+            amountLabel={
+              formatMoney(
+                checkoutTotalMinor,
+                currency,
+                locale,
+              )
+            }
+            onReady={
+              markPaymentReady
+            }
+            onBack={() => {}}
+            preloadOnly
+          />
+        )}
     </section>
   );
 }
