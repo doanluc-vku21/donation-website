@@ -16,6 +16,10 @@ import {
   useState,
 } from "react";
 
+import {
+  createPortal,
+} from "react-dom";
+
 import type {
   Campaign,
   DonationFrequency,
@@ -280,6 +284,11 @@ export function DonationModal({
   ] = useState(false);
 
   const [
+    mounted,
+    setMounted,
+  ] = useState(false);
+
+  const [
     step,
     setStep,
   ] =
@@ -479,6 +488,12 @@ export function DonationModal({
   }
 
   useEffect(() => {
+    setMounted(
+      true,
+    );
+  }, []);
+
+  useEffect(() => {
     if (!open) {
       return;
     }
@@ -549,7 +564,9 @@ export function DonationModal({
           t.donate}
       </button>
 
-      <div
+      {mounted &&
+        createPortal(
+          <div
         aria-hidden={
           !open
         }
@@ -850,7 +867,9 @@ export function DonationModal({
               </div>
             </div>
           </section>
-      </div>
+      </div>,
+          document.body,
+        )}
     </>
   );
 }
