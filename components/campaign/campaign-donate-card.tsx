@@ -33,8 +33,8 @@ import {
 } from "@/components/share/share-menu";
 
 import {
-  DonationModal,
-} from "@/components/donation/donation-modal";
+  DonationModalTrigger,
+} from "@/components/donation/donation-modal-trigger";
 
 type CampaignDonateCardProps = {
   campaign: Campaign;
@@ -204,13 +204,9 @@ export function CampaignDonateCard({
       </div>
 
       <div className="mt-6">
-        <DonationModal
-          campaign={campaign}
-          content={content}
+        <DonationModalTrigger
           locale={locale}
-          currency={currency}
-          exchangeRate={exchangeRate}
-          triggerClassName="
+          className="
             flex
             min-h-[52px]
             w-full

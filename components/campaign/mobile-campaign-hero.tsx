@@ -7,8 +7,8 @@ import {
 } from "lucide-react";
 
 import {
-  DonationModal,
-} from "@/components/donation/donation-modal";
+  DonationModalTrigger,
+} from "@/components/donation/donation-modal-trigger";
 
 import {
   ShareMenu,
@@ -554,23 +554,11 @@ export function MobileCampaignHero({
         </div>
 
         <div className="mt-3">
-          <DonationModal
-            campaign={
-              campaign
-            }
-            content={
-              content
-            }
+          <DonationModalTrigger
             locale={
               locale
             }
-            currency={
-              currency
-            }
-            exchangeRate={
-              exchangeRate
-            }
-            triggerClassName="
+            className="
               flex
               min-h-[50px]
               w-full

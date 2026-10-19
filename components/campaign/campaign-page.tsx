@@ -49,6 +49,10 @@ import {
 } from "@/components/donation/mobile-donate-bar";
 
 import {
+  DonationModal,
+} from "@/components/donation/donation-modal";
+
+import {
   ShareMenu,
 } from "@/components/share/share-menu";
 
@@ -626,6 +630,28 @@ export function CampaignPage({
       ====================================================== */}
 
       <MobileDonateBar
+        campaign={
+          campaignWithGoal
+        }
+        content={
+          content
+        }
+        locale={
+          locale
+        }
+        currency={
+          currency
+        }
+        exchangeRate={
+          exchangeRate
+        }
+      />
+
+      {/* =====================================================
+          SINGLE GLOBAL DONATION MODAL
+      ====================================================== */}
+
+      <DonationModal
         campaign={
           campaignWithGoal
         }

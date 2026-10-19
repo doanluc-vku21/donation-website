@@ -7,7 +7,6 @@ import {
 } from "next/navigation";
 
 import {
-  Heart,
   X,
 } from "lucide-react";
 
@@ -51,6 +50,10 @@ import {
   convertUsdToCurrencyMinor,
 } from "@/lib/money";
 
+import {
+  DONATION_MODAL_OPEN_EVENT,
+} from "./donation-modal-events";
+
 type DonationStep =
   | "amount"
   | "donor"
@@ -63,11 +66,6 @@ type DonationModalProps = {
 
   currency: Currency;
   exchangeRate: number;
-
-  triggerClassName?: string;
-  triggerLabel?: string;
-
-  showHeart?: boolean;
 };
 
 /*
@@ -258,9 +256,6 @@ export function DonationModal({
   locale,
   currency,
   exchangeRate,
-  triggerClassName = "",
-  triggerLabel,
-  showHeart = true,
 }: DonationModalProps) {
   const t =
     getUiTranslations(
@@ -309,14 +304,29 @@ export function DonationModal({
       >
     >({});
 
+  const monthlyDonationOptions =
+    campaign.donationOptions.filter(
+      (
+        option,
+      ) =>
+        option.frequency ===
+        "monthly",
+    );
+
+  const defaultDonationOptions =
+    monthlyDonationOptions.length >
+    0
+      ? monthlyDonationOptions
+      : campaign.donationOptions;
+
   const defaultDonationOptionUsd =
-    campaign.donationOptions.find(
+    defaultDonationOptions.find(
       (
         option,
       ) =>
         option.featured,
     )?.amountUsd ??
-    campaign.donationOptions[0]
+    defaultDonationOptions[0]
       ?.amountUsd ??
     1000;
 
@@ -355,27 +365,6 @@ export function DonationModal({
       return;
     }
 
-    const oneTime =
-      getOrCreateExpressPrefetch(
-        {
-          campaignId:
-            campaign.id,
-
-          campaignSlug:
-            campaign.slug,
-
-          frequency:
-            "one_time",
-
-          amount:
-            defaultAmount,
-
-          currency,
-
-          locale,
-        },
-      );
-
     const monthly =
       getOrCreateExpressPrefetch(
         {
@@ -403,10 +392,6 @@ export function DonationModal({
       ) => {
         if (
           current
-            .one_time
-            ?.key ===
-            oneTime.key &&
-          current
             .monthly
             ?.key ===
             monthly.key
@@ -415,8 +400,7 @@ export function DonationModal({
         }
 
         return {
-          one_time:
-            oneTime,
+          ...current,
 
           monthly,
         };
@@ -425,13 +409,13 @@ export function DonationModal({
   }
 
   /*
-   * Warm both Give once and Monthly shortly after the page is
-   * interactive. By the time the donor clicks Donate, Stripe
-   * usually already has the client_secret ready.
+   * Warm only the default Monthly Express Checkout session.
    *
-   * Every visible Donate button shares the module-level cache,
-   * so the same campaign configuration only sends one request
-   * per frequency.
+   * There is now exactly one DonationModal / DonationFlow on
+   * the campaign page. This avoids creating multiple Stripe
+   * Elements trees for the same campaign.
+   *
+   * Give once is created only when the donor switches to it.
    */
   useEffect(() => {
     const timeout =
@@ -494,6 +478,24 @@ export function DonationModal({
   }, []);
 
   useEffect(() => {
+    function handleOpenDonationModal() {
+      openModal();
+    }
+
+    window.addEventListener(
+      DONATION_MODAL_OPEN_EVENT,
+      handleOpenDonationModal,
+    );
+
+    return () => {
+      window.removeEventListener(
+        DONATION_MODAL_OPEN_EVENT,
+        handleOpenDonationModal,
+      );
+    };
+  });
+
+  useEffect(() => {
     if (!open) {
       return;
     }
@@ -535,35 +537,6 @@ export function DonationModal({
 
   return (
     <>
-      <button
-        type="button"
-        onPointerEnter={
-          prefetchExpressCheckout
-        }
-        onPointerDown={
-          prefetchExpressCheckout
-        }
-        onFocus={
-          prefetchExpressCheckout
-        }
-        onClick={
-          openModal
-        }
-        className={
-          triggerClassName
-        }
-      >
-        {showHeart && (
-          <Heart
-            aria-hidden="true"
-            className="size-[18px]"
-          />
-        )}
-
-        {triggerLabel ??
-          t.donate}
-      </button>
-
       {mounted &&
         createPortal(
           <div
@@ -839,31 +812,33 @@ export function DonationModal({
                     : "mt-4"
                 }
               >
-                <DonationFlow
-                  campaign={
-                    campaign
-                  }
-                  locale={
-                    locale
-                  }
-                  currency={
-                    currency
-                  }
-                  exchangeRate={
-                    exchangeRate
-                  }
-                  prefetchedExpress={
-                    prefetchedExpress
-                  }
-                  embedded
-                  onStepChange={(
-                    nextStep,
-                  ) => {
-                    setStep(
+                {open && (
+                  <DonationFlow
+                    campaign={
+                      campaign
+                    }
+                    locale={
+                      locale
+                    }
+                    currency={
+                      currency
+                    }
+                    exchangeRate={
+                      exchangeRate
+                    }
+                    prefetchedExpress={
+                      prefetchedExpress
+                    }
+                    embedded
+                    onStepChange={(
                       nextStep,
-                    );
-                  }}
-                />
+                    ) => {
+                      setStep(
+                        nextStep,
+                      );
+                    }}
+                  />
+                )}
               </div>
             </div>
           </section>

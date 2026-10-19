@@ -36,8 +36,8 @@ import {
 } from "@/components/share/share-menu";
 
 import {
-  DonationModal,
-} from "@/components/donation/donation-modal";
+  DonationModalTrigger,
+} from "@/components/donation/donation-modal-trigger";
 
 type MobileDonateBarProps = {
   campaign: Campaign;
@@ -228,13 +228,9 @@ export function MobileDonateBar({
           dir="ltr"
           className="mt-4 grid grid-cols-2 gap-3"
         >
-          <DonationModal
-            campaign={campaign}
-            content={content}
+          <DonationModalTrigger
             locale={locale}
-            currency={currency}
-            exchangeRate={exchangeRate}
-            triggerClassName="
+            className="
               flex
               min-h-[50px]
               w-full
