@@ -56,6 +56,7 @@ import {
 
 type DonationStep =
   | "amount"
+  | "one_time_offer"
   | "donor"
   | "payment";
 
@@ -84,12 +85,16 @@ const expressPrefetchCache =
 
 function buildExpressKey({
   campaignId,
+  campaignPath,
   frequency,
   amount,
   currency,
   locale,
 }: {
   campaignId:
+    string;
+
+  campaignPath:
     string;
 
   frequency:
@@ -106,6 +111,7 @@ function buildExpressKey({
 }) {
   return [
     campaignId,
+    campaignPath,
     frequency,
     amount,
     currency,
@@ -120,6 +126,7 @@ function buildExpressKey({
 function getOrCreateExpressPrefetch({
   campaignId,
   campaignSlug,
+  campaignPath,
   frequency,
   amount,
   currency,
@@ -129,6 +136,9 @@ function getOrCreateExpressPrefetch({
     string;
 
   campaignSlug:
+    string;
+
+  campaignPath:
     string;
 
   frequency:
@@ -146,6 +156,7 @@ function getOrCreateExpressPrefetch({
   const key =
     buildExpressKey({
       campaignId,
+      campaignPath,
       frequency,
       amount,
       currency,
@@ -176,6 +187,8 @@ function getOrCreateExpressPrefetch({
                 campaignId,
 
                 campaignSlug,
+
+                campaignPath,
 
                 amountCents:
                   amount,
@@ -374,6 +387,9 @@ export function DonationModal({
           campaignSlug:
             campaign.slug,
 
+          campaignPath:
+            pathname,
+
           frequency:
             "monthly",
 
@@ -438,6 +454,7 @@ export function DonationModal({
     defaultAmount,
     disableExpressPrefetch,
     locale,
+    pathname,
   ]);
 
   function openModal() {

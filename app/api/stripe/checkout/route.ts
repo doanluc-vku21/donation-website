@@ -36,6 +36,9 @@ type ExpressCheckoutBody = {
   campaignSlug:
     string;
 
+  campaignPath?:
+    string;
+
   amountCents:
     number;
 
@@ -194,6 +197,8 @@ export async function POST(
     const {
       campaignId,
       campaignSlug,
+      campaignPath:
+        requestedCampaignPath,
       amountCents,
       currency,
       coverFee,
@@ -351,10 +356,32 @@ export async function POST(
       );
     }
 
-    const campaignPath =
+    const defaultCampaignPath =
       getCampaignPublicPath(
         campaignSlug,
       );
+
+    /*
+     * child-health-1 is only a second public entry URL.
+     * It still belongs to the same "child-health" campaign.
+     *
+     * Keep campaign_slug = "child-health" so Supabase stats,
+     * recent donations, recurring payments, and webhooks all
+     * remain attached to the original campaign.
+     *
+     * Only preserve the alternate public URL in campaign_path
+     * so Thank You -> Donate Again returns to the page where
+     * the donor actually started.
+     *
+     * Do not accept arbitrary paths from the browser.
+     */
+    const campaignPath =
+      campaignSlug ===
+          "child-health" &&
+        requestedCampaignPath ===
+          "/child-health-1"
+        ? "/child-health-1"
+        : defaultCampaignPath;
 
     const siteUrl =
       process.env
