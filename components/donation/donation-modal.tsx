@@ -628,7 +628,7 @@ export function DonationModal({
                 overflow-y-auto
                 overscroll-contain
                 px-4
-                pb-[max(20px,calc(env(safe-area-inset-bottom)+72px))]
+                pb-[max(20px,env(safe-area-inset-bottom))]
                 pt-5
                 [-webkit-overflow-scrolling:touch]
 
