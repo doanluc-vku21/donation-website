@@ -9,6 +9,10 @@ import {
 } from "@/lib/stripe/server";
 
 import {
+  resend,
+} from "@/lib/resend";
+
+import {
   supabaseAdmin,
 } from "@/lib/supabase/admin";
 
@@ -101,6 +105,577 @@ async function completeDonationAttempt(
 
     throw error;
   }
+}
+
+
+type DonationReceiptInput = {
+  donationId:
+    string;
+
+  email:
+    string;
+
+  firstName:
+    string;
+
+  amountCents:
+    number;
+
+  currency:
+    string;
+
+  frequency:
+    "one_time" | "monthly";
+
+  reference:
+    string;
+
+  paidAt:
+    Date;
+};
+
+function escapeReceiptHtml(
+  value:
+    string,
+) {
+  return value
+    .replaceAll(
+      "&",
+      "&amp;",
+    )
+    .replaceAll(
+      "<",
+      "&lt;",
+    )
+    .replaceAll(
+      ">",
+      "&gt;",
+    )
+    .replaceAll(
+      '"',
+      "&quot;",
+    )
+    .replaceAll(
+      "'",
+      "&#039;",
+    );
+}
+
+function formatReceiptAmount(
+  amountCents:
+    number,
+  currency:
+    string,
+) {
+  try {
+    return new Intl.NumberFormat(
+      "en-US",
+      {
+        style:
+          "currency",
+
+        currency:
+          currency.toUpperCase(),
+
+        minimumFractionDigits:
+          amountCents %
+            100 ===
+          0
+            ? 0
+            : 2,
+
+        maximumFractionDigits:
+          2,
+      },
+    ).format(
+      amountCents /
+        100,
+    );
+  } catch {
+    return `${(
+      amountCents /
+        100
+    ).toFixed(
+      2,
+    )} ${currency.toUpperCase()}`;
+  }
+}
+
+async function sendDonationReceipt({
+  donationId,
+  email,
+  firstName,
+  amountCents,
+  currency,
+  frequency,
+  reference,
+  paidAt,
+}: DonationReceiptInput) {
+  const normalizedEmail =
+    email
+      .trim()
+      .toLowerCase();
+
+  if (
+    !normalizedEmail
+  ) {
+    console.warn(
+      "Skipping donation receipt because donor email is missing:",
+      donationId,
+    );
+
+    return;
+  }
+
+  /*
+   * Claim the receipt before sending.
+   *
+   * Stripe can send checkout.session.completed and
+   * invoice.payment_succeeded very close together for the first
+   * subscription payment. This conditional UPDATE prevents both
+   * webhook executions from sending the same receipt.
+   *
+   * A claim older than 15 minutes is considered stale so a
+   * later Stripe retry can recover if the process crashed.
+   */
+  const staleClaimBefore =
+    new Date(
+      Date.now() -
+        15 *
+          60 *
+          1000,
+    ).toISOString();
+
+  const claimTime =
+    new Date().toISOString();
+
+  const {
+    data:
+      claimedDonation,
+    error:
+      claimError,
+  } =
+    await supabaseAdmin
+      .from(
+        "donations",
+      )
+      .update({
+        receipt_claimed_at:
+          claimTime,
+      })
+      .eq(
+        "id",
+        donationId,
+      )
+      .is(
+        "receipt_sent_at",
+        null,
+      )
+      .or(
+        `receipt_claimed_at.is.null,receipt_claimed_at.lt.${staleClaimBefore}`,
+      )
+      .select(
+        "id",
+      )
+      .maybeSingle();
+
+  if (
+    claimError
+  ) {
+    console.error(
+      "Donation receipt claim error:",
+      donationId,
+      claimError,
+    );
+
+    throw claimError;
+  }
+
+  if (
+    !claimedDonation
+  ) {
+    console.log(
+      "Donation receipt already sent or currently being processed:",
+      donationId,
+    );
+
+    return;
+  }
+
+  const amountLabel =
+    formatReceiptAmount(
+      amountCents,
+      currency,
+    );
+
+  const frequencyLabel =
+    frequency ===
+    "monthly"
+      ? "Monthly"
+      : "One-time";
+
+  const safeFirstName =
+    escapeReceiptHtml(
+      firstName.trim() ||
+        "Donor",
+    );
+
+  const safeAmountLabel =
+    escapeReceiptHtml(
+      amountLabel,
+    );
+
+  const safeReference =
+    escapeReceiptHtml(
+      reference,
+    );
+
+  const dateLabel =
+    paidAt.toLocaleDateString(
+      "en-US",
+      {
+        year:
+          "numeric",
+        month:
+          "long",
+        day:
+          "numeric",
+      },
+    );
+
+  const html =
+    `
+<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:#f7f8f5;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+      Your donation payment was received successfully.
+    </div>
+
+    <table
+      role="presentation"
+      width="100%"
+      cellspacing="0"
+      cellpadding="0"
+      border="0"
+      style="background:#f7f8f5;"
+    >
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table
+            role="presentation"
+            width="100%"
+            cellspacing="0"
+            cellpadding="0"
+            border="0"
+            style="
+              max-width:560px;
+              background:#ffffff;
+              border:1px solid #e7ebe5;
+              border-radius:18px;
+            "
+          >
+            <tr>
+              <td
+                style="
+                  padding:32px;
+                  font-family:Arial,Helvetica,sans-serif;
+                  color:#17233b;
+                "
+              >
+                <div
+                  style="
+                    font-size:14px;
+                    font-weight:700;
+                    color:#25724a;
+                    margin-bottom:20px;
+                  "
+                >
+                  MEAL SUPPORT INC
+                </div>
+
+                <h1
+                  style="
+                    margin:0 0 10px;
+                    font-size:26px;
+                    line-height:1.3;
+                    color:#17233b;
+                  "
+                >
+                  Thank you for your donation ❤️
+                </h1>
+
+                <p
+                  style="
+                    margin:0 0 24px;
+                    font-size:16px;
+                    line-height:1.65;
+                    color:#45534b;
+                  "
+                >
+                  Hi ${safeFirstName}, we’ve successfully received
+                  your donation. Here is your payment receipt.
+                </p>
+
+                <div
+                  style="
+                    padding:24px;
+                    margin:0 0 24px;
+                    border-radius:14px;
+                    background:#f4f7f5;
+                  "
+                >
+                  <div
+                    style="
+                      margin-bottom:6px;
+                      font-size:13px;
+                      color:#718078;
+                    "
+                  >
+                    Donation amount
+                  </div>
+
+                  <div
+                    style="
+                      margin-bottom:22px;
+                      font-size:30px;
+                      font-weight:700;
+                      color:#17233b;
+                    "
+                  >
+                    ${safeAmountLabel}
+                  </div>
+
+                  <table
+                    role="presentation"
+                    width="100%"
+                    cellspacing="0"
+                    cellpadding="0"
+                    border="0"
+                    style="
+                      font-size:14px;
+                      line-height:1.7;
+                      color:#45534b;
+                    "
+                  >
+                    <tr>
+                      <td>Donation type</td>
+                      <td align="right">
+                        <strong>${frequencyLabel}</strong>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Payment status</td>
+                      <td align="right">
+                        <strong style="color:#25724a;">Paid</strong>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Payment date</td>
+                      <td align="right">
+                        <strong>${dateLabel}</strong>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Currency</td>
+                      <td align="right">
+                        <strong>${escapeReceiptHtml(
+                          currency.toUpperCase(),
+                        )}</strong>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+                <p
+                  style="
+                    margin:0 0 8px;
+                    font-size:13px;
+                    line-height:1.6;
+                    color:#7a857f;
+                  "
+                >
+                  Payment reference
+                </p>
+
+                <p
+                  style="
+                    margin:0 0 24px;
+                    font-size:12px;
+                    line-height:1.6;
+                    color:#45534b;
+                    word-break:break-all;
+                  "
+                >
+                  ${safeReference}
+                </p>
+
+                <p
+                  style="
+                    margin:0;
+                    font-size:14px;
+                    line-height:1.65;
+                    color:#45534b;
+                  "
+                >
+                  Thank you for your kindness and support.<br />
+                  MEAL SUPPORT INC
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+    `.trim();
+
+  const receiptText =
+    [
+      "MEAL SUPPORT INC",
+      "",
+      `Thank you for your donation, ${firstName.trim() || "Donor"}!`,
+      "",
+      "We’ve successfully received your donation.",
+      "",
+      `Donation amount: ${amountLabel}`,
+      `Donation type: ${frequencyLabel}`,
+      "Payment status: Paid",
+      `Payment date: ${dateLabel}`,
+      `Currency: ${currency.toUpperCase()}`,
+      `Payment reference: ${reference}`,
+      "",
+      "Thank you for your kindness and support.",
+      "MEAL SUPPORT INC",
+    ].join(
+      "\n",
+    );
+
+  const {
+    data:
+      emailData,
+    error:
+      emailError,
+  } =
+    await resend.emails.send({
+      from:
+        process.env
+          .RESEND_FROM_EMAIL ??
+        "MEAL SUPPORT INC <donations@mail.mealsupport.org>",
+
+      to:
+        normalizedEmail,
+
+      replyTo:
+        process.env
+          .RESEND_REPLY_TO ??
+        "support@mealsupport.org",
+
+      subject:
+        "Thank you for your donation ❤️",
+
+      html,
+
+      text:
+        receiptText,
+    });
+
+  if (
+    emailError
+  ) {
+    const {
+      error:
+        releaseError,
+    } =
+      await supabaseAdmin
+        .from(
+          "donations",
+        )
+        .update({
+          receipt_claimed_at:
+            null,
+        })
+        .eq(
+          "id",
+          donationId,
+        )
+        .eq(
+          "receipt_claimed_at",
+          claimTime,
+        )
+        .is(
+          "receipt_sent_at",
+          null,
+        );
+
+    if (
+      releaseError
+    ) {
+      console.error(
+        "Donation receipt claim release error:",
+        donationId,
+        releaseError,
+      );
+    }
+
+    console.error(
+      "Donation receipt send error:",
+      donationId,
+      emailError,
+    );
+
+    throw new Error(
+      `Unable to send donation receipt: ${emailError.message}`,
+    );
+  }
+
+  const {
+    error:
+      receiptUpdateError,
+  } =
+    await supabaseAdmin
+      .from(
+        "donations",
+      )
+      .update({
+        receipt_sent_at:
+          new Date().toISOString(),
+
+        receipt_email_id:
+          emailData?.id ??
+          null,
+
+        receipt_claimed_at:
+          null,
+      })
+      .eq(
+        "id",
+        donationId,
+      )
+      .eq(
+        "receipt_claimed_at",
+        claimTime,
+      );
+
+  if (
+    receiptUpdateError
+  ) {
+    console.error(
+      "Donation receipt database update error:",
+      donationId,
+      receiptUpdateError,
+    );
+
+    throw receiptUpdateError;
+  }
+
+  console.log(
+    "Donation receipt sent:",
+    donationId,
+    emailData?.id ??
+      "no-email-id",
+  );
 }
 
 export async function POST(
@@ -482,6 +1057,32 @@ async function handleCheckoutSessionCompleted(
       session.id,
     );
 
+    await sendDonationReceipt({
+      donationId:
+        existingDonation.id,
+
+      email,
+
+      firstName,
+
+      amountCents:
+        chargedDonationAmountCents,
+
+      currency:
+        chargedCurrency,
+
+      frequency,
+
+      reference:
+        session.id,
+
+      paidAt:
+        new Date(
+          session.created *
+            1000,
+        ),
+    });
+
     return;
   }
 
@@ -569,6 +1170,8 @@ async function handleCheckoutSessionCompleted(
    * charged_* columns store what Stripe actually charged.
    */
   const {
+    data:
+      insertedDonation,
     error:
       donationError,
   } =
@@ -632,7 +1235,11 @@ async function handleCheckoutSessionCompleted(
 
         stripe_subscription_id:
           subscriptionId,
-      });
+      })
+      .select(
+        "id",
+      )
+      .single();
 
   if (
     donationError
@@ -646,6 +1253,61 @@ async function handleCheckoutSessionCompleted(
         session.id,
       );
 
+      const {
+        data:
+          duplicateDonation,
+        error:
+          duplicateLookupError,
+      } =
+        await supabaseAdmin
+          .from(
+            "donations",
+          )
+          .select(
+            "id",
+          )
+          .eq(
+            "stripe_checkout_session_id",
+            session.id,
+          )
+          .maybeSingle();
+
+      if (
+        duplicateLookupError
+      ) {
+        throw duplicateLookupError;
+      }
+
+      if (
+        duplicateDonation
+      ) {
+        await sendDonationReceipt({
+          donationId:
+            duplicateDonation.id,
+
+          email,
+
+          firstName,
+
+          amountCents:
+            chargedDonationAmountCents,
+
+          currency:
+            chargedCurrency,
+
+          frequency,
+
+          reference:
+            session.id,
+
+          paidAt:
+            new Date(
+              session.created *
+                1000,
+            ),
+        });
+      }
+
       return;
     }
 
@@ -656,6 +1318,32 @@ async function handleCheckoutSessionCompleted(
 
     throw donationError;
   }
+
+  await sendDonationReceipt({
+    donationId:
+      insertedDonation.id,
+
+    email,
+
+    firstName,
+
+    amountCents:
+      chargedDonationAmountCents,
+
+    currency:
+      chargedCurrency,
+
+    frequency,
+
+    reference:
+      session.id,
+
+    paidAt:
+      new Date(
+        session.created *
+          1000,
+      ),
+  });
 
   console.log(
     "Donation saved successfully:",
@@ -982,6 +1670,33 @@ async function handleInvoicePaymentSucceeded(
           invoice.id,
         );
 
+        await sendDonationReceipt({
+          donationId:
+            existingInitialDonation.id,
+
+          email,
+
+          firstName,
+
+          amountCents:
+            chargedDonationAmountCents,
+
+          currency:
+            chargedCurrency,
+
+          frequency:
+            "monthly",
+
+          reference:
+            invoice.id,
+
+          paidAt:
+            new Date(
+              invoice.created *
+                1000,
+            ),
+        });
+
         return;
       }
     }
@@ -1033,6 +1748,33 @@ async function handleInvoicePaymentSucceeded(
         invoice.id,
       );
 
+      await sendDonationReceipt({
+        donationId:
+          existingDonation.id,
+
+        email,
+
+        firstName,
+
+        amountCents:
+          chargedDonationAmountCents,
+
+        currency:
+          chargedCurrency,
+
+        frequency:
+          "monthly",
+
+        reference:
+          invoice.id,
+
+        paidAt:
+          new Date(
+            invoice.created *
+              1000,
+          ),
+      });
+
       return;
     }
   }
@@ -1068,6 +1810,8 @@ async function handleInvoicePaymentSucceeded(
   // =========================================================
 
   const {
+    data:
+      insertedDonation,
     error:
       donationError,
   } =
@@ -1138,7 +1882,11 @@ async function handleInvoicePaymentSucceeded(
 
         stripe_subscription_id:
           subscriptionId,
-      });
+      })
+      .select(
+        "id",
+      )
+      .single();
 
   if (
     donationError
@@ -1161,6 +1909,108 @@ async function handleInvoicePaymentSucceeded(
         invoice.id,
       );
 
+      let duplicateDonationId:
+        string | null =
+        null;
+
+      if (
+        paymentIntentId
+      ) {
+        const {
+          data:
+            duplicateDonation,
+          error:
+            duplicateLookupError,
+        } =
+          await supabaseAdmin
+            .from(
+              "donations",
+            )
+            .select(
+              "id",
+            )
+            .eq(
+              "stripe_payment_intent_id",
+              paymentIntentId,
+            )
+            .maybeSingle();
+
+        if (
+          duplicateLookupError
+        ) {
+          throw duplicateLookupError;
+        }
+
+        duplicateDonationId =
+          duplicateDonation?.id ??
+          null;
+      }
+
+      if (
+        !duplicateDonationId &&
+        checkoutSessionId
+      ) {
+        const {
+          data:
+            duplicateDonation,
+          error:
+            duplicateLookupError,
+        } =
+          await supabaseAdmin
+            .from(
+              "donations",
+            )
+            .select(
+              "id",
+            )
+            .eq(
+              "stripe_checkout_session_id",
+              checkoutSessionId,
+            )
+            .maybeSingle();
+
+        if (
+          duplicateLookupError
+        ) {
+          throw duplicateLookupError;
+        }
+
+        duplicateDonationId =
+          duplicateDonation?.id ??
+          null;
+      }
+
+      if (
+        duplicateDonationId
+      ) {
+        await sendDonationReceipt({
+          donationId:
+            duplicateDonationId,
+
+          email,
+
+          firstName,
+
+          amountCents:
+            chargedDonationAmountCents,
+
+          currency:
+            chargedCurrency,
+
+          frequency:
+            "monthly",
+
+          reference:
+            invoice.id,
+
+          paidAt:
+            new Date(
+              invoice.created *
+                1000,
+            ),
+        });
+      }
+
       return;
     }
 
@@ -1171,6 +2021,33 @@ async function handleInvoicePaymentSucceeded(
 
     throw donationError;
   }
+
+  await sendDonationReceipt({
+    donationId:
+      insertedDonation.id,
+
+    email,
+
+    firstName,
+
+    amountCents:
+      chargedDonationAmountCents,
+
+    currency:
+      chargedCurrency,
+
+    frequency:
+      "monthly",
+
+    reference:
+      invoice.id,
+
+    paidAt:
+      new Date(
+        invoice.created *
+          1000,
+      ),
+  });
 
   console.log(
     isInitialSubscriptionPayment
