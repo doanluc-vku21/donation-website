@@ -153,6 +153,11 @@ export type ExpressPrefetchResult = {
 
     string;
 
+
+  sessionId:
+
+    string;
+
 };
 
 
@@ -291,6 +296,25 @@ export function DonationFlow({
     pathname ===
 
       "/child-health-1";
+
+
+  const isAkramShakeUpsellPage =
+
+    pathname ===
+
+      "/akram-shake-2";
+
+
+  const isOneTimeUpsellPage =
+
+    isChildHealthUpsellPage ||
+
+    isAkramShakeUpsellPage;
+
+
+  const keepExpressVisible =
+
+    isAkramShakeUpsellPage;
 
 
 
@@ -671,6 +695,12 @@ export function DonationFlow({
 
 
     clientSecret:
+
+      string;
+
+
+
+    sessionId:
 
       string;
 
@@ -1105,15 +1135,39 @@ export function DonationFlow({
 
      */
 
+    const shouldLoadExpress =
+
+      step ===
+
+        "amount" ||
+
+      (
+
+        keepExpressVisible &&
+
+        (
+
+          step ===
+
+            "donor" ||
+
+          step ===
+
+            "payment"
+
+        )
+
+      );
+
+
+
     if (
 
       isHostedCheckoutPage ||
 
       suppressExpressForOneTimeOffer ||
 
-      step !==
-
-        "amount" ||
+      !shouldLoadExpress ||
 
       !hasValidAmount
 
@@ -1355,7 +1409,9 @@ export function DonationFlow({
 
                 !response.ok ||
 
-                !responseData.clientSecret
+                !responseData.clientSecret ||
+
+                !responseData.sessionId
 
               ) {
 
@@ -1376,6 +1432,11 @@ export function DonationFlow({
                 clientSecret:
 
                   responseData.clientSecret,
+
+
+                sessionId:
+
+                  responseData.sessionId,
 
               };
 
@@ -1452,6 +1513,12 @@ export function DonationFlow({
                     clientSecret:
 
                       data.clientSecret,
+
+
+
+                    sessionId:
+
+                      data.sessionId,
 
 
 
@@ -2807,7 +2874,7 @@ function resetCheckoutSession() {
 
     if (
 
-      isChildHealthUpsellPage &&
+      isOneTimeUpsellPage &&
 
       frequency ===
 
@@ -3441,9 +3508,532 @@ function resetCheckoutSession() {
 
 
 
+  function renderExpressCheckout(
+
+    showDivider = true,
+
+  ) {
+
+    if (
+
+      isHostedCheckoutPage ||
+
+      suppressExpressForOneTimeOffer ||
+
+      !hasValidAmount
+
+    ) {
+
+      return null;
+
+    }
+
+
+
+    return (
+
+          <div
+
+            className="
+
+              mt-4
+
+            "
+
+          >
+
+            <div
+
+              className="
+
+                relative
+
+                min-h-[48px]
+
+              "
+
+            >
+
+              {expressSessions.map(
+
+                (
+
+                  session,
+
+                ) => {
+
+                  const isActive =
+
+                    session.key ===
+
+                    activeExpressKey;
+
+
+
+                  const isTarget =
+
+                    session.key ===
+
+                    desiredExpressKey;
+
+
+
+                  return (
+
+                    <div
+
+                      key={
+
+                        session.clientSecret
+
+                      }
+
+                      className={`
+
+                        ${
+
+                          isActive
+
+                            ? "relative z-[2] opacity-100"
+
+                            : isTarget
+
+                              ? "absolute inset-0 z-[1] opacity-0 pointer-events-none"
+
+                              : "absolute inset-0 z-0 opacity-0 pointer-events-none"
+
+                        }
+
+                      `}
+
+                    >
+
+                      <DonationExpressCheckout
+
+                        clientSecret={
+
+                          session.clientSecret
+
+                        }
+
+                        locale={
+
+                          locale
+
+                        }
+
+                        beforeConfirm={
+
+                          async () => {
+
+                            const attemptId =
+
+                              await ensureDonationAttempt();
+
+
+
+                            await attachDonationAttemptToCheckoutSession(
+
+                              attemptId,
+
+                              session.sessionId,
+
+                            );
+
+                          }
+
+                        }
+
+                        onAvailabilityChange={(
+
+                          available,
+
+                        ) => {
+
+                          setExpressSessions(
+
+                            (
+
+                              current,
+
+                            ) =>
+
+                              current.map(
+
+                                (
+
+                                  item,
+
+                                ) =>
+
+                                  item.key ===
+
+                                  session.key
+
+                                    ? {
+
+                                        ...item,
+
+                                        available,
+
+                                      }
+
+                                    : item,
+
+                              ),
+
+                          );
+
+
+
+                          if (
+
+                            available &&
+
+                            session.key ===
+
+                              desiredExpressKey
+
+                          ) {
+
+                            setActiveExpressKey(
+
+                              session.key,
+
+                            );
+
+
+
+                            setExpressAvailable(
+
+                              true,
+
+                            );
+
+
+
+                            setExpressLoading(
+
+                              false,
+
+                            );
+
+                          }
+
+                        }}
+
+                        onError={(
+
+                          message,
+
+                        ) => {
+
+                          setError(
+
+                            message,
+
+                          );
+
+                        }}
+
+                      />
+
+                    </div>
+
+                  );
+
+                },
+
+              )}
+
+
+
+              {expressSessions.length ===
+
+                0 &&
+
+                expressLoading && (
+
+                  <div
+
+                    className="
+
+                      h-[48px]
+
+                      w-full
+
+                      animate-pulse
+
+                      rounded-[12px]
+
+                      bg-[#eef1ed]
+
+                    "
+
+                  />
+
+                )}
+
+
+
+              {activeExpressKey &&
+
+                (
+
+                  expressLoading ||
+
+                  activeExpressKey !==
+
+                    desiredExpressKey
+
+                ) && (
+
+                  <div
+
+                    aria-hidden="true"
+
+                    className="
+
+                      absolute
+
+                      inset-0
+
+                      z-[20]
+
+                      cursor-wait
+
+                      rounded-[12px]
+
+                      bg-transparent
+
+                    "
+
+                  />
+
+                )}
+
+            </div>
+
+
+
+            {showDivider &&
+
+              expressAvailable && (
+
+              <div
+
+                dir="ltr"
+
+                className="
+
+                  my-4
+
+                  flex
+
+                  items-center
+
+                  gap-2
+
+                "
+
+              >
+
+                <span
+
+                  className="
+
+                    h-px
+
+                    min-w-0
+
+                    flex-1
+
+                    bg-[#dfe4e0]
+
+                  "
+
+                />
+
+
+
+                <span
+
+                  className="
+
+                    shrink-0
+
+                    text-[12px]
+
+                    font-medium
+
+                    lowercase
+
+                    text-[#68726c]
+
+                  "
+
+                >
+
+                  or
+
+                </span>
+
+
+
+                <div
+
+                  className="
+
+                    flex
+
+                    shrink-0
+
+                    items-center
+
+                    divide-x
+
+                    divide-[#d9dedb]
+
+                    text-[#5f6964]
+
+                  "
+
+                >
+
+                  <span
+
+                    className="
+
+                      inline-flex
+
+                      items-center
+
+                      gap-1.5
+
+                      px-2
+
+                      text-[12px]
+
+                      font-medium
+
+                    "
+
+                  >
+
+                    <CreditCard
+
+                      aria-hidden="true"
+
+                      className="size-4"
+
+                    />
+
+                    Card
+
+                  </span>
+
+
+
+                  <span
+
+                    className="
+
+                      inline-flex
+
+                      items-center
+
+                      gap-1.5
+
+                      px-2
+
+                      text-[12px]
+
+                      font-medium
+
+                    "
+
+                  >
+
+                    <CircleDollarSign
+
+                      aria-hidden="true"
+
+                      className="size-4"
+
+                    />
+
+                    Crypto
+
+                  </span>
+
+
+
+                  <span
+
+                    className="
+
+                      inline-flex
+
+                      items-center
+
+                      gap-1.5
+
+                      px-2
+
+                      text-[12px]
+
+                      font-medium
+
+                    "
+
+                  >
+
+                    <Landmark
+
+                      aria-hidden="true"
+
+                      className="size-4"
+
+                    />
+
+                    Bank
+
+                  </span>
+
+                </div>
+
+
+
+                <span
+
+                  className="
+
+                    h-px
+
+                    min-w-0
+
+                    flex-1
+
+                    bg-[#dfe4e0]
+
+                  "
+
+                />
+
+              </div>
+
+            )}
+
+          </div>
+    );
+
+  }
+
+
+
   // =========================================================
 
-  // CHILD HEALTH ONE-TIME -> MONTHLY OFFER
+  // ONE-TIME -> MONTHLY OFFER
 
   // =========================================================
 
@@ -4338,6 +4928,12 @@ function resetCheckoutSession() {
         }
 
       >
+
+        {keepExpressVisible &&
+
+          renderExpressCheckout()}
+
+
 
         <DonationPayment
 
@@ -5329,483 +5925,8 @@ function resetCheckoutSession() {
 
 
 
-        {!isHostedCheckoutPage &&
+        {renderExpressCheckout()}
 
-          !suppressExpressForOneTimeOffer &&
-
-          hasValidAmount && (
-
-          <div
-
-            className="
-
-              mt-4
-
-            "
-
-          >
-
-            <div
-
-              className="
-
-                relative
-
-                min-h-[48px]
-
-              "
-
-            >
-
-              {expressSessions.map(
-
-                (
-
-                  session,
-
-                ) => {
-
-                  const isActive =
-
-                    session.key ===
-
-                    activeExpressKey;
-
-
-
-                  const isTarget =
-
-                    session.key ===
-
-                    desiredExpressKey;
-
-
-
-                  return (
-
-                    <div
-
-                      key={
-
-                        session.clientSecret
-
-                      }
-
-                      className={`
-
-                        ${
-
-                          isActive
-
-                            ? "relative z-[2] opacity-100"
-
-                            : isTarget
-
-                              ? "absolute inset-0 z-[1] opacity-0 pointer-events-none"
-
-                              : "absolute inset-0 z-0 opacity-0 pointer-events-none"
-
-                        }
-
-                      `}
-
-                    >
-
-                      <DonationExpressCheckout
-
-                        clientSecret={
-
-                          session.clientSecret
-
-                        }
-
-                        locale={
-
-                          locale
-
-                        }
-
-                        onAvailabilityChange={(
-
-                          available,
-
-                        ) => {
-
-                          setExpressSessions(
-
-                            (
-
-                              current,
-
-                            ) =>
-
-                              current.map(
-
-                                (
-
-                                  item,
-
-                                ) =>
-
-                                  item.key ===
-
-                                  session.key
-
-                                    ? {
-
-                                        ...item,
-
-                                        available,
-
-                                      }
-
-                                    : item,
-
-                              ),
-
-                          );
-
-
-
-                          if (
-
-                            available &&
-
-                            session.key ===
-
-                              desiredExpressKey
-
-                          ) {
-
-                            setActiveExpressKey(
-
-                              session.key,
-
-                            );
-
-
-
-                            setExpressAvailable(
-
-                              true,
-
-                            );
-
-
-
-                            setExpressLoading(
-
-                              false,
-
-                            );
-
-                          }
-
-                        }}
-
-                        onError={(
-
-                          message,
-
-                        ) => {
-
-                          setError(
-
-                            message,
-
-                          );
-
-                        }}
-
-                      />
-
-                    </div>
-
-                  );
-
-                },
-
-              )}
-
-
-
-              {expressSessions.length ===
-
-                0 &&
-
-                expressLoading && (
-
-                  <div
-
-                    className="
-
-                      h-[48px]
-
-                      w-full
-
-                      animate-pulse
-
-                      rounded-[12px]
-
-                      bg-[#eef1ed]
-
-                    "
-
-                  />
-
-                )}
-
-
-
-              {activeExpressKey &&
-
-                (
-
-                  expressLoading ||
-
-                  activeExpressKey !==
-
-                    desiredExpressKey
-
-                ) && (
-
-                  <div
-
-                    aria-hidden="true"
-
-                    className="
-
-                      absolute
-
-                      inset-0
-
-                      z-[20]
-
-                      cursor-wait
-
-                      rounded-[12px]
-
-                      bg-transparent
-
-                    "
-
-                  />
-
-                )}
-
-            </div>
-
-
-
-            {expressAvailable && (
-
-              <div
-
-                dir="ltr"
-
-                className="
-
-                  my-4
-
-                  flex
-
-                  items-center
-
-                  gap-2
-
-                "
-
-              >
-
-                <span
-
-                  className="
-
-                    h-px
-
-                    min-w-0
-
-                    flex-1
-
-                    bg-[#dfe4e0]
-
-                  "
-
-                />
-
-
-
-                <span
-
-                  className="
-
-                    shrink-0
-
-                    text-[12px]
-
-                    font-medium
-
-                    lowercase
-
-                    text-[#68726c]
-
-                  "
-
-                >
-
-                  or
-
-                </span>
-
-
-
-                <div
-
-                  className="
-
-                    flex
-
-                    shrink-0
-
-                    items-center
-
-                    divide-x
-
-                    divide-[#d9dedb]
-
-                    text-[#5f6964]
-
-                  "
-
-                >
-
-                  <span
-
-                    className="
-
-                      inline-flex
-
-                      items-center
-
-                      gap-1.5
-
-                      px-2
-
-                      text-[12px]
-
-                      font-medium
-
-                    "
-
-                  >
-
-                    <CreditCard
-
-                      aria-hidden="true"
-
-                      className="size-4"
-
-                    />
-
-                    Card
-
-                  </span>
-
-
-
-                  <span
-
-                    className="
-
-                      inline-flex
-
-                      items-center
-
-                      gap-1.5
-
-                      px-2
-
-                      text-[12px]
-
-                      font-medium
-
-                    "
-
-                  >
-
-                    <CircleDollarSign
-
-                      aria-hidden="true"
-
-                      className="size-4"
-
-                    />
-
-                    Crypto
-
-                  </span>
-
-
-
-                  <span
-
-                    className="
-
-                      inline-flex
-
-                      items-center
-
-                      gap-1.5
-
-                      px-2
-
-                      text-[12px]
-
-                      font-medium
-
-                    "
-
-                  >
-
-                    <Landmark
-
-                      aria-hidden="true"
-
-                      className="size-4"
-
-                    />
-
-                    Bank
-
-                  </span>
-
-                </div>
-
-
-
-                <span
-
-                  className="
-
-                    h-px
-
-                    min-w-0
-
-                    flex-1
-
-                    bg-[#dfe4e0]
-
-                  "
-
-                />
-
-              </div>
-
-            )}
-
-          </div>
-
-        )}
 
 
 
@@ -6190,6 +6311,16 @@ function resetCheckoutSession() {
         </p>
 
       </div>
+
+
+
+      {keepExpressVisible &&
+
+        renderExpressCheckout(
+
+          false,
+
+        )}
 
 
 

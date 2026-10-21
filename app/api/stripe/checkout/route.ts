@@ -385,7 +385,12 @@ export async function POST(
         requestedCampaignPath ===
           "/child-health-1"
         ? "/child-health-1"
-        : defaultCampaignPath;
+        : campaignSlug ===
+              "akram-shake" &&
+            requestedCampaignPath ===
+              "/akram-shake-2"
+          ? "/akram-shake-2"
+          : defaultCampaignPath;
 
     const siteUrl =
       process.env

@@ -25,6 +25,10 @@ import {
   getUsdToCurrencyRate,
 } from "@/lib/exchange-rate";
 
+type DonationFrequency =
+  | "one_time"
+  | "monthly";
+
 type ExpressCheckoutBody = {
   campaignId:
     string;
@@ -46,6 +50,9 @@ type ExpressCheckoutBody = {
 
   coverFee:
     boolean;
+
+  frequency:
+    DonationFrequency;
 
   locale:
     Locale;
@@ -154,6 +161,7 @@ export async function POST(
       amountCents,
       currency,
       coverFee,
+      frequency,
       locale,
       displayPublicly,
     } = body;
@@ -196,6 +204,23 @@ export async function POST(
         {
           error:
             "Invalid currency.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    if (
+      frequency !==
+        "one_time" &&
+      frequency !==
+        "monthly"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid donation frequency.",
         },
         {
           status: 400,
@@ -309,7 +334,12 @@ export async function POST(
         requestedCampaignPath ===
           "/child-health-1"
         ? "/child-health-1"
-        : defaultCampaignPath;
+        : campaignSlug ===
+              "akram-shake" &&
+            requestedCampaignPath ===
+              "/akram-shake-2"
+          ? "/akram-shake-2"
+          : defaultCampaignPath;
 
     const siteUrl =
       process.env
@@ -386,8 +416,7 @@ export async function POST(
           exchangeRate,
         ),
 
-      frequency:
-        "one_time",
+      frequency,
 
       donor_first_name:
         "",
@@ -414,13 +443,21 @@ export async function POST(
             "elements",
 
           mode:
-            "payment",
+            frequency ===
+            "monthly"
+              ? "subscription"
+              : "payment",
 
           locale:
             stripeLocale,
 
-          customer_creation:
-            "always",
+          ...(frequency ===
+          "one_time"
+            ? {
+                customer_creation:
+                  "always" as const,
+              }
+            : {}),
 
           line_items: [
             {
@@ -433,6 +470,16 @@ export async function POST(
 
                 unit_amount:
                   totalAmountCents,
+
+                ...(frequency ===
+                "monthly"
+                  ? {
+                      recurring: {
+                        interval:
+                          "month" as const,
+                      },
+                    }
+                  : {}),
 
                 product_data: {
                   name:
@@ -453,6 +500,15 @@ export async function POST(
             `${siteUrl}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
 
           metadata,
+
+          ...(frequency ===
+          "monthly"
+            ? {
+                subscription_data: {
+                  metadata,
+                },
+              }
+            : {}),
         },
       );
 
@@ -471,6 +527,14 @@ export async function POST(
 
         sessionId:
           session.id,
+
+        mode:
+          frequency ===
+          "monthly"
+            ? "subscription"
+            : "payment",
+
+        frequency,
 
         currency:
           siteCurrency,
