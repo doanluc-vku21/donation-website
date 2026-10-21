@@ -508,6 +508,21 @@ export function DonationFlow({
     useState("");
 
 
+  const donationAttemptIdRef =
+
+    useRef<
+
+      string | null
+
+    >(null);
+
+
+
+  const donationAttemptKeyRef =
+
+    useRef("");
+
+
 
   const [
 
@@ -2478,6 +2493,288 @@ function resetCheckoutSession() {
 
 
 
+  function getDonationAttemptKey() {
+
+    return [
+
+      campaign.id,
+
+      campaign.slug,
+
+      pathname,
+
+      email
+
+        .trim()
+
+        .toLowerCase(),
+
+      amount,
+
+      currency,
+
+      frequency,
+
+    ].join(
+
+      ":",
+
+    );
+
+  }
+
+
+
+  async function ensureDonationAttempt() {
+
+    const normalizedEmail =
+
+      email
+
+        .trim()
+
+        .toLowerCase();
+
+
+
+    if (
+
+      !normalizedEmail
+
+    ) {
+
+      return null;
+
+    }
+
+
+
+    const key =
+
+      getDonationAttemptKey();
+
+
+
+    if (
+
+      donationAttemptIdRef.current &&
+
+      donationAttemptKeyRef.current ===
+
+        key
+
+    ) {
+
+      return donationAttemptIdRef.current;
+
+    }
+
+
+
+    const response =
+
+      await fetch(
+
+        "/api/donation-attempt",
+
+        {
+
+          method:
+
+            "POST",
+
+          headers: {
+
+            "Content-Type":
+
+              "application/json",
+
+          },
+
+          body:
+
+            JSON.stringify(
+
+              {
+
+                campaignId:
+
+                  campaign.id,
+
+                campaignSlug:
+
+                  campaign.slug,
+
+                campaignPath:
+
+                  pathname,
+
+                email:
+
+                  normalizedEmail,
+
+                firstName:
+
+                  firstName.trim(),
+
+                lastName:
+
+                  lastName.trim(),
+
+                amountCents:
+
+                  amount,
+
+                currency,
+
+                frequency,
+
+              },
+
+            ),
+
+        },
+
+      );
+
+
+
+    const data =
+
+      await response.json();
+
+
+
+    if (
+
+      !response.ok ||
+
+      !data.attemptId
+
+    ) {
+
+      throw new Error(
+
+        data.error ??
+
+          "Unable to save donation attempt.",
+
+      );
+
+    }
+
+
+
+    donationAttemptIdRef.current =
+
+      data.attemptId;
+
+
+
+    donationAttemptKeyRef.current =
+
+      key;
+
+
+
+    return data.attemptId as string;
+
+  }
+
+
+
+  async function attachDonationAttemptToCheckoutSession(
+
+    donationAttemptId:
+
+      string | null,
+
+    stripeCheckoutSessionId:
+
+      string,
+
+  ) {
+
+    if (
+
+      !donationAttemptId
+
+    ) {
+
+      return;
+
+    }
+
+
+
+    const response =
+
+      await fetch(
+
+        "/api/donation-attempt",
+
+        {
+
+          method:
+
+            "PATCH",
+
+          headers: {
+
+            "Content-Type":
+
+              "application/json",
+
+          },
+
+          body:
+
+            JSON.stringify(
+
+              {
+
+                attemptId:
+
+                  donationAttemptId,
+
+                stripeCheckoutSessionId,
+
+              },
+
+            ),
+
+        },
+
+      );
+
+
+
+    const data =
+
+      await response.json();
+
+
+
+    if (
+
+      !response.ok
+
+    ) {
+
+      throw new Error(
+
+        data.error ??
+
+          "Unable to attach donation attempt to checkout.",
+
+      );
+
+    }
+
+  }
+
+
+
   function continueToDonor() {
 
     setError(
@@ -2748,6 +3045,12 @@ function resetCheckoutSession() {
 
 
 
+      const donationAttemptId =
+
+        await ensureDonationAttempt();
+
+
+
       if (
 
         isHostedCheckoutPage
@@ -2793,6 +3096,16 @@ function resetCheckoutSession() {
                     campaignSlug:
 
                       campaign.slug,
+
+
+
+                    campaignPath:
+
+                      pathname,
+
+
+
+                    donationAttemptId,
 
 
 
@@ -2973,6 +3286,16 @@ function resetCheckoutSession() {
       const data =
 
         await ensureEmbeddedCheckoutSession();
+
+
+
+      await attachDonationAttemptToCheckoutSession(
+
+        donationAttemptId,
+
+        data.sessionId,
+
+      );
 
 
 

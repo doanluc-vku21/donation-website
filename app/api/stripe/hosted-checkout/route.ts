@@ -36,6 +36,12 @@ type HostedCheckoutBody = {
   campaignSlug:
     string;
 
+  campaignPath?:
+    string;
+
+  donationAttemptId?:
+    string | null;
+
   amountCents:
     number;
 
@@ -225,6 +231,9 @@ export async function POST(
     const {
       campaignId,
       campaignSlug,
+      campaignPath:
+        requestedCampaignPath,
+      donationAttemptId,
       amountCents,
       currency,
       coverFee,
@@ -253,6 +262,13 @@ export async function POST(
       DIRECT_CAMPAIGN_PATHS[
         campaignSlug
       ];
+
+
+    const campaignPath =
+      requestedCampaignPath ===
+        directPublicPath
+        ? requestedCampaignPath
+        : directPublicPath;
 
     if (
       !directPublicPath
@@ -505,7 +521,11 @@ export async function POST(
         campaignSlug,
 
       campaign_path:
-        directPublicPath,
+        campaignPath,
+
+      donation_attempt_id:
+        donationAttemptId ??
+        "",
 
       locale:
         siteLocale,
@@ -631,7 +651,7 @@ export async function POST(
             `${siteUrl}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
 
           cancel_url:
-            `${siteUrl}${directPublicPath}`,
+            `${siteUrl}${campaignPath}`,
 
           metadata,
 

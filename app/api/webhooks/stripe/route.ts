@@ -28,6 +28,81 @@ import {
 export const runtime =
   "nodejs";
 
+
+async function completeDonationAttempt(
+  attemptId:
+    string | undefined,
+  stripeCheckoutSessionId?:
+    string | null,
+) {
+  const normalizedAttemptId =
+    attemptId
+      ?.trim();
+
+  if (
+    !normalizedAttemptId
+  ) {
+    return;
+  }
+
+  const updatePayload: {
+    status:
+      "completed";
+
+    completed_at:
+      string;
+
+    updated_at:
+      string;
+
+    stripe_checkout_session_id?:
+      string;
+  } = {
+    status:
+      "completed",
+
+    completed_at:
+      new Date().toISOString(),
+
+    updated_at:
+      new Date().toISOString(),
+  };
+
+  if (
+    stripeCheckoutSessionId
+  ) {
+    updatePayload
+      .stripe_checkout_session_id =
+      stripeCheckoutSessionId;
+  }
+
+  const {
+    error,
+  } =
+    await supabaseAdmin
+      .from(
+        "donation_attempts",
+      )
+      .update(
+        updatePayload,
+      )
+      .eq(
+        "id",
+        normalizedAttemptId,
+      );
+
+  if (
+    error
+  ) {
+    console.error(
+      "Donation attempt completion error:",
+      error,
+    );
+
+    throw error;
+  }
+}
+
 export async function POST(
   request: Request,
 ) {
@@ -184,6 +259,13 @@ async function handleCheckoutSessionCompleted(
   const metadata =
     session.metadata ??
     {};
+
+
+  await completeDonationAttempt(
+    metadata
+      .donation_attempt_id,
+    session.id,
+  );
 
   const campaignId =
     metadata.campaign_id;
@@ -664,6 +746,12 @@ async function handleInvoicePaymentSucceeded(
   const metadata =
     subscription.metadata ??
     {};
+
+
+  await completeDonationAttempt(
+    metadata
+      .donation_attempt_id,
+  );
 
   const campaignId =
     metadata.campaign_id;

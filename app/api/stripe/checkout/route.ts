@@ -39,6 +39,9 @@ type ExpressCheckoutBody = {
   campaignPath?:
     string;
 
+  donationAttemptId?:
+    string | null;
+
   amountCents:
     number;
 
@@ -199,6 +202,7 @@ export async function POST(
       campaignSlug,
       campaignPath:
         requestedCampaignPath,
+      donationAttemptId,
       amountCents,
       currency,
       coverFee,
@@ -435,6 +439,10 @@ export async function POST(
 
       campaign_path:
         campaignPath,
+
+      donation_attempt_id:
+        donationAttemptId ??
+        "",
 
       locale:
         siteLocale,

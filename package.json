@@ -26,6 +26,7 @@
     "qrcode.react": "^4.2.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "resend": "^6.34.1",
     "sanity": "^5.31.2",
     "stripe": "^22.6.2",
     "styled-components": "^6.5.3"
