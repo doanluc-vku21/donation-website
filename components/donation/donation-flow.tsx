@@ -1149,6 +1149,10 @@ export function DonationFlow({
 
           step ===
 
+            "one_time_offer" ||
+
+          step ===
+
             "donor" ||
 
           step ===
@@ -4182,6 +4186,150 @@ function resetCheckoutSession() {
           </p>
 
         </div>
+
+
+
+        {keepExpressVisible && (
+
+          <div
+
+            className="
+
+              mt-4
+
+            "
+
+          >
+
+            <p
+
+              className="
+
+                mb-2
+
+                text-[11px]
+
+                font-medium
+
+                leading-4
+
+                text-[#68736d]
+
+              "
+
+            >
+
+              {locale === "fr"
+
+                ? `Ou finalisez maintenant votre don unique de ${formatMoney(
+
+                    amount,
+
+                    currency,
+
+                    locale,
+
+                    {
+
+                      hideZeroDecimals:
+
+                        true,
+
+                    },
+
+                  )}`
+
+                : locale === "de"
+
+                  ? `Oder schließen Sie jetzt Ihre einmalige Spende von ${formatMoney(
+
+                      amount,
+
+                      currency,
+
+                      locale,
+
+                      {
+
+                        hideZeroDecimals:
+
+                          true,
+
+                      },
+
+                    )} ab`
+
+                  : locale === "es"
+
+                    ? `O completa ahora tu donación única de ${formatMoney(
+
+                        amount,
+
+                        currency,
+
+                        locale,
+
+                        {
+
+                          hideZeroDecimals:
+
+                            true,
+
+                        },
+
+                      )}`
+
+                    : locale === "ar"
+
+                      ? `أو أكمل الآن تبرعك لمرة واحدة بقيمة ${formatMoney(
+
+                          amount,
+
+                          currency,
+
+                          locale,
+
+                          {
+
+                            hideZeroDecimals:
+
+                              true,
+
+                          },
+
+                        )}`
+
+                      : `Or complete your ${formatMoney(
+
+                          amount,
+
+                          currency,
+
+                          locale,
+
+                          {
+
+                            hideZeroDecimals:
+
+                              true,
+
+                          },
+
+                        )} one-time gift now`}
+
+            </p>
+
+
+
+            {renderExpressCheckout(
+
+              false,
+
+            )}
+
+          </div>
+
+        )}
 
 
 
