@@ -3937,6 +3937,11 @@ function resetCheckoutSession() {
                   </span>
 
 
+                  {!keepExpressVisible && (
+
+                    <>
+
+
 
                   <span
 
@@ -4003,6 +4008,10 @@ function resetCheckoutSession() {
                     Bank
 
                   </span>
+
+                    </>
+
+                  )}
 
                 </div>
 
@@ -4321,11 +4330,7 @@ function resetCheckoutSession() {
 
 
 
-            {renderExpressCheckout(
-
-              false,
-
-            )}
+            {renderExpressCheckout()}
 
           </div>
 
@@ -6464,11 +6469,7 @@ function resetCheckoutSession() {
 
       {keepExpressVisible &&
 
-        renderExpressCheckout(
-
-          false,
-
-        )}
+        renderExpressCheckout()}
 
 
 
