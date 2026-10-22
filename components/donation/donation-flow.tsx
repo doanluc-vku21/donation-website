@@ -3626,6 +3626,112 @@ function resetCheckoutSession() {
 
                         }
 
+                        onExpressFocus={
+
+                          () => {
+
+                            if (
+
+                              typeof window ===
+
+                                "undefined" ||
+
+                              typeof window.fbq !==
+
+                                "function"
+
+                            ) {
+
+                              return;
+
+                            }
+
+
+
+                            const storageKey =
+
+                              `meta-initiate-checkout-${session.sessionId}`;
+
+
+
+                            if (
+
+                              window.sessionStorage.getItem(
+
+                                storageKey,
+
+                              )
+
+                            ) {
+
+                              return;
+
+                            }
+
+
+
+                            window.fbq(
+
+                              "track",
+
+                              "InitiateCheckout",
+
+                              {
+
+                                value:
+
+                                  total /
+
+                                  100,
+
+
+
+                                currency,
+
+
+
+                                content_name:
+
+                                  "Donation",
+
+
+
+                                content_category:
+
+                                  frequency ===
+
+                                  "monthly"
+
+                                    ? "Monthly donation"
+
+                                    : "One-time donation",
+
+
+
+                                checkout_method:
+
+                                  "express",
+
+                              },
+
+                            );
+
+
+
+                            window.sessionStorage.setItem(
+
+                              storageKey,
+
+                              "1",
+
+                            );
+
+                          }
+
+                        }
+
+
+
                         beforeConfirm={
 
                           async () => {
@@ -3643,96 +3749,6 @@ function resetCheckoutSession() {
                               session.sessionId,
 
                             );
-
-
-
-                            if (
-
-                              typeof window !==
-
-                                "undefined" &&
-
-                              typeof window.fbq ===
-
-                                "function"
-
-                            ) {
-
-                              const storageKey =
-
-                                `meta-initiate-checkout-${session.sessionId}`;
-
-
-
-                              if (
-
-                                !window.sessionStorage.getItem(
-
-                                  storageKey,
-
-                                )
-
-                              ) {
-
-                                window.fbq(
-
-                                  "track",
-
-                                  "InitiateCheckout",
-
-                                  {
-
-                                    value:
-
-                                      total /
-
-                                      100,
-
-
-
-                                    currency,
-
-
-
-                                    content_name:
-
-                                      "Donation",
-
-
-
-                                    content_category:
-
-                                      frequency ===
-
-                                      "monthly"
-
-                                        ? "Monthly donation"
-
-                                        : "One-time donation",
-
-
-
-                                    checkout_method:
-
-                                      "express",
-
-                                  },
-
-                                );
-
-
-
-                                window.sessionStorage.setItem(
-
-                                  storageKey,
-
-                                  "1",
-
-                                );
-
-                              }
-
-                            }
 
                           }
 

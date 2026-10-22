@@ -56,6 +56,9 @@ type DonationExpressCheckoutProps = {
   beforeConfirm?:
     () =>
       Promise<void>;
+
+  onExpressFocus?:
+    () => void;
 };
 
 export function DonationExpressCheckout({
@@ -64,6 +67,7 @@ export function DonationExpressCheckout({
   onAvailabilityChange,
   onError,
   beforeConfirm,
+  onExpressFocus,
 }: DonationExpressCheckoutProps) {
   return (
     <CheckoutElementsProvider
@@ -111,6 +115,9 @@ export function DonationExpressCheckout({
         beforeConfirm={
           beforeConfirm
         }
+        onExpressFocus={
+          onExpressFocus
+        }
       />
     </CheckoutElementsProvider>
   );
@@ -121,6 +128,7 @@ function ExpressCheckoutForm({
   onAvailabilityChange,
   onError,
   beforeConfirm,
+  onExpressFocus,
 }: {
   locale:
     Locale;
@@ -140,6 +148,9 @@ function ExpressCheckoutForm({
   beforeConfirm?:
     () =>
       Promise<void>;
+
+  onExpressFocus?:
+    () => void;
 }) {
   const checkoutResult =
     useCheckoutElements();
@@ -354,6 +365,9 @@ function ExpressCheckoutForm({
                 ? "never"
                 : "always",
           },
+        }}
+        onFocus={() => {
+          onExpressFocus?.();
         }}
         onReady={({
           availablePaymentMethods,
