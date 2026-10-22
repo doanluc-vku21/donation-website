@@ -89,58 +89,103 @@ const productTranslations:
   Record<
     StripeSupportedLocale,
     {
-      name:
+      oneTimeName:
         string;
 
-      description:
+      monthlyName:
         string;
 
-      descriptionWithFee:
+      oneTimeDescription:
+        string;
+
+      monthlyDescription:
+        string;
+
+      oneTimeDescriptionWithFee:
+        string;
+
+      monthlyDescriptionWithFee:
         string;
     }
   > = {
   en: {
-    name:
+    oneTimeName:
       "One-time donation",
 
-    description:
+    monthlyName:
+      "Monthly donation",
+
+    oneTimeDescription:
       "One-time campaign donation",
 
-    descriptionWithFee:
+    monthlyDescription:
+      "Monthly campaign donation",
+
+    oneTimeDescriptionWithFee:
       "One-time donation including transaction cost contribution",
+
+    monthlyDescriptionWithFee:
+      "Monthly donation including transaction cost contribution",
   },
 
   fr: {
-    name:
+    oneTimeName:
       "Don unique",
 
-    description:
+    monthlyName:
+      "Don mensuel",
+
+    oneTimeDescription:
       "Don unique à la campagne",
 
-    descriptionWithFee:
+    monthlyDescription:
+      "Don mensuel à la campagne",
+
+    oneTimeDescriptionWithFee:
       "Don unique incluant une contribution aux frais de transaction",
+
+    monthlyDescriptionWithFee:
+      "Don mensuel incluant une contribution aux frais de transaction",
   },
 
   de: {
-    name:
+    oneTimeName:
       "Einmalige Spende",
 
-    description:
+    monthlyName:
+      "Monatliche Spende",
+
+    oneTimeDescription:
       "Einmalige Kampagnenspende",
 
-    descriptionWithFee:
+    monthlyDescription:
+      "Monatliche Kampagnenspende",
+
+    oneTimeDescriptionWithFee:
       "Einmalige Spende einschließlich eines Beitrags zu den Transaktionskosten",
+
+    monthlyDescriptionWithFee:
+      "Monatliche Spende einschließlich eines Beitrags zu den Transaktionskosten",
   },
 
   es: {
-    name:
+    oneTimeName:
       "Donación única",
 
-    description:
+    monthlyName:
+      "Donación mensual",
+
+    oneTimeDescription:
       "Donación única a la campaña",
 
-    descriptionWithFee:
+    monthlyDescription:
+      "Donación mensual a la campaña",
+
+    oneTimeDescriptionWithFee:
       "Donación única que incluye una contribución a los gastos de transacción",
+
+    monthlyDescriptionWithFee:
+      "Donación mensual que incluye una contribución a los gastos de transacción",
   },
 };
 
@@ -483,14 +528,27 @@ export async function POST(
 
                 product_data: {
                   name:
-                    stripeText.name,
+                    frequency ===
+                    "monthly"
+                      ? stripeText
+                          .monthlyName
+                      : stripeText
+                          .oneTimeName,
 
                   description:
                     coverFee
-                      ? stripeText
-                          .descriptionWithFee
-                      : stripeText
-                          .description,
+                      ? frequency ===
+                        "monthly"
+                        ? stripeText
+                            .monthlyDescriptionWithFee
+                        : stripeText
+                            .oneTimeDescriptionWithFee
+                      : frequency ===
+                        "monthly"
+                        ? stripeText
+                            .monthlyDescription
+                        : stripeText
+                            .oneTimeDescription,
                 },
               },
             },
