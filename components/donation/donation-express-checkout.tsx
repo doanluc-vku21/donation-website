@@ -57,7 +57,7 @@ type DonationExpressCheckoutProps = {
     () =>
       Promise<void>;
 
-  onExpressFocus?:
+  onExpressConfirm?:
     () => void;
 };
 
@@ -67,7 +67,7 @@ export function DonationExpressCheckout({
   onAvailabilityChange,
   onError,
   beforeConfirm,
-  onExpressFocus,
+  onExpressConfirm,
 }: DonationExpressCheckoutProps) {
   return (
     <CheckoutElementsProvider
@@ -115,8 +115,8 @@ export function DonationExpressCheckout({
         beforeConfirm={
           beforeConfirm
         }
-        onExpressFocus={
-          onExpressFocus
+        onExpressConfirm={
+          onExpressConfirm
         }
       />
     </CheckoutElementsProvider>
@@ -128,7 +128,7 @@ function ExpressCheckoutForm({
   onAvailabilityChange,
   onError,
   beforeConfirm,
-  onExpressFocus,
+  onExpressConfirm,
 }: {
   locale:
     Locale;
@@ -149,7 +149,7 @@ function ExpressCheckoutForm({
     () =>
       Promise<void>;
 
-  onExpressFocus?:
+  onExpressConfirm?:
     () => void;
 }) {
   const checkoutResult =
@@ -220,6 +220,15 @@ function ExpressCheckoutForm({
       setSubmitting(
         true,
       );
+
+      /*
+       * Stripe calls onConfirm after the buyer authorizes
+       * Apple Pay / Google Pay / another supported wallet.
+       *
+       * This is the reliable point for Meta InitiateCheckout
+       * with the CheckoutElementsProvider architecture.
+       */
+      onExpressConfirm?.();
 
       if (
         beforeConfirm
@@ -365,9 +374,6 @@ function ExpressCheckoutForm({
                 ? "never"
                 : "always",
           },
-        }}
-        onFocus={() => {
-          onExpressFocus?.();
         }}
         onReady={({
           availablePaymentMethods,

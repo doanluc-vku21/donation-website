@@ -3626,7 +3626,7 @@ function resetCheckoutSession() {
 
                         }
 
-                        onExpressFocus={
+                        onExpressConfirm={
 
                           () => {
 
