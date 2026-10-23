@@ -672,6 +672,18 @@ export function DonationFlow({
 
 
 
+  const [
+
+    isPaymentReady,
+
+    setIsPaymentReady,
+
+  ] =
+
+    useState(false);
+
+
+
   const paymentReadyResolversRef =
 
     useRef<
@@ -1872,6 +1884,14 @@ function resetCheckoutSession() {
 
 
 
+  setIsPaymentReady(
+
+    false,
+
+  );
+
+
+
   paymentReadyResolversRef.current =
 
     [];
@@ -1897,6 +1917,14 @@ function resetCheckoutSession() {
     paymentReadyRef.current =
 
       true;
+
+
+
+    setIsPaymentReady(
+
+      true,
+
+    );
 
 
 
@@ -2109,6 +2137,14 @@ function resetCheckoutSession() {
   embeddedCheckoutKeyRef.current =
 
     key;
+
+
+
+  setIsPaymentReady(
+
+    false,
+
+  );
 
 
 
@@ -3116,17 +3152,17 @@ function resetCheckoutSession() {
 
 
 
-      const donationAttemptId =
-
-        await ensureDonationAttempt();
-
-
-
       if (
 
         isHostedCheckoutPage
 
       ) {
+
+        const donationAttemptId =
+
+          await ensureDonationAttempt();
+
+
 
         const response =
 
@@ -3360,17 +3396,28 @@ function resetCheckoutSession() {
 
 
 
-      await attachDonationAttemptToCheckoutSession(
+      /*
+       * The embedded Stripe Payment Element is preloaded while the
+       * donor is filling in their information. Do not make the donor
+       * wait for Supabase / Stripe metadata bookkeeping after clicking
+       * Continue.
+       *
+       * The Continue button is disabled until markPaymentReady() fires,
+       * so this guard should only protect against an unexpected race.
+       */
+      if (
 
-        donationAttemptId,
+        !paymentReadyRef.current
 
-        data.sessionId,
+      ) {
 
-      );
+        throw new Error(
 
+          "Secure payment is still preparing. Please try again.",
 
+        );
 
-      await waitForPaymentReady();
+      }
 
 
 
@@ -3432,6 +3479,11 @@ function resetCheckoutSession() {
 
 
 
+      /*
+       * Switch to the payment step immediately.
+       * From the donor's perspective, Continue now opens Card Payment
+       * without waiting for donation_attempt creation/attachment.
+       */
       goToStep(
 
         "payment",
@@ -3445,6 +3497,60 @@ function resetCheckoutSession() {
         false,
 
       );
+
+
+
+      /*
+       * Abandoned-donation bookkeeping is intentionally non-blocking.
+       *
+       * This keeps the existing abandoned-email flow, but database and
+       * Stripe metadata work no longer delays the payment UI.
+       */
+      void ensureDonationAttempt()
+
+        .then(
+
+          async (
+
+            donationAttemptId,
+
+          ) => {
+
+            await attachDonationAttemptToCheckoutSession(
+
+              donationAttemptId,
+
+              data.sessionId,
+
+            );
+
+          },
+
+        )
+
+        .catch(
+
+          (
+
+            attemptError,
+
+          ) => {
+
+            console.error(
+
+              "Unable to attach donation attempt in background:",
+
+              attemptError,
+
+            );
+
+          },
+
+        );
+
+
+
+      return;
 
     } catch (
 
@@ -6917,7 +7023,15 @@ function resetCheckoutSession() {
 
         disabled={
 
-          isLoading
+          isLoading ||
+
+          (
+
+            !isHostedCheckoutPage &&
+
+            !isPaymentReady
+
+          )
 
         }
 
@@ -6971,7 +7085,9 @@ function resetCheckoutSession() {
 
       >
 
-        {isLoading
+        {isHostedCheckoutPage &&
+
+        isLoading
 
           ? t.openingCheckout
 
