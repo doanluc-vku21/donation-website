@@ -1444,19 +1444,20 @@ async function handleInvoicePaymentSucceeded(
   const campaignId =
     metadata.campaign_id;
 
-  const email =
+  let email =
     metadata
       .donor_email
       ?.trim()
-      .toLowerCase();
+      .toLowerCase() ??
+    "";
 
-  const firstName =
+  let firstName =
     metadata
       .donor_first_name
       ?.trim() ??
     "";
 
-  const lastName =
+  let lastName =
     metadata
       .donor_last_name
       ?.trim() ??
@@ -1468,11 +1469,11 @@ async function handleInvoicePaymentSucceeded(
       ?.trim() ||
     null;
 
-  const displayName =
+  let displayName =
     metadata
       .display_name
-      ?.trim() ||
-    "Anonymous";
+      ?.trim() ??
+    "";
 
   const isAnonymous =
     metadata
@@ -1482,12 +1483,6 @@ async function handleInvoicePaymentSucceeded(
   if (!campaignId) {
     throw new Error(
       `Missing campaign_id in Subscription ${subscriptionId}`,
-    );
-  }
-
-  if (!email) {
-    throw new Error(
-      `Missing donor_email in Subscription ${subscriptionId}`,
     );
   }
 
@@ -1602,12 +1597,17 @@ async function handleInvoicePaymentSucceeded(
     string | null =
     null;
 
+  let checkoutSession:
+    Stripe.Checkout.Session | null =
+    null;
+
   /*
-   * Trước đây subscription_create bị return luôn.
+   * Initial monthly Express Checkout can emit
+   * invoice.payment_succeeded before checkout.session.completed
+   * has copied donor details onto Subscription metadata.
    *
-   * Bây giờ tìm Checkout Session của subscription.
-   * Nếu checkout.session.completed đã lưu donation rồi
-   * thì không lưu lần nữa.
+   * Resolve donor identity from the Checkout Session first when
+   * Subscription metadata is still incomplete.
    */
   if (
     isInitialSubscriptionPayment
@@ -1622,11 +1622,60 @@ async function handleInvoicePaymentSucceeded(
             1,
         });
 
-    checkoutSessionId =
+    checkoutSession =
       checkoutSessions
-        .data[0]
-        ?.id ??
+        .data[0] ??
       null;
+
+    checkoutSessionId =
+      checkoutSession?.id ??
+      null;
+
+    if (
+      !email &&
+      checkoutSession
+    ) {
+      email =
+        (
+          checkoutSession
+            .customer_details
+            ?.email ??
+          checkoutSession
+            .customer_email ??
+          ""
+        )
+          .trim()
+          .toLowerCase();
+    }
+
+    if (
+      !firstName &&
+      checkoutSession
+        ?.customer_details
+        ?.name
+    ) {
+      const {
+        firstName:
+          checkoutFirstName,
+        lastName:
+          checkoutLastName,
+      } =
+        splitCustomerName(
+          checkoutSession
+            .customer_details
+            .name,
+        );
+
+      firstName =
+        checkoutFirstName;
+
+      if (
+        !lastName
+      ) {
+        lastName =
+          checkoutLastName;
+      }
+    }
 
     if (
       checkoutSessionId
@@ -1700,6 +1749,79 @@ async function handleInvoicePaymentSucceeded(
         return;
       }
     }
+  }
+
+  if (
+    !email &&
+    subscription.customer
+  ) {
+    const customerId =
+      typeof subscription
+        .customer ===
+      "string"
+        ? subscription
+            .customer
+        : subscription
+            .customer.id;
+
+    const customer =
+      await stripe.customers.retrieve(
+        customerId,
+      );
+
+    if (
+      !customer.deleted
+    ) {
+      email =
+        customer.email
+          ?.trim()
+          .toLowerCase() ??
+        "";
+
+      if (
+        !firstName &&
+        customer.name
+      ) {
+        const {
+          firstName:
+            customerFirstName,
+          lastName:
+            customerLastName,
+        } =
+          splitCustomerName(
+            customer.name,
+          );
+
+        firstName =
+          customerFirstName;
+
+        if (
+          !lastName
+        ) {
+          lastName =
+            customerLastName;
+        }
+      }
+    }
+  }
+
+  if (!email) {
+    throw new Error(
+      `Unable to resolve donor email for Subscription ${subscriptionId}`,
+    );
+  }
+
+  if (
+    !displayName
+  ) {
+    displayName =
+      isAnonymous
+        ? "Anonymous"
+        : buildPublicDisplayName(
+            firstName ||
+              "Donor",
+            lastName,
+          );
   }
 
   // =========================================================
