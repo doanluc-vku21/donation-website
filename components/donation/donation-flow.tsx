@@ -3842,6 +3842,47 @@ function resetCheckoutSession() {
 
                           async () => {
 
+                            /*
+                             * Express Checkout can be used directly
+                             * from the Amount step, before our own
+                             * donor-information form has an email.
+                             *
+                             * In that case Stripe/Apple Pay/Google Pay
+                             * will collect the contact email itself, so
+                             * skip abandoned-attempt bookkeeping here.
+                             */
+                            const normalizedEmail =
+
+                              email
+                                .trim()
+                                .toLowerCase();
+
+
+
+                            const emailPattern =
+
+                              /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+
+
+
+                            if (
+
+                              !normalizedEmail ||
+
+                              !emailPattern.test(
+
+                                normalizedEmail,
+
+                              )
+
+                            ) {
+
+                              return;
+
+                            }
+
+
+
                             const attemptId =
 
                               await ensureDonationAttempt();

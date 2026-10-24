@@ -230,10 +230,33 @@ function ExpressCheckoutForm({
        */
       onExpressConfirm?.();
 
+      /*
+       * IMPORTANT:
+       * Never block Apple Pay / Google Pay confirmation on
+       * donation-attempt bookkeeping.
+       *
+       * Stripe expects checkout.confirm() to run immediately
+       * after the wallet authorizes the payment. Waiting for
+       * Supabase / Stripe metadata requests here can leave the
+       * wallet spinning on "Processing" and eventually show
+       * "Payment Not Completed".
+       *
+       * Run bookkeeping in the background instead. A failure
+       * there must never prevent the actual wallet payment.
+       */
       if (
         beforeConfirm
       ) {
-        await beforeConfirm();
+        void beforeConfirm().catch(
+          (
+            backgroundError,
+          ) => {
+            console.error(
+              "Express checkout background bookkeeping failed:",
+              backgroundError,
+            );
+          },
+        );
       }
 
       const result =
