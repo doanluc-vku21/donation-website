@@ -7,6 +7,7 @@ import {
 
 import {
   loadStripe,
+  type StripeExpressCheckoutElementConfirmEvent,
 } from "@stripe/stripe-js";
 
 import {
@@ -207,7 +208,10 @@ function ExpressCheckoutForm({
       return "desktop";
     }, []);
 
-  async function handleConfirm() {
+  async function handleConfirm(
+    event:
+      StripeExpressCheckoutElementConfirmEvent,
+  ) {
     if (
       submitting ||
       checkoutResult.type !==
@@ -262,7 +266,10 @@ function ExpressCheckoutForm({
       const result =
         await checkoutResult
           .checkout
-          .confirm();
+          .confirm({
+            expressCheckoutConfirmEvent:
+              event,
+          });
 
       if (
         result &&
