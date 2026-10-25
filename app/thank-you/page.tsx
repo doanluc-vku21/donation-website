@@ -40,6 +40,15 @@ type ThankYouPageProps = {
   }>;
 };
 
+async function retrieveCheckoutSession(sessionId: string) {
+  try {
+    return await stripe.checkout.sessions.retrieve(sessionId);
+  } catch (error) {
+    console.error("Unable to retrieve Stripe session:", error);
+    return null;
+  }
+}
+
 export default async function ThankYouPage({
   searchParams,
 }: ThankYouPageProps) {
@@ -135,11 +144,9 @@ export default async function ThankYouPage({
     );
   }
 
-  try {
-    const session =
-      await stripe.checkout.sessions.retrieve(
-        sessionId,
-      );
+  const session = await retrieveCheckoutSession(sessionId);
+
+  if (session) {
 
     // =========================================================
     // LOCALE + CAMPAIGN
@@ -662,14 +669,7 @@ export default async function ThankYouPage({
         </main>
       </>
     );
-  } catch (
-    error
-  ) {
-    console.error(
-      "Unable to retrieve Stripe session:",
-      error,
-    );
-
+  } else {
     const locale:
       Locale = "en";
 

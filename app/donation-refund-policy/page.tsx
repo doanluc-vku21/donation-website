@@ -1,2 +1,2 @@
 import { LegalPage } from "@/components/legal/legal-page";
-export default function RefundPolicy(){return <LegalPage title="Donation & Refund Policy"><p>This sample states that donors may contact supporter care when a payment was made in error.</p><p>The final refund window, recurring cancellation process, and contact route must match the client's approved policy and Stripe account.</p></LegalPage>}
+export default function RefundPolicy(){return <LegalPage title="Donation & Refund Policy"><p>This sample states that donors may contact supporter care when a payment was made in error.</p><p>The final refund window, recurring cancellation process, and contact route must match the client&apos;s approved policy and Stripe account.</p></LegalPage>}

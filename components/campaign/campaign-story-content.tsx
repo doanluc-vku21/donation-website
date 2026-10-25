@@ -1,7 +1,7 @@
-import { PortableText } from "@portabletext/react";
+import { PortableText, type PortableTextBlock } from "@portabletext/react";
 
 type Props = {
-  value?: any[];
+  value?: PortableTextBlock[];
 };
 
 export function CampaignStoryContent({ value }: Props) {

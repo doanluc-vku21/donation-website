@@ -125,7 +125,6 @@ export function DonationExpressCheckout({
 }
 
 function ExpressCheckoutForm({
-  locale,
   onAvailabilityChange,
   onError,
   beforeConfirm,

@@ -1,6 +1,7 @@
 import type {
   Locale,
 } from "@/lib/i18n";
+import type { PortableTextBlock } from "@portabletext/react";
 export type StoryCardContent = {
   title?: string;
   description?: string;
@@ -11,7 +12,7 @@ export type FooterPopupContent = {
 
   title?: string;
 
-  content?: any[];
+  content?: PortableTextBlock[];
 
   labelI18n?:
     LocalizedString;
@@ -86,7 +87,7 @@ export type LocalizedPortableText =
   Partial<
     Record<
       Locale,
-      any[]
+      PortableTextBlock[]
     >
   >;
 export type SanityCampaign = {
@@ -117,7 +118,7 @@ export type SanityCampaign = {
 
   storyHeading?: string;
 
-  story?: any[];
+  story?: PortableTextBlock[];
 
   nourishmentCard?: StoryCardContent;
 

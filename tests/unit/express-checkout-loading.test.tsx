@@ -1,14 +1,23 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import type { ImgHTMLAttributes } from "react";
+import { useEffect, useEffectEvent, type ImgHTMLAttributes } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { sampleCampaign } from "@/lib/sample-data";
 import { DONATION_MODAL_OPEN_EVENT } from "@/components/donation/donation-modal-events";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/gaza-food" }));
-vi.mock("next/image", () => ({ default: (props: ImgHTMLAttributes<HTMLImageElement>) => <img {...props} alt="" /> }));
+vi.mock("next/image", () => ({
+  // Mock the framework's image wrapper with the native DOM element in jsdom.
+  // eslint-disable-next-line @next/next/no-img-element
+  default: (props: ImgHTMLAttributes<HTMLImageElement>) => <img {...props} alt="" />,
+}));
 vi.mock("@/components/donation/donation-payment", () => ({ DonationPayment: () => null }));
+function MockWallet({ clientSecret, onAvailabilityChange }: { clientSecret: string; onAvailabilityChange?: (available: boolean) => void }) {
+  const reportReady = useEffectEvent(() => onAvailabilityChange?.(true));
+  useEffect(() => { reportReady(); }, [clientSecret]);
+  return <div data-testid="wallet-session">{clientSecret}</div>;
+}
 vi.mock("@/components/donation/donation-express-checkout", () => ({
-  DonationExpressCheckout: ({ clientSecret }: { clientSecret: string }) => <div data-testid="wallet-session">{clientSecret}</div>,
+  DonationExpressCheckout: MockWallet,
 }));
 
 import { DonationModal } from "@/components/donation/donation-modal";
@@ -96,5 +105,22 @@ describe("Apple Pay session loading", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(JSON.parse(fetch.mock.calls[1][1].body)).toMatchObject({ amountCents: 10000, currency: "USD", frequency: "monthly" });
     expect(screen.getAllByTestId("wallet-session").map((element) => element.textContent)).toContain("cs_changed_secret");
+  });
+
+  it("activates an already-ready cached amount without another request or a loading overlay", async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(response("cs_fifty")).mockResolvedValueOnce(response("cs_hundred"));
+    vi.stubGlobal("fetch", fetch);
+    mountModal();
+    await advance(120);
+    openModal();
+    await advance(1);
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: /\$100\b/ })); });
+    await advance(1);
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: /^\$50(?!\d)/ })); });
+    await advance(1);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    const selectedWallet = screen.getByText("cs_fifty_secret").parentElement!;
+    expect(selectedWallet.className).toContain("relative");
+    expect(selectedWallet.className).not.toContain("pointer-events-none");
   });
 });

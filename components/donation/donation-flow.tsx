@@ -8,6 +8,7 @@ import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
 import {
 
   useEffect,
+  useEffectEvent,
 
   useMemo,
 
@@ -724,7 +725,7 @@ export function DonationFlow({
 
   const [
 
-    activeExpressKey,
+    previousActiveExpressKey,
 
     setActiveExpressKey,
 
@@ -740,7 +741,7 @@ export function DonationFlow({
 
   const [
 
-    expressAvailable,
+    previousExpressAvailable,
 
     setExpressAvailable,
 
@@ -756,7 +757,7 @@ export function DonationFlow({
 
   const [
 
-    expressLoading,
+    isExpressRequestLoading,
 
     setExpressLoading,
 
@@ -1038,6 +1039,13 @@ export function DonationFlow({
     locale,
   });
 
+  // Cache readiness already describes the selected wallet. Derive the UI from
+  // it instead of synchronously copying that data into state from an effect.
+  const desiredExpressSession = expressSessions.find((session) => session.key === desiredExpressKey);
+  const activeExpressKey = desiredExpressSession?.available ? desiredExpressKey : previousActiveExpressKey;
+  const expressAvailable = desiredExpressSession?.available || previousExpressAvailable;
+  const expressLoading = desiredExpressSession ? !desiredExpressSession.available : isExpressRequestLoading;
+
 
 
 
@@ -1176,47 +1184,6 @@ export function DonationFlow({
       existing
 
     ) {
-
-      if (
-
-        existing.available
-
-      ) {
-
-        setActiveExpressKey(
-
-          desiredExpressKey,
-
-        );
-
-
-
-        setExpressAvailable(
-
-          true,
-
-        );
-
-
-
-        setExpressLoading(
-
-          false,
-
-        );
-
-      } else {
-
-        setExpressLoading(
-
-          true,
-
-        );
-
-      }
-
-
-
       return;
 
     }
@@ -1627,6 +1594,8 @@ export function DonationFlow({
 
     isHostedCheckoutPage,
 
+    keepExpressVisible,
+
     locale,
 
     prefetchedExpress,
@@ -1636,114 +1605,6 @@ export function DonationFlow({
     step,
 
     suppressExpressForOneTimeOffer,
-
-  ]);
-
-
-
-  useEffect(() => {
-
-    if (
-
-      isHostedCheckoutPage ||
-
-      (
-
-        step !==
-
-          "amount" &&
-
-        step !==
-
-          "donor"
-
-      ) ||
-
-      !hasValidAmount
-
-    ) {
-
-      return;
-
-    }
-
-
-
-    const timeout =
-
-      window.setTimeout(
-
-        () => {
-
-          void ensureEmbeddedCheckoutSession().catch(
-
-            (
-
-              preloadError,
-
-            ) => {
-
-              console.error(
-
-                "Embedded checkout preload failed:",
-
-                preloadError,
-
-              );
-
-            },
-
-          );
-
-        },
-
-        customAmount.trim()
-
-          ? 450
-
-          : 120,
-
-      );
-
-
-
-    return () => {
-
-      window.clearTimeout(
-
-        timeout,
-
-      );
-
-    };
-
-  }, [
-
-    amount,
-
-    campaign.id,
-
-    campaign.slug,
-
-    coverFee,
-
-    currency,
-
-    customAmount,
-
-    frequency,
-
-    hasValidAmount,
-
-    isAnonymous,
-
-    isHostedCheckoutPage,
-
-    locale,
-
-    pathname,
-
-    step,
 
   ]);
 
@@ -1914,42 +1775,6 @@ function resetCheckoutSession() {
       resolve();
 
     }
-
-  }
-
-
-
-  function waitForPaymentReady() {
-
-    if (
-
-      paymentReadyRef.current
-
-    ) {
-
-      return Promise.resolve();
-
-    }
-
-
-
-    return new Promise<void>(
-
-      (
-
-        resolve,
-
-      ) => {
-
-        paymentReadyResolversRef.current.push(
-
-          resolve,
-
-        );
-
-      },
-
-    );
 
   }
 
@@ -2392,6 +2217,102 @@ function resetCheckoutSession() {
   return promise;
 
 }
+
+
+
+  const preloadEmbeddedCheckout = useEffectEvent(() => {
+    void ensureEmbeddedCheckoutSession().catch((preloadError) => {
+      console.error("Embedded checkout preload failed:", preloadError);
+    });
+  });
+
+  useEffect(() => {
+
+    if (
+
+      isHostedCheckoutPage ||
+
+      (
+
+        step !==
+
+          "amount" &&
+
+        step !==
+
+          "donor"
+
+      ) ||
+
+      !hasValidAmount
+
+    ) {
+
+      return;
+
+    }
+
+
+
+    const timeout =
+
+      window.setTimeout(
+
+        () => {
+
+          preloadEmbeddedCheckout();
+
+        },
+
+        customAmount.trim()
+
+          ? 450
+
+          : 120,
+
+      );
+
+
+
+    return () => {
+
+      window.clearTimeout(
+
+        timeout,
+
+      );
+
+    };
+
+  }, [
+
+    amount,
+
+    campaign.id,
+
+    campaign.slug,
+
+    coverFee,
+
+    currency,
+
+    customAmount,
+
+    frequency,
+
+    hasValidAmount,
+
+    isAnonymous,
+
+    isHostedCheckoutPage,
+
+    locale,
+
+    pathname,
+
+    step,
+
+  ]);
 
 
 

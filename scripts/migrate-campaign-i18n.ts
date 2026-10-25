@@ -1,6 +1,7 @@
 import {
   config,
 } from "dotenv";
+import type { FundUsageItem } from "@/sanity/types/campaign";
 
 import {
   createClient,
@@ -228,7 +229,7 @@ footerRefund,
           .fundUsageItems
           .map(
             (
-              item: any,
+              item: FundUsageItem,
             ) => {
               const nextItem = {
                 ...item,

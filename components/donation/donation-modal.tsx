@@ -13,8 +13,10 @@ import {
 } from "lucide-react";
 
 import {
+  useCallback,
   useEffect,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 import {
@@ -61,6 +63,10 @@ type DonationStep =
   | "one_time_offer"
   | "donor"
   | "payment";
+
+const subscribeToHydration = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 type DonationModalProps = {
   campaign: Campaign;
@@ -255,10 +261,7 @@ export function DonationModal({
     setOpen,
   ] = useState(false);
 
-  const [
-    mounted,
-    setMounted,
-  ] = useState(false);
+  const mounted = useSyncExternalStore(subscribeToHydration, getClientSnapshot, getServerSnapshot);
 
   const [
     step,
@@ -335,7 +338,7 @@ export function DonationModal({
     content.organizationName ||
     campaign.organizationName;
 
-  function prefetchExpressCheckout() {
+  const prefetchExpressCheckout = useCallback(() => {
     if (
       disableExpressPrefetch
     ) {
@@ -391,7 +394,7 @@ export function DonationModal({
         };
       },
     );
-  }
+  }, [campaign.id, campaign.slug, currency, defaultAmount, disableExpressPrefetch, locale, pathname]);
 
   /*
    * Warm only the default Monthly Express Checkout session.
@@ -416,15 +419,7 @@ export function DonationModal({
         timeout,
       );
     };
-  }, [
-    campaign.id,
-    campaign.slug,
-    currency,
-    defaultAmount,
-    disableExpressPrefetch,
-    locale,
-    pathname,
-  ]);
+  }, [prefetchExpressCheckout]);
 
   function openModal() {
     /*
@@ -456,12 +451,6 @@ export function DonationModal({
       150,
     );
   }
-
-  useEffect(() => {
-    setMounted(
-      true,
-    );
-  }, []);
 
   useEffect(() => {
     function handleOpenDonationModal() {

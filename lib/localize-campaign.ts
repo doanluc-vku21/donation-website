@@ -1,6 +1,7 @@
 import type {
   Locale,
 } from "@/lib/i18n";
+import type { PortableTextBlock } from "@portabletext/react";
 
 import type {
   SanityCampaign,
@@ -69,13 +70,13 @@ function localizedPortableText(
     | Partial<
         Record<
           Locale,
-          any[]
+          PortableTextBlock[]
         >
       >
     | undefined,
   locale: Locale,
   fallback:
-    | any[]
+    | PortableTextBlock[]
     | undefined,
 ) {
   const selected =

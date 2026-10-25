@@ -149,11 +149,6 @@ export function CampaignPage({
         : campaign.goalAmountUsd,
   };
 
-  const direction =
-    locale === "ar"
-      ? "rtl"
-      : "ltr";
-
   return (
     <main
       dir="ltr"
