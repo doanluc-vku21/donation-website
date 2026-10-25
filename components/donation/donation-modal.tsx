@@ -1,4 +1,6 @@
 "use client";
+import { metaCheckoutFetch } from "@/lib/meta/client";
+import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
 
 import Image from "next/image";
 
@@ -83,46 +85,6 @@ const expressPrefetchCache =
     Promise<ExpressPrefetchResult>
   >();
 
-function buildExpressKey({
-  campaignId,
-  campaignPath,
-  frequency,
-  amount,
-  currency,
-  locale,
-}: {
-  campaignId:
-    string;
-
-  campaignPath:
-    string;
-
-  frequency:
-    DonationFrequency;
-
-  amount:
-    number;
-
-  currency:
-    Currency;
-
-  locale:
-    Locale;
-}) {
-  return [
-    campaignId,
-    campaignPath,
-    frequency,
-    amount,
-    currency,
-    "no-fee",
-    "public",
-    locale,
-  ].join(
-    ":",
-  );
-}
-
 function getOrCreateExpressPrefetch({
   campaignId,
   campaignSlug,
@@ -154,13 +116,15 @@ function getOrCreateExpressPrefetch({
     Locale;
 }): ExpressPrefetch {
   const key =
-    buildExpressKey({
+    getExpressCheckoutKey({
       campaignId,
       campaignPath,
       frequency,
       amount,
       currency,
       locale,
+      coverFee: false,
+      displayPublicly: true,
     });
 
   let promise =
@@ -170,7 +134,7 @@ function getOrCreateExpressPrefetch({
 
   if (!promise) {
     promise =
-      fetch(
+      metaCheckoutFetch(
         "/api/stripe/express-checkout",
         {
           method:
@@ -402,6 +366,10 @@ export function DonationModal({
         },
       );
 
+    // The modal may stay closed. Keep failed warm-ups handled until a consumer
+    // retries them; the original promise still rejects for awaiting consumers.
+    void monthly.promise.catch(() => {});
+
     setPrefetchedExpress(
       (
         current,
@@ -410,7 +378,8 @@ export function DonationModal({
           current
             .monthly
             ?.key ===
-            monthly.key
+            monthly.key &&
+          current.monthly.promise === monthly.promise
         ) {
           return current;
         }

@@ -3,6 +3,7 @@ import {
 } from "next/server";
 
 import Stripe from "stripe";
+import { metaCapiEnabled, sendMetaPurchase } from "@/lib/meta/server";
 
 import {
   stripe,
@@ -763,6 +764,21 @@ case "checkout.session.async_payment_succeeded": {
   await handleCheckoutSessionCompleted(
     session,
   );
+
+  // Existing-donation branches must still reach delivery on webhook retries.
+  if (session.payment_status === "paid" && metaCapiEnabled()) {
+    const latestSession = await stripe.checkout.sessions.retrieve(session.id);
+    if (!latestSession.metadata?.meta_purchase_sent_at) {
+      const sent = await sendMetaPurchase(latestSession, event.created);
+      if (sent) {
+        // Webhook snapshots are immutable; read fresh metadata on every retry.
+        // Concurrent deliveries/timeouts share event_id for Meta deduplication.
+        await stripe.checkout.sessions.update(session.id, {
+          metadata: { meta_purchase_sent_at: new Date().toISOString() },
+        });
+      }
+    }
+  }
 
   break;
 }

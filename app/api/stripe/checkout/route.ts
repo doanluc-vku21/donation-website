@@ -1,6 +1,7 @@
 import {
   NextResponse,
 } from "next/server";
+import { captureMetaRequest } from "@/lib/meta/server";
 
 import {
   stripe,
@@ -433,6 +434,7 @@ export async function POST(
      * The webhook already falls back to session.customer_details.
      */
     const metadata = {
+      ...captureMetaRequest(request),
       checkout_source:
         "express_amount_step",
 

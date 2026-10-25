@@ -1,5 +1,8 @@
 "use client";
 
+import { metaCheckoutFetch } from "@/lib/meta/client";
+import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
+
 
 
 import {
@@ -109,29 +112,6 @@ const MIN_CUSTOM_DONATION_USD_CENTS =
 
 
 
-declare global {
-
-  interface Window {
-
-    fbq?: (
-
-      action: string,
-
-      event: string,
-
-      params?: Record<
-
-        string,
-
-        unknown
-
-      >,
-
-    ) => void;
-
-  }
-
-}
 
 
 
@@ -1047,39 +1027,17 @@ export function DonationFlow({
 
 
 
-  const desiredExpressKey =
+  const desiredExpressKey = getExpressCheckoutKey({
+    campaignId: campaign.id,
+    campaignPath: pathname,
+    frequency,
+    amount,
+    currency,
+    coverFee,
+    displayPublicly: !isAnonymous,
+    locale,
+  });
 
-    [
-
-      campaign.id,
-
-      frequency,
-
-      amount,
-
-      currency,
-
-      coverFee
-
-        ? "fee"
-
-        : "no-fee",
-
-      isAnonymous
-
-        ? "anonymous"
-
-        : "public",
-
-      locale,
-
-      pathname,
-
-    ].join(
-
-      ":",
-
-    );
 
 
 
@@ -1305,7 +1263,7 @@ export function DonationFlow({
 
             let data:
 
-              ExpressPrefetchResult;
+              ExpressPrefetchResult | undefined;
 
 
 
@@ -1321,13 +1279,18 @@ export function DonationFlow({
 
               data =
 
-                await prefetched.promise;
+                await prefetched.promise.catch(() => undefined);
 
-            } else {
+              if (cancelled) return;
+
+            }
+
+            // A failed warm-up must not leave the wallet permanently loading.
+            if (!data) {
 
               const response =
 
-                await fetch(
+                await metaCheckoutFetch(
 
                   "/api/stripe/express-checkout",
 
@@ -2150,7 +2113,7 @@ function resetCheckoutSession() {
 
   const promise =
 
-    fetch(
+    metaCheckoutFetch(
 
       "/api/stripe/checkout",
 
@@ -3166,7 +3129,7 @@ function resetCheckoutSession() {
 
         const response =
 
-          await fetch(
+          await metaCheckoutFetch(
 
             "/api/stripe/hosted-checkout",
 

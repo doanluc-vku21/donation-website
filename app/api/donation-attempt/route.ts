@@ -1,6 +1,7 @@
 import {
   NextResponse,
 } from "next/server";
+import { captureMetaRequest } from "@/lib/meta/server";
 
 import {
   supabaseAdmin,
@@ -642,21 +643,14 @@ export async function PATCH(
       );
     }
 
-    const session =
-      await stripe.checkout
-        .sessions.retrieve(
-          stripeCheckoutSessionId,
-        );
-
     await stripe.checkout
       .sessions.update(
         stripeCheckoutSessionId,
         {
           metadata: {
-            ...(
-              session.metadata ??
-              {}
-            ),
+            // Stripe merges metadata keys. Avoid rewriting a stale snapshot,
+            // which could erase the webhook's delivery marker during a race.
+            ...captureMetaRequest(request),
 
             donation_attempt_id:
               attemptId,

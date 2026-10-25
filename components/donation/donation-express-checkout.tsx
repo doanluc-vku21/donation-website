@@ -232,7 +232,13 @@ function ExpressCheckoutForm({
        * This is the reliable point for Meta InitiateCheckout
        * with the CheckoutElementsProvider architecture.
        */
-      onExpressConfirm?.();
+      try {
+        onExpressConfirm?.();
+      } catch {
+        // Safari can deny sessionStorage access. Analytics is optional and
+        // must not prevent the authorized wallet event reaching Stripe.
+        console.warn("Express checkout analytics callback failed.");
+      }
 
       /*
        * IMPORTANT:
@@ -251,16 +257,13 @@ function ExpressCheckoutForm({
       if (
         beforeConfirm
       ) {
-        void beforeConfirm().catch(
-          (
-            backgroundError,
-          ) => {
-            console.error(
-              "Express checkout background bookkeeping failed:",
-              backgroundError,
-            );
-          },
-        );
+        try {
+          void beforeConfirm().catch(() => {
+            console.warn("Express checkout background bookkeeping failed.");
+          });
+        } catch {
+          console.warn("Express checkout background bookkeeping could not start.");
+        }
       }
 
       const result =

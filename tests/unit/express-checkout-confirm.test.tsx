@@ -1,0 +1,68 @@
+import { act, render } from "@testing-library/react";
+import type { PropsWithChildren } from "react";
+import type { StripeExpressCheckoutElementConfirmEvent } from "@stripe/stripe-js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const stripe = vi.hoisted(() => ({ confirm: vi.fn(), eventHandler: undefined as undefined | ((event: unknown) => Promise<void>) }));
+vi.mock("@stripe/stripe-js", () => ({ loadStripe: () => Promise.resolve({}) }));
+vi.mock("@stripe/react-stripe-js/checkout", () => ({
+  CheckoutElementsProvider: ({ children }: PropsWithChildren) => children,
+  useCheckoutElements: () => ({ type: "success", checkout: { confirm: stripe.confirm } }),
+  ExpressCheckoutElement: ({ onConfirm }: { onConfirm: (event: unknown) => Promise<void> }) => {
+    stripe.eventHandler = onConfirm;
+    return <button>Apple Pay</button>;
+  },
+}));
+
+// Import after setting a deliberately fake public key. No Stripe API is used.
+vi.stubEnv("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "pk_test_unit_test_only");
+const { DonationExpressCheckout } = await import("@/components/donation/donation-express-checkout");
+
+beforeEach(() => {
+  stripe.confirm.mockReset().mockResolvedValue({ type: "success" });
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+});
+afterEach(() => { vi.restoreAllMocks(); });
+
+describe("Apple Pay payment confirmation", () => {
+  const walletEvent = { expressPaymentType: "apple_pay" } as StripeExpressCheckoutElementConfirmEvent;
+
+  it("passes the wallet event to Stripe without waiting for background bookkeeping", async () => {
+    const bookkeeping = vi.fn(() => new Promise<void>(() => {}));
+    render(<DonationExpressCheckout clientSecret="unit_secret" locale="en" beforeConfirm={bookkeeping} />);
+    await act(async () => { await stripe.eventHandler!(walletEvent); });
+    expect(bookkeeping).toHaveBeenCalledOnce();
+    expect(stripe.confirm).toHaveBeenCalledWith({ expressCheckoutConfirmEvent: walletEvent });
+  });
+
+  it("continues confirmation if tracking storage or analytics throws", async () => {
+    const onError = vi.fn();
+    render(<DonationExpressCheckout clientSecret="unit_secret" locale="en" onError={onError}
+      onExpressConfirm={() => { throw new DOMException("Storage is blocked", "SecurityError"); }} />);
+    await act(async () => { await stripe.eventHandler!(walletEvent); });
+    expect(stripe.confirm).toHaveBeenCalledWith({ expressCheckoutConfirmEvent: walletEvent });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("continues confirmation when optional bookkeeping rejects", async () => {
+    render(<DonationExpressCheckout clientSecret="unit_secret" locale="en" beforeConfirm={() => Promise.reject(new Error("tracking API failed"))} />);
+    await act(async () => { await stripe.eventHandler!(walletEvent); });
+    expect(stripe.confirm).toHaveBeenCalledOnce();
+  });
+
+  it("continues confirmation when optional bookkeeping throws synchronously", async () => {
+    render(<DonationExpressCheckout clientSecret="unit_secret" locale="en" beforeConfirm={() => { throw new Error("tracking initialization failed"); }} />);
+    await act(async () => { await stripe.eventHandler!(walletEvent); });
+    expect(stripe.confirm).toHaveBeenCalledOnce();
+  });
+
+  it("still reports real Stripe confirmation errors", async () => {
+    stripe.confirm.mockResolvedValue({ type: "error", error: { message: "Card was declined" } });
+    const onError = vi.fn();
+    const view = render(<DonationExpressCheckout clientSecret="unit_secret" locale="en" onError={onError} />);
+    await act(async () => { await stripe.eventHandler!(walletEvent); });
+    expect(onError).toHaveBeenCalledWith("Card was declined");
+    expect(view.container.querySelector('[aria-busy="false"]')).not.toBeNull();
+  });
+});

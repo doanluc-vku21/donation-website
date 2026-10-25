@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { MetaAttribution } from "@/components/analytics/meta-attribution";
+import { metaPixelId } from "@/lib/meta/config";
 
 import "./globals.css";
 
@@ -14,8 +16,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const metaPixelId = "2187720428848027";
-
   return (
     <html lang="en">
       <head>
@@ -66,6 +66,7 @@ export default function RootLayout({
       </head>
 
       <body>
+        <MetaAttribution />
         <noscript>
           <img
             height="1"

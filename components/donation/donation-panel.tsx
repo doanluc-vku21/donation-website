@@ -1,5 +1,7 @@
 "use client";
 
+import { metaCheckoutFetch } from "@/lib/meta/client";
+
 import {
   useMemo,
   useRef,
@@ -23,18 +25,6 @@ import {
   formatUsd,
 } from "@/lib/money";
 
-declare global {
-  interface Window {
-    fbq?: (
-      action: string,
-      event: string,
-      params?: Record<
-        string,
-        unknown
-      >,
-    ) => void;
-  }
-}
 
 type DonationPanelProps = {
   campaign: Campaign;
@@ -384,7 +374,7 @@ export function DonationPanel({
       );
 
       const response =
-        await fetch(
+        await metaCheckoutFetch(
           "/api/stripe/checkout",
           {
             method: "POST",

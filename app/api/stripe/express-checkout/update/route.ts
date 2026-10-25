@@ -1,6 +1,7 @@
 import {
   NextResponse,
 } from "next/server";
+import { captureMetaRequest } from "@/lib/meta/server";
 
 import {
   stripe,
@@ -167,6 +168,7 @@ export async function POST(
         sessionId,
         {
           metadata: {
+            ...captureMetaRequest(request),
             donor_first_name:
               firstName,
 

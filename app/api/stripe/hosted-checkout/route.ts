@@ -1,6 +1,7 @@
 import {
   NextResponse,
 } from "next/server";
+import { captureMetaRequest } from "@/lib/meta/server";
 
 import {
   stripe,
@@ -505,6 +506,7 @@ export async function POST(
      * Stripe webhook, not the old commit.
      */
     const metadata = {
+      ...captureMetaRequest(request),
       checkout_source:
         campaignSlug ===
         "akram-shake"
