@@ -21,6 +21,14 @@ The dependency layout now follows Microsoft's
 - The npm lockfile also repairs inconsistent optional WASM dependency entries
   detected by a clean installation check. Builds must use the committed lockfile.
 
+`packageManager` records npm 12.2.1 for reproducible lockfile maintenance. The
+first cloud check exposed a difference that npm 11's validation did not catch:
+npm 12 required explicit optional peer entries for `@emnapi/runtime@1.11.3`
+and `@emnapi/core@1.11.3`. Regenerating the lockfile with npm 12 adds these
+records. Its default `npm ci --ignore-scripts --dry-run` validation now passes
+for both Windows and Linux x64; no permanent remote/script permission overrides
+are added to the project.
+
 See also the [typescript-eslint dependency support table](https://typescript-eslint.io/users/dependency-versions/).
 
 ## Source findings resolved
