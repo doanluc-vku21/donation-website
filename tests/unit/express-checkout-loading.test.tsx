@@ -6,6 +6,7 @@ import { DONATION_MODAL_OPEN_EVENT } from "@/components/donation/donation-modal-
 import type { Currency } from "@/lib/currency";
 
 const navigation = vi.hoisted(() => ({ pathname: "/gaza-food" }));
+const walletReadiness = vi.hoisted(() => ({ available: true }));
 vi.mock("next/navigation", () => ({ usePathname: () => navigation.pathname }));
 vi.mock("next/image", () => ({
   // Mock the framework's image wrapper with the native DOM element in jsdom.
@@ -14,7 +15,7 @@ vi.mock("next/image", () => ({
 }));
 vi.mock("@/components/donation/donation-payment", () => ({ DonationPayment: () => null }));
 function MockWallet({ clientSecret, onAvailabilityChange }: { clientSecret: string; onAvailabilityChange?: (available: boolean) => void }) {
-  const reportReady = useEffectEvent(() => onAvailabilityChange?.(true));
+  const reportReady = useEffectEvent(() => onAvailabilityChange?.(walletReadiness.available));
   useEffect(() => { reportReady(); }, [clientSecret]);
   return <div data-testid="wallet-session">{clientSecret}</div>;
 }
@@ -24,7 +25,7 @@ vi.mock("@/components/donation/donation-express-checkout", () => ({
 
 import { DonationModal } from "@/components/donation/donation-modal";
 
-beforeEach(() => { vi.useFakeTimers(); navigation.pathname = "/gaza-food"; });
+beforeEach(() => { vi.useFakeTimers(); navigation.pathname = "/gaza-food"; walletReadiness.available = true; });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 async function advance(ms: number) {
@@ -43,6 +44,58 @@ function response(id: string) {
 }
 
 describe("Apple Pay session loading", () => {
+  it("shows custom-amount preparation instead of leaving an apparently clickable stale wallet", async () => {
+    let resolveCustom!: (value: Response) => void;
+    const custom = new Promise<Response>((resolve) => { resolveCustom = resolve; });
+    const express = vi.fn().mockResolvedValueOnce(response("cs_custom_default")).mockReturnValueOnce(custom);
+    const fetch = vi.fn<typeof globalThis.fetch>((url) => url === "/api/stripe/express-checkout" ? express() : Promise.resolve(new Response(JSON.stringify({ clientSecret: "card_secret", sessionId: "cs_card", totalAmountMinor: 12345, currency: "USD" }))));
+    vi.stubGlobal("fetch", fetch);
+    mountModal();
+    await advance(120); await advance(1);
+    openModal(); await advance(1);
+    const oldWallet = screen.getByTestId("wallet-session");
+    const input = screen.getByRole("spinbutton");
+    act(() => { fireEvent.change(input, { target: { value: "123.45" } }); });
+    expect(screen.getByRole("status")).toHaveTextContent("Updating payment amount");
+    expect(oldWallet.closest("[inert]")).not.toBeNull();
+    await advance(100);
+    expect(express).toHaveBeenCalledTimes(1);
+    act(() => { fireEvent.blur(input); });
+    expect(express).toHaveBeenCalledTimes(2);
+    const customCall = fetch.mock.calls.filter(([url]) => url === "/api/stripe/express-checkout")[1];
+    expect(JSON.parse((customCall[1] as RequestInit).body as string)).toMatchObject({ amountCents: 12345, currency: "USD" });
+    act(() => { fireEvent.blur(input); });
+    expect(express).toHaveBeenCalledTimes(2);
+    await act(async () => { resolveCustom(response("cs_custom_ready")); });
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByText("cs_custom_ready_secret").closest("[inert]")).toBeNull();
+  });
+
+  it("keeps the cached wallet mounted through an invalid intermediate custom amount", async () => {
+    const fetch = vi.fn().mockResolvedValue(response("cs_retained_custom"));
+    vi.stubGlobal("fetch", fetch);
+    mountModal(); await advance(120); await advance(1);
+    openModal(); await advance(1);
+    const wallet = screen.getByTestId("wallet-session");
+    const input = screen.getByRole("spinbutton");
+    act(() => { fireEvent.change(input, { target: { value: "1" } }); });
+    expect(screen.getByTestId("wallet-session")).toBe(wallet);
+    expect(wallet.closest("[inert]")).not.toBeNull();
+    act(() => { fireEvent.change(input, { target: { value: "50" } }); });
+    await advance(1);
+    expect(screen.getByTestId("wallet-session")).toBe(wallet);
+    expect(wallet.closest("[inert]")).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not show an endless amount-update state when the device has no supported wallet", async () => {
+    walletReadiness.available = false;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response("cs_unavailable")));
+    mountModal(); await advance(120); await advance(1);
+    openModal(); await advance(1);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("initializes the real wallet subtree before Donate is opened and preserves it on opening", async () => {
     const fetch = vi.fn().mockResolvedValue(response("cs_warm_widget"));
     vi.stubGlobal("fetch", fetch);

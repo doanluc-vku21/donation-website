@@ -65,4 +65,27 @@ describe("Apple Pay payment confirmation", () => {
     expect(onError).toHaveBeenCalledWith("Card was declined");
     expect(view.container.querySelector('[aria-busy="false"]')).not.toBeNull();
   });
+
+  it("confirms only once when duplicate wallet events arrive before React rerenders", async () => {
+    render(<DonationExpressCheckout clientSecret="unit_secret" locale="en" />);
+    const handler = stripe.eventHandler!;
+    await act(async () => { await Promise.all([handler(walletEvent), handler(walletEvent)]); });
+    expect(stripe.confirm).toHaveBeenCalledOnce();
+  });
+
+  it("allows an intentional retry after a declined confirmation", async () => {
+    stripe.confirm.mockResolvedValueOnce({ type: "error", error: { message: "Try another card" } });
+    render(<DonationExpressCheckout clientSecret="unit_secret" locale="en" />);
+    await act(async () => { await stripe.eventHandler!(walletEvent); });
+    await act(async () => { await stripe.eventHandler!(walletEvent); });
+    expect(stripe.confirm).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects a stale wallet authorization instead of confirming an out-of-date amount", async () => {
+    const event = { ...walletEvent, paymentFailed: vi.fn() };
+    render(<DonationExpressCheckout clientSecret="unit_secret" locale="en" enabled={false} />);
+    await act(async () => { await stripe.eventHandler!(event); });
+    expect(stripe.confirm).not.toHaveBeenCalled();
+    expect(event.paymentFailed).toHaveBeenCalledWith({ reason: "fail", message: expect.any(String) });
+  });
 });

@@ -685,6 +685,7 @@ export function DonationFlow({
 
 
   type ExpressRenderedSession = {
+    ready: boolean;
 
     key:
 
@@ -709,6 +710,8 @@ export function DonationFlow({
       boolean;
 
   };
+
+  const pendingExpressLoadRef = useRef<(() => void) | null>(null);
 
 
 
@@ -1047,9 +1050,11 @@ export function DonationFlow({
   // Cache readiness already describes the selected wallet. Derive the UI from
   // it instead of synchronously copying that data into state from an effect.
   const desiredExpressSession = expressSessions.find((session) => session.key === desiredExpressKey);
-  const activeExpressKey = desiredExpressSession?.available ? desiredExpressKey : previousActiveExpressKey;
-  const expressAvailable = desiredExpressSession?.available || previousExpressAvailable;
-  const expressLoading = desiredExpressSession ? !desiredExpressSession.available : isExpressRequestLoading;
+  const activeExpressKey = desiredExpressSession?.ready
+    ? (desiredExpressSession.available ? desiredExpressKey : "")
+    : previousActiveExpressKey;
+  const expressAvailable = desiredExpressSession?.ready ? desiredExpressSession.available : previousExpressAvailable;
+  const expressLoading = desiredExpressSession ? !desiredExpressSession.ready : isExpressRequestLoading;
 
 
 
@@ -1207,11 +1212,7 @@ export function DonationFlow({
 
 
 
-    const timeout =
-
-      window.setTimeout(
-
-        async () => {
+    const loadExpressSession = async () => {
 
           try {
 
@@ -1476,6 +1477,7 @@ export function DonationFlow({
                     available:
 
                       false,
+                    ready: false,
 
                   },
 
@@ -1541,19 +1543,23 @@ export function DonationFlow({
 
           }
 
-        },
+    };
 
-        customAmount.trim()
-
-          ? 450
-
-          : 0,
-
-      );
+    let pending = true;
+    function startExpressLoad() {
+      if (!pending || cancelled) return;
+      pending = false;
+      if (pendingExpressLoadRef.current === startExpressLoad) pendingExpressLoadRef.current = null;
+      void loadExpressSession();
+    }
+    pendingExpressLoadRef.current = startExpressLoad;
+    const timeout = window.setTimeout(startExpressLoad, customAmount.trim() ? 450 : 0);
 
 
 
     return () => {
+      pending = false;
+      if (pendingExpressLoadRef.current === startExpressLoad) pendingExpressLoadRef.current = null;
 
       cancelled =
 
@@ -3523,9 +3529,7 @@ function resetCheckoutSession() {
 
       isHostedCheckoutPage ||
 
-      suppressExpressForOneTimeOffer ||
-
-      !hasValidAmount
+      suppressExpressForOneTimeOffer
 
     ) {
 
@@ -3538,16 +3542,14 @@ function resetCheckoutSession() {
     return (
 
           <div
-
-            className="
-
-              mt-4
-
-            "
+            aria-hidden={!hasValidAmount}
+            inert={!hasValidAmount}
+            className={`mt-4 ${hasValidAmount ? "" : "h-0 overflow-hidden opacity-0 pointer-events-none"}`}
 
           >
 
             <div
+              aria-busy={hasValidAmount && expressLoading}
 
               className="
 
@@ -3581,11 +3583,15 @@ function resetCheckoutSession() {
 
                     desiredExpressKey;
 
+                  const canPay = hasValidAmount && isActive && isTarget && session.ready && session.available;
+
 
 
                   return (
 
                     <div
+                      inert={!canPay}
+                      aria-hidden={!canPay}
 
                       key={
 
@@ -3597,7 +3603,7 @@ function resetCheckoutSession() {
 
                         ${
 
-                          isActive
+                          canPay
 
                             ? "relative z-[2] opacity-100"
 
@@ -3614,6 +3620,7 @@ function resetCheckoutSession() {
                     >
 
                       <DonationExpressCheckout
+                        enabled={canPay}
 
                         clientSecret={
 
@@ -3827,6 +3834,7 @@ function resetCheckoutSession() {
                                         ...item,
 
                                         available,
+                                        ready: true,
 
                                       }
 
@@ -3900,70 +3908,12 @@ function resetCheckoutSession() {
 
 
 
-              {expressSessions.length ===
-
-                0 &&
-
-                expressLoading && (
-
-                  <div
-
-                    className="
-
-                      h-[48px]
-
-                      w-full
-
-                      animate-pulse
-
-                      rounded-[12px]
-
-                      bg-[#eef1ed]
-
-                    "
-
-                  />
-
-                )}
-
-
-
-              {activeExpressKey &&
-
-                (
-
-                  expressLoading ||
-
-                  activeExpressKey !==
-
-                    desiredExpressKey
-
-                ) && (
-
-                  <div
-
-                    aria-hidden="true"
-
-                    className="
-
-                      absolute
-
-                      inset-0
-
-                      z-[20]
-
-                      cursor-wait
-
-                      rounded-[12px]
-
-                      bg-transparent
-
-                    "
-
-                  />
-
-                )}
-
+              {hasValidAmount && expressLoading && (
+                <div role="status" aria-live="polite" className="absolute inset-0 z-[20] flex items-center justify-center gap-2 rounded-[12px] bg-[#eef1ed] px-3 text-sm text-[#45534b]">
+                  <span aria-hidden="true" className="size-4 animate-spin rounded-full border-2 border-[#b8c5bc] border-t-[#24543d]" />
+                  {previousActiveExpressKey ? t.walletAmountUpdating : t.walletPreparing}
+                </div>
+              )}
             </div>
 
 
@@ -6051,6 +6001,8 @@ function resetCheckoutSession() {
               )
 
             }
+
+            onBlur={() => pendingExpressLoadRef.current?.()}
 
             className="
 

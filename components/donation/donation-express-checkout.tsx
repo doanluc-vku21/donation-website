@@ -2,6 +2,7 @@
 
 import {
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -19,6 +20,7 @@ import {
 import type {
   Locale,
 } from "@/lib/i18n";
+import { getUiTranslations } from "@/lib/ui-translations";
 
 const publishableKey =
   process.env
@@ -36,6 +38,7 @@ const stripePromise =
   );
 
 type DonationExpressCheckoutProps = {
+  enabled?: boolean;
   clientSecret:
     string;
 
@@ -63,6 +66,7 @@ type DonationExpressCheckoutProps = {
 };
 
 export function DonationExpressCheckout({
+  enabled = true,
   clientSecret,
   locale,
   onAvailabilityChange,
@@ -104,6 +108,7 @@ export function DonationExpressCheckout({
       }}
     >
       <ExpressCheckoutForm
+        enabled={enabled}
         locale={
           locale
         }
@@ -125,11 +130,14 @@ export function DonationExpressCheckout({
 }
 
 function ExpressCheckoutForm({
+  enabled,
+  locale,
   onAvailabilityChange,
   onError,
   beforeConfirm,
   onExpressConfirm,
 }: {
+  enabled: boolean;
   locale:
     Locale;
 
@@ -154,6 +162,7 @@ function ExpressCheckoutForm({
 }) {
   const checkoutResult =
     useCheckoutElements();
+  const confirmationInFlight = useRef(false);
 
   const [
     submitting,
@@ -212,12 +221,22 @@ function ExpressCheckoutForm({
       StripeExpressCheckoutElementConfirmEvent,
   ) {
     if (
+      confirmationInFlight.current ||
       submitting ||
       checkoutResult.type !==
         "success"
     ) {
       return;
     }
+
+    if (!enabled) {
+      event.paymentFailed?.({ reason: "fail", message: getUiTranslations(locale).walletAmountUpdating });
+      return;
+    }
+
+    // React batches state updates; also lock duplicate wallet events that arrive
+    // before the submitting state has rerendered.
+    confirmationInFlight.current = true;
 
     try {
       setSubmitting(
@@ -288,6 +307,7 @@ function ExpressCheckoutForm({
     } catch (
       error
     ) {
+      confirmationInFlight.current = false;
       console.error(
         "Express checkout failed:",
         error,

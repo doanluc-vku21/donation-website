@@ -93,6 +93,8 @@ export type UiTranslations = {
   fee: string;
 
   openingCheckout: string;
+  walletPreparing: string;
+  walletAmountUpdating: string;
   continueSecureCheckout: string;
 
   paymentProcessedStripe: string;
@@ -291,6 +293,8 @@ const en: UiTranslations = {
 
   openingCheckout:
     "Opening checkout...",
+  walletPreparing: "Preparing payment...",
+  walletAmountUpdating: "Updating payment amount...",
 
   continueSecureCheckout:
     "Continue to secure checkout",
@@ -523,6 +527,8 @@ const fr: UiTranslations = {
 
   openingCheckout:
     "Ouverture du paiement...",
+  walletPreparing: "Préparation du paiement...",
+  walletAmountUpdating: "Mise à jour du montant...",
 
   continueSecureCheckout:
     "Continuer vers le paiement sécurisé",
@@ -749,6 +755,8 @@ const de: UiTranslations = {
 
   openingCheckout:
     "Zahlung wird geöffnet...",
+  walletPreparing: "Zahlung wird vorbereitet...",
+  walletAmountUpdating: "Zahlungsbetrag wird aktualisiert...",
 
   continueSecureCheckout:
     "Weiter zur sicheren Zahlung",
@@ -975,6 +983,8 @@ const es: UiTranslations = {
 
   openingCheckout:
     "Abriendo pago...",
+  walletPreparing: "Preparando el pago...",
+  walletAmountUpdating: "Actualizando el importe...",
 
   continueSecureCheckout:
     "Continuar al pago seguro",
@@ -1201,6 +1211,8 @@ const ar: UiTranslations = {
 
   openingCheckout:
     "جارٍ فتح صفحة الدفع...",
+  walletPreparing: "جارٍ تجهيز الدفع...",
+  walletAmountUpdating: "جارٍ تحديث مبلغ الدفع...",
 
   continueSecureCheckout:
     "المتابعة إلى الدفع الآمن",
