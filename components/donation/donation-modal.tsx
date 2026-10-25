@@ -261,6 +261,8 @@ export function DonationModal({
     setOpen,
   ] = useState(false);
 
+  const [checkoutGeneration, setCheckoutGeneration] = useState(0);
+
   const mounted = useSyncExternalStore(subscribeToHydration, getClientSnapshot, getServerSnapshot);
 
   const [
@@ -315,6 +317,18 @@ export function DonationModal({
       defaultDonationOptionUsd,
       exchangeRate,
     );
+
+  const monthlyPrefetchKey = getExpressCheckoutKey({
+    campaignId: campaign.id,
+    campaignPath: pathname,
+    frequency: "monthly",
+    amount: defaultAmount,
+    currency,
+    locale,
+    coverFee: false,
+    displayPublicly: true,
+  });
+  const canWarmWallet = prefetchedExpress.monthly?.key === monthlyPrefetchKey;
 
   const heroUrl =
     content.heroImage
@@ -442,6 +456,10 @@ export function DonationModal({
       false,
     );
 
+    // Keep the original close/reset behavior, then prepare a fresh default
+    // wallet subtree while the donor is back on the campaign page.
+    setCheckoutGeneration((current) => current + 1);
+
     window.setTimeout(
       () => {
         setStep(
@@ -515,6 +533,7 @@ export function DonationModal({
       {mounted &&
         createPortal(
           <div
+        inert={!open}
         aria-hidden={
           !open
         }
@@ -536,7 +555,7 @@ export function DonationModal({
           ${
             open
               ? "visible pointer-events-auto opacity-100"
-              : "invisible pointer-events-none opacity-0"
+              : "pointer-events-none opacity-0"
           }
         `}
           onMouseDown={(
@@ -787,8 +806,10 @@ export function DonationModal({
                     : "mt-4"
                 }
               >
-                {open && (
+                {(open || canWarmWallet) && (
                   <DonationFlow
+                    key={`${campaign.id}:${pathname}:${currency}:${locale}:${checkoutGeneration}`}
+                    active={open}
                     campaign={
                       campaign
                     }

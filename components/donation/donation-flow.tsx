@@ -193,6 +193,9 @@ type DonationFlowProps = {
 
   embedded?: boolean;
 
+  // A modal can initialize its wallet while closed without preloading cards.
+  active?: boolean;
+
 
 
   onStepChange?: (
@@ -236,6 +239,8 @@ export function DonationFlow({
   prefetchedExpress,
 
   embedded = false,
+
+  active = true,
 
   onStepChange,
 
@@ -1248,7 +1253,7 @@ export function DonationFlow({
 
                 await prefetched.promise.catch(() => undefined);
 
-              if (cancelled) return;
+              if (cancelled || (!active && !data)) return;
 
             }
 
@@ -1569,6 +1574,8 @@ export function DonationFlow({
     };
 
   }, [
+
+    active,
 
     amount,
 
@@ -2230,6 +2237,8 @@ function resetCheckoutSession() {
 
     if (
 
+      !active ||
+
       isHostedCheckoutPage ||
 
       (
@@ -2285,6 +2294,8 @@ function resetCheckoutSession() {
     };
 
   }, [
+
+    active,
 
     amount,
 
