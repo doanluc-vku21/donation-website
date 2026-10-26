@@ -94,6 +94,8 @@ export type UiTranslations = {
 
   openingCheckout: string;
   walletPreparing: string;
+  applePayPreparing: string;
+  walletPreparingHint: string;
   walletAmountUpdating: string;
   continueSecureCheckout: string;
 
@@ -294,6 +296,8 @@ const en: UiTranslations = {
   openingCheckout:
     "Opening checkout...",
   walletPreparing: "Preparing payment...",
+  applePayPreparing: "Getting Apple Pay ready...",
+  walletPreparingHint: "This may take a few seconds.",
   walletAmountUpdating: "Updating payment amount...",
 
   continueSecureCheckout:
@@ -528,6 +532,8 @@ const fr: UiTranslations = {
   openingCheckout:
     "Ouverture du paiement...",
   walletPreparing: "Préparation du paiement...",
+  applePayPreparing: "Préparation d’Apple Pay...",
+  walletPreparingHint: "Cela peut prendre quelques secondes.",
   walletAmountUpdating: "Mise à jour du montant...",
 
   continueSecureCheckout:
@@ -756,6 +762,8 @@ const de: UiTranslations = {
   openingCheckout:
     "Zahlung wird geöffnet...",
   walletPreparing: "Zahlung wird vorbereitet...",
+  applePayPreparing: "Apple Pay wird vorbereitet...",
+  walletPreparingHint: "Dies kann einige Sekunden dauern.",
   walletAmountUpdating: "Zahlungsbetrag wird aktualisiert...",
 
   continueSecureCheckout:
@@ -984,6 +992,8 @@ const es: UiTranslations = {
   openingCheckout:
     "Abriendo pago...",
   walletPreparing: "Preparando el pago...",
+  applePayPreparing: "Preparando Apple Pay...",
+  walletPreparingHint: "Esto puede tardar unos segundos.",
   walletAmountUpdating: "Actualizando el importe...",
 
   continueSecureCheckout:
@@ -1212,6 +1222,8 @@ const ar: UiTranslations = {
   openingCheckout:
     "جارٍ فتح صفحة الدفع...",
   walletPreparing: "جارٍ تجهيز الدفع...",
+  applePayPreparing: "جارٍ تجهيز Apple Pay...",
+  walletPreparingHint: "قد يستغرق ذلك بضع ثوانٍ.",
   walletAmountUpdating: "جارٍ تحديث مبلغ الدفع...",
 
   continueSecureCheckout:
