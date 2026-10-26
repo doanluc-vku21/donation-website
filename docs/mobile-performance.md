@@ -98,3 +98,44 @@ reduction from 30,182 to 864 bytes, a modal thumbnail from 73,912 to 3,374 bytes
 and a mobile-sized hero from 73,912 to 45,730 bytes. These are per-resource
 comparisons, not an additive page-total saving: different elements can share
 a cached source resource.
+
+## Follow-up screenshot: Performance 79 / Best Practices 100
+
+The new screenshot again lacks a full report URL. Current same-release mobile
+baselines (`72f4f84`, including both requested Meta Pixels) were measured before
+the further changes below:
+
+| Page | Performance | Best Practices | FCP | LCP | TBT | CLS | Speed Index |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `/akram-shake` | 92 | 100 | 1.1 s | 1.7 s | 300 ms | 0 | 3.6 s |
+| `/gaza-food` | 82 | 100 | 0.9 s | 2.0 s | 650 ms | 0 | 3.5 s |
+
+This reproduces a main-thread blocking concern, rather than another Best
+Practices failure. Both Meta Pixel configurations contribute script work;
+neither tracking destination is removed or delayed in this change.
+
+The prior intent-only wallet mounting still imported `@stripe/stripe-js` and
+called `loadStripe` at module scope. The package injects Stripe.js on import,
+so even readers who never opened Donate incurred its script cost. The shared
+loader now uses the supported `@stripe/stripe-js/pure` entry point and starts
+on intent on Android/desktop. Modal opening starts the SDK in parallel with
+Session preparation; standalone donation flows do the same on mount. Hosted
+checkout entries do not load an unused embedded SDK.
+
+iPhone/iPad explicitly start the same singleton as soon as the existing Apple
+Pay prewarm is eligible, before waiting for the prefetched Session. This keeps
+SDK and backend preparation parallel for Apple Pay. A failed speculative load
+can be retried, and card/wallet providers still share one promise.
+
+The SDK is served directly from Stripe and its default advanced fraud signals
+remain enabled. On Android/desktop this does shorten the pre-checkout browsing
+observation window compared with loading throughout article reading; payment
+integration, fraud settings and risk factors collected by the checkout SDK are
+not disabled. Normal iOS prewarming remains in place. This uses the vendor's
+[documented pure loader](https://github.com/stripe/stripe-js#importing-loadstripe-without-side-effects).
+
+104 focused tests pass, including signed-context authorization, minor-unit/fee
+calculations, monthly accounting, stale-amount and duplicate-confirmation
+guards, SDK load retry and iOS-versus-Android startup behavior. Type checking
+and lint with zero warnings also pass. Before/after performance artifacts and
+recording frames stay under ignored `.local/diagnostics`.

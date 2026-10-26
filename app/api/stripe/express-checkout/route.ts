@@ -18,6 +18,7 @@ import {
 } from "@/lib/currency";
 
 import { getDonationAmounts } from "@/lib/stripe/donation-amount";
+import { signWalletUpdateContext } from "@/lib/stripe/wallet-update-context";
 
 import {
   getUsdToCurrencyRate,
@@ -458,6 +459,7 @@ export async function POST(
         {
           ui_mode:
             "elements",
+          expand: ["line_items"],
 
           mode:
             frequency ===
@@ -552,6 +554,13 @@ export async function POST(
 
     return NextResponse.json(
       {
+        updateContext: session.line_items?.data[0]?.price?.product
+          ? signWalletUpdateContext({
+              sessionId: session.id, currency: siteCurrency, frequency, coverFee, exchangeRate,
+              productId: typeof session.line_items.data[0].price.product === "string"
+                ? session.line_items.data[0].price.product : session.line_items.data[0].price.product.id,
+            }, session.client_secret, session.expires_at * 1000)
+          : undefined,
         clientSecret:
           session.client_secret,
 

@@ -146,3 +146,36 @@ card details are needed. Those timings are needed to locate the remaining delay
 before claiming another device-speed fix. The controlled Windows Chrome session
 cannot reproduce native iPhone Apple Pay, and raw browser network inspection is
 unavailable in the current browser automation session.
+
+## Recording IMG_8837 and removing a redundant Stripe round trip
+
+The 30.77-second recording shows custom values 55, 66 and 88. Sampling the
+custom-entry portion at 0.5-second intervals shows approximately 1.5–2 seconds
+between the completed amount and the black Apple Pay button becoming usable.
+The keyboard remains open; there is no native payment authorization or double
+charge in this recording. The recording does not show the diagnostic panel,
+so it cannot split the server interval from Stripe's client refresh interval.
+
+New Sessions expand line items in the existing create request and return a
+short-lived, server-signed update context. It binds Session, product, currency,
+frequency, fee coverage and the FX quote, plus a hash of the actual client
+secret. HMAC-SHA256 uses a purpose-separated message with the existing
+server-only Stripe secret; neither that key nor a raw client secret is included
+in the signed context. The context expires within 20 minutes or at Session
+expiry, whichever is earlier. It is a browser-held capability and must not be
+logged, shared or placed in URLs.
+
+Amount updates verify the signature, expiry, Session binding and client-secret
+hash locally before issuing one Stripe update. This removes the prior Stripe
+retrieve request; it does not remove Stripe's authoritative update, the SDK
+refresh or the check that the SDK total equals the server total. Stripe still
+rejects line-item updates for a Session that can no longer be changed. No charge
+or authorization is performed by this endpoint. Client-supplied currency, fee
+coverage and product are ignored. Accounting uses the signed FX quote and the
+same calculation helper as Session creation. All existing amount/UI locks and
+monthly webhook handling remain in place.
+
+Old open tabs without a signed context retain the retrieve-and-verify path.
+Expired, modified, mismatched or key-rotated contexts fail closed and use the
+existing fresh-Session fallback. This is one fewer Stripe request on the normal
+custom-amount path, not a claim that the whole native iPhone flow is instant.

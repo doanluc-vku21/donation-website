@@ -7,6 +7,8 @@ import type { Currency } from "@/lib/currency";
 
 const navigation = vi.hoisted(() => ({ pathname: "/gaza-food" }));
 const walletReadiness = vi.hoisted(() => ({ available: true, update: undefined as undefined | ((amount: number) => Promise<void>) }));
+const stripePreparation = vi.hoisted(() => ({ prepare: vi.fn() }));
+vi.mock("@/lib/stripe/client", () => ({ prepareStripe: stripePreparation.prepare }));
 vi.mock("next/navigation", () => ({ usePathname: () => navigation.pathname }));
 vi.mock("next/image", () => ({
   // Mock the framework's image wrapper with the native DOM element in jsdom.
@@ -30,6 +32,7 @@ import { DonationModal } from "@/components/donation/donation-modal";
 
 beforeEach(() => {
   vi.useFakeTimers(); navigation.pathname = "/gaza-food"; walletReadiness.available = true; walletReadiness.update = undefined;
+  stripePreparation.prepare.mockClear();
   vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)");
 });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
@@ -138,10 +141,12 @@ describe("Apple Pay session loading", () => {
     const fetch = vi.fn().mockResolvedValue(response("cs_android_intent"));
     vi.stubGlobal("fetch", fetch);
     mountModal();
+    expect(stripePreparation.prepare).not.toHaveBeenCalled();
     await advance(120); await advance(1);
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId("wallet-session")).not.toBeInTheDocument();
     openModal(); await advance(1);
+    expect(stripePreparation.prepare).toHaveBeenCalled();
     expect(screen.getByTestId("wallet-session")).toHaveTextContent("cs_android_intent_secret");
     expect(fetch).toHaveBeenCalledTimes(1);
   });
@@ -202,6 +207,7 @@ describe("Apple Pay session loading", () => {
     const fetch = vi.fn().mockResolvedValue(response("cs_warm_widget"));
     vi.stubGlobal("fetch", fetch);
     mountModal();
+    expect(stripePreparation.prepare).toHaveBeenCalled();
     await advance(120);
     await advance(1);
     const warmWallet = screen.getByTestId("wallet-session");

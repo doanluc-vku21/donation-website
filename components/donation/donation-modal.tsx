@@ -2,6 +2,7 @@
 import { metaCheckoutFetch } from "@/lib/meta/client";
 import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
 import { shouldPrewarmApplePay } from "@/lib/stripe/wallet-platform";
+import { prepareStripe } from "@/lib/stripe/client";
 
 import Image from "next/image";
 
@@ -198,6 +199,7 @@ function getOrCreateExpressPrefetch({
             }
 
             return {
+              updateContext: typeof data.updateContext === "string" ? data.updateContext : undefined,
               clientSecret:
                 data.clientSecret as string,
 
@@ -333,6 +335,9 @@ export function DonationModal({
   // Google Pay loads its third-party iframe/cookies only after Donate opens.
   // iPhone/iPad still prepare Apple Pay ahead of that interaction.
   const canWarmWallet = prewarmApplePay && prefetchedExpress.monthly?.key === monthlyPrefetchKey;
+  useEffect(() => {
+    if (prewarmApplePay && !disableExpressPrefetch) prepareStripe();
+  }, [prewarmApplePay, disableExpressPrefetch]);
 
   const heroUrl =
     content.heroImage
@@ -440,6 +445,7 @@ export function DonationModal({
   }, [prefetchExpressCheckout]);
 
   function openModal() {
+    if (!disableExpressPrefetch) prepareStripe();
     /*
      * Also warm on the actual interaction in case the user
      * clicks before the short background prefetch fires.

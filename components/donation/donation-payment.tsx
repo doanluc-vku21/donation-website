@@ -10,7 +10,7 @@ import {
   LockKeyhole,
 } from "lucide-react";
 
-import { stripePromise } from "@/lib/stripe/client";
+import { getStripePromise } from "@/lib/stripe/client";
 
 import {
   CheckoutElementsProvider,
@@ -199,7 +199,7 @@ export function DonationPayment({
     >
       <CheckoutElementsProvider
       stripe={
-        stripePromise
+        getStripePromise()
       }
       options={{
         clientSecret,

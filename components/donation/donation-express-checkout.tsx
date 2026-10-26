@@ -10,7 +10,7 @@ import {
 import {
   type StripeExpressCheckoutElementConfirmEvent,
 } from "@stripe/stripe-js";
-import { stripePromise } from "@/lib/stripe/client";
+import { getStripePromise } from "@/lib/stripe/client";
 import { getWalletPlatform } from "@/lib/stripe/wallet-platform";
 
 import {
@@ -30,6 +30,7 @@ export type ExpressAmountUpdater = (amountCents: number) => Promise<void>;
 
 type DonationExpressCheckoutProps = {
   enabled?: boolean;
+  updateContext?: string;
   onAmountUpdater?: (update: ExpressAmountUpdater) => void;
   clientSecret:
     string;
@@ -59,6 +60,7 @@ type DonationExpressCheckoutProps = {
 
 export function DonationExpressCheckout({
   enabled = true,
+  updateContext,
   onAmountUpdater,
   clientSecret,
   locale,
@@ -70,7 +72,7 @@ export function DonationExpressCheckout({
   return (
     <CheckoutElementsProvider
       stripe={
-        stripePromise
+        getStripePromise()
       }
       options={{
         clientSecret,
@@ -102,6 +104,7 @@ export function DonationExpressCheckout({
     >
       <ExpressCheckoutForm
         enabled={enabled}
+        updateContext={updateContext}
         clientSecret={clientSecret}
         onAmountUpdater={onAmountUpdater}
         locale={
@@ -126,6 +129,7 @@ export function DonationExpressCheckout({
 
 function ExpressCheckoutForm({
   enabled,
+  updateContext,
   clientSecret,
   onAmountUpdater,
   locale,
@@ -135,6 +139,7 @@ function ExpressCheckoutForm({
   onExpressConfirm,
 }: {
   enabled: boolean;
+  updateContext?: string;
   clientSecret: string;
   onAmountUpdater?: (update: ExpressAmountUpdater) => void;
   locale:
@@ -189,7 +194,8 @@ function ExpressCheckoutForm({
       const response = await metaCheckoutFetch("/api/stripe/express-checkout/amount", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: checkout.id, clientSecret, amountCents }),
+        body: JSON.stringify({ sessionId: checkout.id, clientSecret, amountCents,
+          ...(updateContext ? { updateContext } : {}) }),
       });
       const data = await response.json();
       if (!response.ok || !Number.isSafeInteger(data.totalAmountMinor)) {

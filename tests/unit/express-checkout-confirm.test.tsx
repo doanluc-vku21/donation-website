@@ -4,7 +4,7 @@ import type { StripeExpressCheckoutElementConfirmEvent } from "@stripe/stripe-js
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const stripe = vi.hoisted(() => ({ confirm: vi.fn(), update: vi.fn(), ready: undefined as undefined | ((event: unknown) => void), eventHandler: undefined as undefined | ((event: unknown) => Promise<void>) }));
-vi.mock("@stripe/stripe-js", () => ({ loadStripe: () => Promise.resolve({}) }));
+vi.mock("@stripe/stripe-js/pure", () => ({ loadStripe: () => Promise.resolve({}) }));
 vi.mock("@stripe/react-stripe-js/checkout", () => ({
   CheckoutElementsProvider: ({ children }: PropsWithChildren) => children,
   useCheckoutElements: () => ({ type: "success", checkout: { id: "cs_unit", confirm: stripe.confirm, runServerUpdate: stripe.update } }),
@@ -32,9 +32,9 @@ afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 describe("Apple Pay payment confirmation", () => {
   const walletEvent = { expressPaymentType: "apple_pay" } as StripeExpressCheckoutElementConfirmEvent;
 
-  async function readyUpdater() {
+  async function readyUpdater(updateContext?: string) {
     const register = vi.fn();
-    render(<DonationExpressCheckout clientSecret="unit_secret" locale="en" onAmountUpdater={register} />);
+    render(<DonationExpressCheckout clientSecret="unit_secret" locale="en" onAmountUpdater={register} updateContext={updateContext} />);
     act(() => { stripe.ready!({ availablePaymentMethods: { applePay: true } }); });
     return register.mock.calls[0][0] as (amount: number) => Promise<void>;
   }
@@ -46,6 +46,13 @@ describe("Apple Pay payment confirmation", () => {
     expect(stripe.update).toHaveBeenCalledOnce();
     expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ sessionId: "cs_unit", clientSecret: "unit_secret", amountCents: 12345 });
     expect(stripe.confirm).not.toHaveBeenCalled();
+  });
+  it("includes the server-issued context on the SDK amount update", async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ totalAmountMinor: 12345 })));
+    vi.stubGlobal("fetch", fetch);
+    const update = await readyUpdater("unit_signed_context");
+    await act(async () => { await update(12345); });
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({ updateContext: "unit_signed_context", amountCents: 12345 });
   });
   it("rejects an SDK refresh that still contains the old amount", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ totalAmountMinor: 99999 }))));

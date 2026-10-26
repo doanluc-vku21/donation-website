@@ -4,6 +4,7 @@ import { metaCheckoutFetch } from "@/lib/meta/client";
 import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
 import { beginWalletTiming, currentWalletTiming, recordWalletTiming } from "@/lib/stripe/wallet-diagnostics";
 import { WalletDiagnostics } from "./wallet-diagnostics";
+import { prepareStripe } from "@/lib/stripe/client";
 
 
 
@@ -131,6 +132,7 @@ type DonationStep =
 
 
 export type ExpressPrefetchResult = {
+  updateContext?: string;
   invalidated?: boolean;
 
   clientSecret:
@@ -279,6 +281,10 @@ export function DonationFlow({
 
       "/child-health";
 
+
+  useEffect(() => {
+    if (active && !isHostedCheckoutPage) prepareStripe();
+  }, [active, isHostedCheckoutPage]);
 
   const isChildHealthUpsellPage =
 
@@ -688,6 +694,7 @@ export function DonationFlow({
 
 
   type ExpressRenderedSession = {
+    updateContext?: string;
     updating?: boolean;
     reuseKey: string;
     prefetchResult?: ExpressPrefetchResult;
@@ -1434,6 +1441,7 @@ export function DonationFlow({
 
 
               data = {
+                updateContext: typeof responseData.updateContext === "string" ? responseData.updateContext : undefined,
 
                 clientSecret:
 
@@ -1535,6 +1543,7 @@ export function DonationFlow({
                     ready: false,
                     reuseKey: expressReuseKey,
                     prefetchResult: data,
+                    updateContext: data.updateContext,
                   },
 
                 ];
@@ -3681,6 +3690,7 @@ function resetCheckoutSession() {
 
                       <DonationExpressCheckout
                         enabled={canPay}
+                        updateContext={session.updateContext}
                         onAmountUpdater={(update) => { amountUpdatersRef.current.set(session.sessionId, update); }}
 
                         clientSecret={
