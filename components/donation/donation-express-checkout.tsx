@@ -22,9 +22,13 @@ import type {
   Locale,
 } from "@/lib/i18n";
 import { getUiTranslations } from "@/lib/ui-translations";
+import { metaCheckoutFetch } from "@/lib/meta/client";
+
+export type ExpressAmountUpdater = (amountCents: number) => Promise<void>;
 
 type DonationExpressCheckoutProps = {
   enabled?: boolean;
+  onAmountUpdater?: (update: ExpressAmountUpdater) => void;
   clientSecret:
     string;
 
@@ -53,6 +57,7 @@ type DonationExpressCheckoutProps = {
 
 export function DonationExpressCheckout({
   enabled = true,
+  onAmountUpdater,
   clientSecret,
   locale,
   onAvailabilityChange,
@@ -95,6 +100,8 @@ export function DonationExpressCheckout({
     >
       <ExpressCheckoutForm
         enabled={enabled}
+        clientSecret={clientSecret}
+        onAmountUpdater={onAmountUpdater}
         locale={
           locale
         }
@@ -117,6 +124,8 @@ export function DonationExpressCheckout({
 
 function ExpressCheckoutForm({
   enabled,
+  clientSecret,
+  onAmountUpdater,
   locale,
   onAvailabilityChange,
   onError,
@@ -124,6 +133,8 @@ function ExpressCheckoutForm({
   onExpressConfirm,
 }: {
   enabled: boolean;
+  clientSecret: string;
+  onAmountUpdater?: (update: ExpressAmountUpdater) => void;
   locale:
     Locale;
 
@@ -157,6 +168,30 @@ function ExpressCheckoutForm({
     useState(false);
 
   const platform = useMemo(() => getWalletPlatform(), []);
+
+  async function updateAmount(amountCents: number) {
+    if (checkoutResult.type !== "success" || confirmationInFlight.current) {
+      throw new Error("Wallet is not ready for an amount update.");
+    }
+    const checkout = checkoutResult.checkout;
+    let expectedTotal: number | undefined;
+    const result = await checkout.runServerUpdate(async () => {
+      const response = await metaCheckoutFetch("/api/stripe/express-checkout/amount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: checkout.id, clientSecret, amountCents }),
+      });
+      const data = await response.json();
+      if (!response.ok || !Number.isSafeInteger(data.totalAmountMinor)) {
+        throw new Error("Unable to synchronize wallet amount.");
+      }
+      expectedTotal = data.totalAmountMinor;
+    });
+    if (result.type === "error" || expectedTotal === undefined ||
+        result.session.total.total.minorUnitsAmount !== expectedTotal) {
+      throw new Error("Wallet amount synchronization failed.");
+    }
+  }
 
   async function handleConfirm(
     event:
@@ -380,6 +415,7 @@ function ExpressCheckoutForm({
           onAvailabilityChange?.(
             available,
           );
+          if (available) onAmountUpdater?.(updateAmount);
 
           console.log(
             "Express Checkout platform:",

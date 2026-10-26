@@ -3,13 +3,14 @@ import type { PropsWithChildren } from "react";
 import type { StripeExpressCheckoutElementConfirmEvent } from "@stripe/stripe-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const stripe = vi.hoisted(() => ({ confirm: vi.fn(), eventHandler: undefined as undefined | ((event: unknown) => Promise<void>) }));
+const stripe = vi.hoisted(() => ({ confirm: vi.fn(), update: vi.fn(), ready: undefined as undefined | ((event: unknown) => void), eventHandler: undefined as undefined | ((event: unknown) => Promise<void>) }));
 vi.mock("@stripe/stripe-js", () => ({ loadStripe: () => Promise.resolve({}) }));
 vi.mock("@stripe/react-stripe-js/checkout", () => ({
   CheckoutElementsProvider: ({ children }: PropsWithChildren) => children,
-  useCheckoutElements: () => ({ type: "success", checkout: { confirm: stripe.confirm } }),
-  ExpressCheckoutElement: ({ onConfirm }: { onConfirm: (event: unknown) => Promise<void> }) => {
+  useCheckoutElements: () => ({ type: "success", checkout: { id: "cs_unit", confirm: stripe.confirm, runServerUpdate: stripe.update } }),
+  ExpressCheckoutElement: ({ onConfirm, onReady }: { onConfirm: (event: unknown) => Promise<void>; onReady: (event: unknown) => void }) => {
     stripe.eventHandler = onConfirm;
+    stripe.ready = onReady;
     return <button>Apple Pay</button>;
   },
 }));
@@ -20,13 +21,49 @@ const { DonationExpressCheckout } = await import("@/components/donation/donation
 
 beforeEach(() => {
   stripe.confirm.mockReset().mockResolvedValue({ type: "success" });
+  stripe.update.mockReset().mockImplementation(async (callback) => {
+    await callback(); return { type: "success", session: { total: { total: { minorUnitsAmount: 12345 } } } };
+  });
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
-afterEach(() => { vi.restoreAllMocks(); });
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("Apple Pay payment confirmation", () => {
   const walletEvent = { expressPaymentType: "apple_pay" } as StripeExpressCheckoutElementConfirmEvent;
+
+  async function readyUpdater() {
+    const register = vi.fn();
+    render(<DonationExpressCheckout clientSecret="unit_secret" locale="en" onAmountUpdater={register} />);
+    act(() => { stripe.ready!({ availablePaymentMethods: { applePay: true } }); });
+    return register.mock.calls[0][0] as (amount: number) => Promise<void>;
+  }
+  it("refreshes the existing SDK and verifies its total without authorizing a payment", async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ totalAmountMinor: 12345 })));
+    vi.stubGlobal("fetch", fetch);
+    const update = await readyUpdater();
+    await act(async () => { await update(12345); });
+    expect(stripe.update).toHaveBeenCalledOnce();
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ sessionId: "cs_unit", clientSecret: "unit_secret", amountCents: 12345 });
+    expect(stripe.confirm).not.toHaveBeenCalled();
+  });
+  it("rejects an SDK refresh that still contains the old amount", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ totalAmountMinor: 99999 }))));
+    const update = await readyUpdater();
+    await expect(update(99999)).rejects.toThrow("synchronization failed");
+    expect(stripe.confirm).not.toHaveBeenCalled();
+  });
+  it("rejects failed server updates instead of treating HTTP errors as success", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "failed" }), { status: 500 })));
+    const update = await readyUpdater();
+    await expect(update(12345)).rejects.toThrow("synchronize wallet amount");
+  });
+  it("does not change the amount once payment confirmation has started", async () => {
+    const update = await readyUpdater();
+    await act(async () => { await stripe.eventHandler!(walletEvent); });
+    await expect(update(12345)).rejects.toThrow("not ready");
+    expect(stripe.update).not.toHaveBeenCalled();
+  });
 
   it("passes the wallet event to Stripe without waiting for background bookkeeping", async () => {
     const bookkeeping = vi.fn(() => new Promise<void>(() => {}));

@@ -129,6 +129,7 @@ type DonationStep =
 
 
 export type ExpressPrefetchResult = {
+  invalidated?: boolean;
 
   clientSecret:
 
@@ -685,6 +686,9 @@ export function DonationFlow({
 
 
   type ExpressRenderedSession = {
+    updating?: boolean;
+    reuseKey: string;
+    prefetchResult?: ExpressPrefetchResult;
     ready: boolean;
 
     key:
@@ -712,6 +716,14 @@ export function DonationFlow({
   };
 
   const pendingExpressLoadRef = useRef<(() => void) | null>(null);
+  const amountUpdatersRef = useRef(new Map<string, (amountCents: number) => Promise<void>>());
+  const amountMutationRef = useRef<string | null>(null);
+  const failedAmountKeyRef = useRef("");
+  const mountedExpressRef = useRef(true);
+  useEffect(() => {
+    mountedExpressRef.current = true;
+    return () => { mountedExpressRef.current = false; };
+  }, []);
 
 
 
@@ -1047,9 +1059,14 @@ export function DonationFlow({
     locale,
   });
 
+  // All immutable Session fields must match before only its amount can change.
+  const expressReuseKey = getExpressCheckoutKey({
+    campaignId: campaign.id, campaignPath: pathname, frequency, amount: 0,
+    currency, coverFee, displayPublicly: !isAnonymous, locale,
+  });
   // Cache readiness already describes the selected wallet. Derive the UI from
   // it instead of synchronously copying that data into state from an effect.
-  const desiredExpressSession = expressSessions.find((session) => session.key === desiredExpressKey);
+  const desiredExpressSession = expressSessions.find((session) => session.key === desiredExpressKey && !session.updating);
   const activeExpressKey = desiredExpressSession?.ready
     ? (desiredExpressSession.available ? desiredExpressKey : "")
     : previousActiveExpressKey;
@@ -1189,13 +1206,8 @@ export function DonationFlow({
 
 
 
-    if (
-
-      existing
-
-    ) {
+    if ((existing && !existing.updating) || amountMutationRef.current) {
       return;
-
     }
 
 
@@ -1215,7 +1227,36 @@ export function DonationFlow({
     const loadExpressSession = async () => {
 
           try {
-
+            // Cancelling a fetch cannot cancel a write already received by Stripe.
+            // Finish it, record its actual amount, then synchronize the latest input.
+            if (amountMutationRef.current) return;
+            const reusable = customAmount.trim() ? expressSessions.find((session) =>
+              session.reuseKey === expressReuseKey && session.ready && session.available &&
+              amountUpdatersRef.current.has(session.sessionId)) : undefined;
+            if (reusable) {
+              amountMutationRef.current = reusable.sessionId;
+              setExpressSessions((current) => current.map((session) => session.sessionId === reusable.sessionId
+                ? { ...session, updating: true } : session));
+              if (reusable.prefetchResult) reusable.prefetchResult.invalidated = true;
+              try {
+                await amountUpdatersRef.current.get(reusable.sessionId)!(amount);
+                if (mountedExpressRef.current) {
+                  setExpressSessions((current) => current.map((session) => session.sessionId === reusable.sessionId
+                    ? { ...session, key: desiredExpressKey, updating: false } : session));
+                }
+              } catch {
+                // A failed response/SDK refresh may follow a successful server
+                // write. Discard the ambiguous Session and create a fresh one.
+                amountUpdatersRef.current.delete(reusable.sessionId);
+                failedAmountKeyRef.current = desiredExpressKey;
+                if (mountedExpressRef.current) {
+                  setExpressSessions((current) => current.filter((session) => session.sessionId !== reusable.sessionId));
+                }
+              } finally {
+                amountMutationRef.current = null;
+              }
+              return;
+            }
             setExpressLoading(
 
               true,
@@ -1255,6 +1296,8 @@ export function DonationFlow({
                 await prefetched.promise.catch(() => undefined);
 
               if (cancelled || (!active && !data)) return;
+              // Never reuse a mutated warm-up under its original amount key.
+              if (data?.invalidated) data = undefined;
 
             }
 
@@ -1478,7 +1521,8 @@ export function DonationFlow({
 
                       false,
                     ready: false,
-
+                    reuseKey: expressReuseKey,
+                    prefetchResult: data,
                   },
 
                 ];
@@ -1553,7 +1597,8 @@ export function DonationFlow({
       void loadExpressSession();
     }
     pendingExpressLoadRef.current = startExpressLoad;
-    const timeout = window.setTimeout(startExpressLoad, customAmount.trim() ? 450 : 0);
+    const timeout = window.setTimeout(startExpressLoad,
+      customAmount.trim() && failedAmountKeyRef.current !== desiredExpressKey ? 200 : 0);
 
 
 
@@ -1596,6 +1641,8 @@ export function DonationFlow({
     customAmount,
 
     desiredExpressKey,
+
+    expressReuseKey,
 
     expressSessions,
 
@@ -3583,7 +3630,7 @@ function resetCheckoutSession() {
 
                     desiredExpressKey;
 
-                  const canPay = hasValidAmount && isActive && isTarget && session.ready && session.available;
+                  const canPay = hasValidAmount && isActive && isTarget && session.ready && session.available && !session.updating;
 
 
 
@@ -3621,6 +3668,7 @@ function resetCheckoutSession() {
 
                       <DonationExpressCheckout
                         enabled={canPay}
+                        onAmountUpdater={(update) => { amountUpdatersRef.current.set(session.sessionId, update); }}
 
                         clientSecret={
 

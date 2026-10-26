@@ -17,10 +17,7 @@ import {
   type Currency,
 } from "@/lib/currency";
 
-import {
-  calculateFeeContribution,
-  convertCurrencyMinorToUsd,
-} from "@/lib/money";
+import { getDonationAmounts } from "@/lib/stripe/donation-amount";
 
 import {
   getUsdToCurrencyRate,
@@ -316,35 +313,8 @@ export async function POST(
         siteCurrency,
       );
 
-    const feeAmountCents =
-      coverFee
-        ? calculateFeeContribution(
-            amountCents,
-            exchangeRate,
-          )
-        : 0;
-
-    const totalAmountCents =
-      amountCents +
-      feeAmountCents;
-
-    const normalizedDonationUsdCents =
-      convertCurrencyMinorToUsd(
-        amountCents,
-        exchangeRate,
-      );
-
-    const normalizedFeeUsdCents =
-      coverFee
-        ? convertCurrencyMinorToUsd(
-            feeAmountCents,
-            exchangeRate,
-          )
-        : 0;
-
-    const normalizedTotalUsdCents =
-      normalizedDonationUsdCents +
-      normalizedFeeUsdCents;
+    const { feeAmountCents, totalAmountCents, normalizedDonationUsdCents,
+      normalizedFeeUsdCents, normalizedTotalUsdCents } = getDonationAmounts(amountCents, coverFee, exchangeRate);
 
     if (
       normalizedDonationUsdCents <=

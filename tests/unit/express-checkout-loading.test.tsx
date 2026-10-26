@@ -6,7 +6,7 @@ import { DONATION_MODAL_OPEN_EVENT } from "@/components/donation/donation-modal-
 import type { Currency } from "@/lib/currency";
 
 const navigation = vi.hoisted(() => ({ pathname: "/gaza-food" }));
-const walletReadiness = vi.hoisted(() => ({ available: true }));
+const walletReadiness = vi.hoisted(() => ({ available: true, update: undefined as undefined | ((amount: number) => Promise<void>) }));
 vi.mock("next/navigation", () => ({ usePathname: () => navigation.pathname }));
 vi.mock("next/image", () => ({
   // Mock the framework's image wrapper with the native DOM element in jsdom.
@@ -14,8 +14,11 @@ vi.mock("next/image", () => ({
   default: (props: ImgHTMLAttributes<HTMLImageElement>) => <img {...props} alt="" />,
 }));
 vi.mock("@/components/donation/donation-payment", () => ({ DonationPayment: () => null }));
-function MockWallet({ clientSecret, onAvailabilityChange }: { clientSecret: string; onAvailabilityChange?: (available: boolean) => void }) {
-  const reportReady = useEffectEvent(() => onAvailabilityChange?.(walletReadiness.available));
+function MockWallet({ clientSecret, onAvailabilityChange, onAmountUpdater }: { clientSecret: string; onAvailabilityChange?: (available: boolean) => void; onAmountUpdater?: (update: (amount: number) => Promise<void>) => void }) {
+  const reportReady = useEffectEvent(() => {
+    onAvailabilityChange?.(walletReadiness.available);
+    if (walletReadiness.update) onAmountUpdater?.(walletReadiness.update);
+  });
   useEffect(() => { reportReady(); }, [clientSecret]);
   return <div data-testid="wallet-session">{clientSecret}</div>;
 }
@@ -26,7 +29,7 @@ vi.mock("@/components/donation/donation-express-checkout", () => ({
 import { DonationModal } from "@/components/donation/donation-modal";
 
 beforeEach(() => {
-  vi.useFakeTimers(); navigation.pathname = "/gaza-food"; walletReadiness.available = true;
+  vi.useFakeTimers(); navigation.pathname = "/gaza-food"; walletReadiness.available = true; walletReadiness.update = undefined;
   vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)");
 });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
@@ -47,6 +50,89 @@ function response(id: string) {
 }
 
 describe("Apple Pay session loading", () => {
+  it("starts custom amount synchronization at 200ms and retains the existing Apple Pay DOM", async () => {
+    walletReadiness.update = vi.fn().mockResolvedValue(undefined);
+    const express = vi.fn().mockImplementation(() => Promise.resolve(response("cs_reuse")));
+    vi.stubGlobal("fetch", vi.fn((url) => url === "/api/stripe/express-checkout" ? express() : Promise.resolve(response("cs_card"))));
+    mountModal(); await advance(121); openModal(); await advance(1);
+    const wallet = screen.getByTestId("wallet-session");
+    act(() => { fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "123.45" } }); });
+    await advance(199); expect(walletReadiness.update).not.toHaveBeenCalled();
+    await advance(1);
+    expect(walletReadiness.update).toHaveBeenCalledExactlyOnceWith(12345);
+    expect(express).toHaveBeenCalledOnce();
+    expect(screen.getByTestId("wallet-session")).toBe(wallet);
+    expect(wallet.closest("[inert]")).toBeNull();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("serializes quick edits and keeps the button inert until the latest amount has synchronized", async () => {
+    let complete!: () => void;
+    const update = vi.fn().mockReturnValueOnce(new Promise<void>((resolve) => { complete = resolve; })).mockResolvedValue(undefined);
+    walletReadiness.update = update;
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(response("cs_serial"))));
+    mountModal(); await advance(121); openModal(); await advance(1);
+    const input = screen.getByRole("spinbutton");
+    const wallet = screen.getByTestId("wallet-session");
+    act(() => { fireEvent.change(input, { target: { value: "100" } }); fireEvent.blur(input); });
+    await advance(1);
+    act(() => { fireEvent.change(input, { target: { value: "200" } }); fireEvent.blur(input); });
+    await advance(250);
+    expect(update).toHaveBeenCalledExactlyOnceWith(10000);
+    expect(wallet.closest("[inert]")).not.toBeNull();
+    await act(async () => { complete(); });
+    expect(wallet.closest("[inert]")).not.toBeNull();
+    await advance(200);
+    expect(update.mock.calls).toEqual([[10000], [20000]]);
+    expect(screen.getByTestId("wallet-session")).toBe(wallet);
+    expect(wallet.closest("[inert]")).toBeNull();
+  });
+
+  it("does not expose the original amount while a mutation is still in flight", async () => {
+    let complete!: () => void;
+    walletReadiness.update = vi.fn().mockReturnValueOnce(new Promise<void>((resolve) => { complete = resolve; })).mockResolvedValue(undefined);
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(response("cs_return_original"))));
+    mountModal(); await advance(121); openModal(); await advance(1);
+    const input = screen.getByRole("spinbutton"); const wallet = screen.getByTestId("wallet-session");
+    act(() => { fireEvent.change(input, { target: { value: "100" } }); fireEvent.blur(input); });
+    await advance(1);
+    act(() => { fireEvent.change(input, { target: { value: "50" } }); });
+    expect(wallet.closest("[inert]")).not.toBeNull();
+    await act(async () => { complete(); });
+    expect(wallet.closest("[inert]")).not.toBeNull();
+    await advance(200);
+    expect(walletReadiness.update).toHaveBeenLastCalledWith(5000);
+    expect(wallet.closest("[inert]")).toBeNull();
+  });
+
+  it("replaces an ambiguous Session if the in-place update fails", async () => {
+    walletReadiness.update = vi.fn().mockRejectedValue(new Error("SDK refresh failed"));
+    const express = vi.fn().mockResolvedValueOnce(response("cs_ambiguous")).mockResolvedValueOnce(response("cs_fresh"));
+    vi.stubGlobal("fetch", vi.fn((url) => url === "/api/stripe/express-checkout" ? express() : Promise.resolve(response("cs_card"))));
+    mountModal(); await advance(121); openModal(); await advance(1);
+    act(() => { fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "100" } }); });
+    await advance(200); await advance(1);
+    expect(express).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId("wallet-session")).toHaveTextContent("cs_fresh_secret");
+    expect(screen.getByTestId("wallet-session").closest("[inert]")).toBeNull();
+  });
+
+  it("never reuses a mutated warm-up as the default amount after closing the modal", async () => {
+    walletReadiness.update = vi.fn().mockResolvedValue(undefined);
+    const express = vi.fn().mockResolvedValueOnce(response("cs_mutated_warm")).mockResolvedValueOnce(response("cs_new_default"));
+    vi.stubGlobal("fetch", vi.fn((url) => url === "/api/stripe/express-checkout" ? express() : Promise.resolve(response("cs_card"))));
+    mountModal(); await advance(121); openModal(); await advance(1);
+    act(() => { fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "100" } }); });
+    await advance(200);
+    act(() => { fireEvent.click(screen.getByRole("button", { name: "Close donation form" })); });
+    await advance(151);
+    expect(screen.getByTestId("wallet-session")).toHaveTextContent("cs_new_default_secret");
+    openModal(); await advance(1);
+    expect(screen.getByRole("radio", { name: /^\$50(?!\d)/ })).toBeChecked();
+    expect(screen.getByTestId("wallet-session")).toHaveTextContent("cs_new_default_secret");
+    expect(express).toHaveBeenCalledTimes(2);
+  });
+
   it("defers the Google Pay wallet subtree on Android until the donation modal opens", async () => {
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Linux; Android 14) Chrome/153 Mobile");
     const fetch = vi.fn().mockResolvedValue(response("cs_android_intent"));

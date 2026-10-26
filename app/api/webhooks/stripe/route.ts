@@ -1035,6 +1035,52 @@ async function handleCheckoutSessionCompleted(
     );
   }
 
+  const subscriptionId =
+    typeof session
+      .subscription ===
+    "string"
+      ? session.subscription
+      : null;
+
+  /*
+   * Express Checkout donor fields can be added to the Checkout
+   * Session immediately before wallet confirmation.
+   *
+   * For monthly donations, copy those final values onto the
+   * Subscription so future invoice.payment_succeeded events
+   * keep the donor identity/email.
+   */
+  if (
+    subscriptionId
+  ) {
+    await stripe.subscriptions.update(
+      subscriptionId,
+      {
+        metadata: {
+          ...metadata,
+
+          donor_first_name:
+            firstName,
+
+          donor_last_name:
+            lastName,
+
+          donor_email:
+            email,
+
+          display_name:
+            displayName,
+
+          is_anonymous:
+            isAnonymous
+              ? "true"
+              : "false",
+        },
+      },
+    );
+  }
+
+
   const {
     data:
       existingDonation,
@@ -1124,51 +1170,6 @@ async function handleCheckoutSessionCompleted(
     "string"
       ? session.payment_intent
       : null;
-
-  const subscriptionId =
-    typeof session
-      .subscription ===
-    "string"
-      ? session.subscription
-      : null;
-
-  /*
-   * Express Checkout donor fields can be added to the Checkout
-   * Session immediately before wallet confirmation.
-   *
-   * For monthly donations, copy those final values onto the
-   * Subscription so future invoice.payment_succeeded events
-   * keep the donor identity/email.
-   */
-  if (
-    subscriptionId
-  ) {
-    await stripe.subscriptions.update(
-      subscriptionId,
-      {
-        metadata: {
-          ...metadata,
-
-          donor_first_name:
-            firstName,
-
-          donor_last_name:
-            lastName,
-
-          donor_email:
-            email,
-
-          display_name:
-            displayName,
-
-          is_anonymous:
-            isAnonymous
-              ? "true"
-              : "false",
-        },
-      },
-    );
-  }
 
   const stripeCustomerId =
     typeof session
@@ -1447,10 +1448,21 @@ async function handleInvoicePaymentSucceeded(
         subscriptionId,
       );
 
-  const metadata =
-    subscription.metadata ??
-    {};
-
+  const isInitialSubscriptionPayment = invoice.billing_reason === "subscription_create";
+  let checkoutSession: Stripe.Checkout.Session | null = null;
+  let checkoutSessionId: string | null = null;
+  if (isInitialSubscriptionPayment) {
+    const sessions = await stripe.checkout.sessions.list({ subscription: subscriptionId, limit: 1 });
+    checkoutSession = sessions.data[0] ?? null;
+    checkoutSessionId = checkoutSession?.id ?? null;
+    if (!checkoutSession && subscription.metadata?.checkout_source === "express_amount_step") {
+      throw new Error("Initial subscription Checkout Session is not available yet.");
+    }
+  }
+  // Session line items can change before authorization. subscription_data.metadata
+  // is a creation-time snapshot; the Session is authoritative for the first invoice.
+  // checkout.session.completed also copies these final values to future renewals.
+  const metadata = { ...subscription.metadata, ...checkoutSession?.metadata };
 
   await completeDonationAttempt(
     metadata
@@ -1605,48 +1617,7 @@ async function handleInvoicePaymentSucceeded(
   // MONTHLY FIRST PAYMENT
   // =========================================================
 
-  const isInitialSubscriptionPayment =
-    invoice.billing_reason ===
-    "subscription_create";
-
-  let checkoutSessionId:
-    string | null =
-    null;
-
-  let checkoutSession:
-    Stripe.Checkout.Session | null =
-    null;
-
-  /*
-   * Initial monthly Express Checkout can emit
-   * invoice.payment_succeeded before checkout.session.completed
-   * has copied donor details onto Subscription metadata.
-   *
-   * Resolve donor identity from the Checkout Session first when
-   * Subscription metadata is still incomplete.
-   */
-  if (
-    isInitialSubscriptionPayment
-  ) {
-    const checkoutSessions =
-      await stripe.checkout
-        .sessions.list({
-          subscription:
-            subscriptionId,
-
-          limit:
-            1,
-        });
-
-    checkoutSession =
-      checkoutSessions
-        .data[0] ??
-      null;
-
-    checkoutSessionId =
-      checkoutSession?.id ??
-      null;
-
+  if (isInitialSubscriptionPayment) {
     if (
       !email &&
       checkoutSession
