@@ -45,6 +45,7 @@ The Akram report also identifies:
    thumbnail, a 66px donate-page thumbnail, and shared responsive hero sizes.
    Mobile and desktop hero variants share the same `sizes` expression so hidden
    duplicate layout variants do not request different high-priority resources.
+   Hero images/preloads also receive explicit `fetchPriority="high"`.
 2. Use a single browser Stripe promise for card and wallet providers. Standard
    Stripe fraud signals remain enabled; no payment method is disabled for a score.
 3. At the owner's explicit choice, Google Pay initializes after the donation
@@ -73,3 +74,27 @@ after a donor opens the payment interface remains controlled by Google.
 References: [Next Image](https://nextjs.org/docs/app/api-reference/components/image),
 [Lighthouse score variability](https://developer.chrome.com/docs/lighthouse/performance/performance-scoring),
 [Stripe Express Checkout](https://docs.stripe.com/elements/express-checkout-element/accept-a-payment?payment-ui=embedded-components).
+
+## Post-release samples for `177fd43`
+
+| Page / run | Performance | Best Practices | LCP | TBT | Speed Index |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Home campaign | 98 | 100 | 1.5 s | 90 ms | 4.0 s |
+| Akram, first | 86 | 100 | 3.4 s | 200 ms | 4.3 s |
+| Akram, repeat | 94 | 100 | 2.1 s | 240 ms | 2.7 s |
+
+All samples are retained, including the first Akram score below its baseline.
+Its LCP diagnostic showed 190 ms TTFB, 2,060 ms resource-load delay, 680 ms
+resource transfer and 30 ms render delay. The audit specifically recommended
+high fetch priority for the hero preload. The follow-up adds that hint; this
+is not attributed to image-cache warming without evidence.
+
+- [Home after](https://pagespeed.web.dev/analysis/https-donate-mealsupport-org-gaza-food/h2ik9tybem?form_factor=mobile)
+- [Akram first after](https://pagespeed.web.dev/analysis/https-donate-mealsupport-org-akram-shake/n9jme1ktg2?form_factor=mobile)
+- [Akram repeated after](https://pagespeed.web.dev/analysis/https-donate-mealsupport-org-akram-shake/abragmg4rm?form_factor=mobile)
+
+Direct WebP resource checks, with the same quality setting, show a logo
+reduction from 30,182 to 864 bytes, a modal thumbnail from 73,912 to 3,374 bytes,
+and a mobile-sized hero from 73,912 to 45,730 bytes. These are per-resource
+comparisons, not an additive page-total saving: different elements can share
+a cached source resource.

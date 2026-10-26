@@ -172,6 +172,7 @@ export function MobileCampaignHero({
             width={heroWidth}
             height={heroHeight}
             priority
+            fetchPriority="high"
             sizes="(min-width: 1024px) 686px, 100vw"
             className="
               absolute
@@ -190,6 +191,7 @@ export function MobileCampaignHero({
             width={1200}
             height={1000}
             priority
+            fetchPriority="high"
             sizes="(min-width: 1024px) 686px, 100vw"
             className="
               absolute

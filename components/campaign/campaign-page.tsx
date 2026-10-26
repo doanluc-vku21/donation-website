@@ -401,6 +401,7 @@ export function CampaignPage({
                   width={heroWidth}
                   height={heroHeight}
                   priority
+                  fetchPriority="high"
                   sizes="(min-width: 1024px) 686px, 100vw"
                   className="
                     block
@@ -417,6 +418,7 @@ export function CampaignPage({
                   width={1200}
                   height={760}
                   priority
+                  fetchPriority="high"
                   sizes="(min-width: 1024px) 686px, 100vw"
                   className="
                     block
