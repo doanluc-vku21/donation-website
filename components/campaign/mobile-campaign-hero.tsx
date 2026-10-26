@@ -172,6 +172,7 @@ export function MobileCampaignHero({
             width={heroWidth}
             height={heroHeight}
             priority
+            sizes="(min-width: 1024px) 686px, 100vw"
             className="
               absolute
               inset-0
@@ -189,6 +190,7 @@ export function MobileCampaignHero({
             width={1200}
             height={1000}
             priority
+            sizes="(min-width: 1024px) 686px, 100vw"
             className="
               absolute
               inset-0
@@ -263,6 +265,7 @@ export function MobileCampaignHero({
                   width={
                     logoWidth
                   }
+                  sizes="34px"
                   height={
                     logoHeight
                   }

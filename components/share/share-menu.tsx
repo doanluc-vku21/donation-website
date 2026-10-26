@@ -15,9 +15,7 @@ import {
   X,
 } from "lucide-react";
 
-import {
-  QRCodeSVG,
-} from "qrcode.react";
+import dynamic from "next/dynamic";
 
 import type {
   Locale,
@@ -26,6 +24,11 @@ import type {
 import {
   getUiTranslations,
 } from "@/lib/ui-translations";
+
+const QRCodeSVG = dynamic(() => import("qrcode.react").then((module) => module.QRCodeSVG), {
+  ssr: false,
+  loading: () => <div aria-busy="true" className="h-[88px] w-[88px] animate-pulse rounded bg-slate-100" />,
+});
 
 type ShareMenuProps = {
   title?: string;

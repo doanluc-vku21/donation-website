@@ -1,6 +1,7 @@
 "use client";
 import { metaCheckoutFetch } from "@/lib/meta/client";
 import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
+import { shouldPrewarmApplePay } from "@/lib/stripe/wallet-platform";
 
 import Image from "next/image";
 
@@ -264,6 +265,7 @@ export function DonationModal({
   const [checkoutGeneration, setCheckoutGeneration] = useState(0);
 
   const mounted = useSyncExternalStore(subscribeToHydration, getClientSnapshot, getServerSnapshot);
+  const prewarmApplePay = useSyncExternalStore(subscribeToHydration, shouldPrewarmApplePay, getServerSnapshot);
 
   const [
     step,
@@ -328,7 +330,9 @@ export function DonationModal({
     coverFee: false,
     displayPublicly: true,
   });
-  const canWarmWallet = prefetchedExpress.monthly?.key === monthlyPrefetchKey;
+  // Google Pay loads its third-party iframe/cookies only after Donate opens.
+  // iPhone/iPad still prepare Apple Pay ahead of that interaction.
+  const canWarmWallet = prewarmApplePay && prefetchedExpress.monthly?.key === monthlyPrefetchKey;
 
   const heroUrl =
     content.heroImage
@@ -722,6 +726,7 @@ export function DonationModal({
                 >
                   {heroUrl ? (
                     <Image
+                      sizes="58px"
                       src={
                         heroUrl
                       }

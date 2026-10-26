@@ -7,9 +7,10 @@ import {
 } from "react";
 
 import {
-  loadStripe,
   type StripeExpressCheckoutElementConfirmEvent,
 } from "@stripe/stripe-js";
+import { stripePromise } from "@/lib/stripe/client";
+import { getWalletPlatform } from "@/lib/stripe/wallet-platform";
 
 import {
   CheckoutElementsProvider,
@@ -21,21 +22,6 @@ import type {
   Locale,
 } from "@/lib/i18n";
 import { getUiTranslations } from "@/lib/ui-translations";
-
-const publishableKey =
-  process.env
-    .NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-
-if (!publishableKey) {
-  throw new Error(
-    "Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
-  );
-}
-
-const stripePromise =
-  loadStripe(
-    publishableKey,
-  );
 
 type DonationExpressCheckoutProps = {
   enabled?: boolean;
@@ -170,51 +156,7 @@ function ExpressCheckoutForm({
   ] =
     useState(false);
 
-  const platform =
-    useMemo(() => {
-      if (
-        typeof navigator ===
-        "undefined"
-      ) {
-        return "desktop";
-      }
-
-      const ua =
-        navigator.userAgent;
-
-      const platformName =
-        navigator.platform;
-
-      const maxTouchPoints =
-        navigator.maxTouchPoints ??
-        0;
-
-      const isIOS =
-        /iPhone|iPad|iPod/i.test(
-          ua,
-        ) ||
-        (
-          platformName ===
-            "MacIntel" &&
-          maxTouchPoints >
-            1
-        );
-
-      if (isIOS) {
-        return "ios";
-      }
-
-      const isAndroid =
-        /Android/i.test(
-          ua,
-        );
-
-      if (isAndroid) {
-        return "android";
-      }
-
-      return "desktop";
-    }, []);
+  const platform = useMemo(() => getWalletPlatform(), []);
 
   async function handleConfirm(
     event:

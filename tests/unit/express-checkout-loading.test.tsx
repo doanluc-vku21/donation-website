@@ -25,8 +25,11 @@ vi.mock("@/components/donation/donation-express-checkout", () => ({
 
 import { DonationModal } from "@/components/donation/donation-modal";
 
-beforeEach(() => { vi.useFakeTimers(); navigation.pathname = "/gaza-food"; walletReadiness.available = true; });
-afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+beforeEach(() => {
+  vi.useFakeTimers(); navigation.pathname = "/gaza-food"; walletReadiness.available = true;
+  vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)");
+});
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 async function advance(ms: number) {
   await act(async () => { await vi.advanceTimersByTimeAsync(ms); });
@@ -44,6 +47,19 @@ function response(id: string) {
 }
 
 describe("Apple Pay session loading", () => {
+  it("defers the Google Pay wallet subtree on Android until the donation modal opens", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Linux; Android 14) Chrome/153 Mobile");
+    const fetch = vi.fn().mockResolvedValue(response("cs_android_intent"));
+    vi.stubGlobal("fetch", fetch);
+    mountModal();
+    await advance(120); await advance(1);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("wallet-session")).not.toBeInTheDocument();
+    openModal(); await advance(1);
+    expect(screen.getByTestId("wallet-session")).toHaveTextContent("cs_android_intent_secret");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it("shows custom-amount preparation instead of leaving an apparently clickable stale wallet", async () => {
     let resolveCustom!: (value: Response) => void;
     const custom = new Promise<Response>((resolve) => { resolveCustom = resolve; });

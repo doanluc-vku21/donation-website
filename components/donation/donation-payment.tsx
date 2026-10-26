@@ -10,9 +10,7 @@ import {
   LockKeyhole,
 } from "lucide-react";
 
-import {
-  loadStripe,
-} from "@stripe/stripe-js";
+import { stripePromise } from "@/lib/stripe/client";
 
 import {
   CheckoutElementsProvider,
@@ -23,21 +21,6 @@ import {
 import type {
   Locale,
 } from "@/lib/i18n";
-
-const publishableKey =
-  process.env
-    .NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-
-if (!publishableKey) {
-  throw new Error(
-    "Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
-  );
-}
-
-const stripePromise =
-  loadStripe(
-    publishableKey,
-  );
 
 const paymentLabels = {
   en: {

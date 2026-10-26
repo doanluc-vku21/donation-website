@@ -315,6 +315,7 @@ export function CampaignPage({
                   src={logoUrl}
                   alt={logoAlt}
                   width={logoWidth}
+                  sizes="32px"
                   height={logoHeight}
                   className="
                     size-8
@@ -400,6 +401,7 @@ export function CampaignPage({
                   width={heroWidth}
                   height={heroHeight}
                   priority
+                  sizes="(min-width: 1024px) 686px, 100vw"
                   className="
                     block
                     h-auto
@@ -415,6 +417,7 @@ export function CampaignPage({
                   width={1200}
                   height={760}
                   priority
+                  sizes="(min-width: 1024px) 686px, 100vw"
                   className="
                     block
                     h-auto

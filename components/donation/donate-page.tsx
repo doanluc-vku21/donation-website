@@ -195,6 +195,7 @@ export function DonatePage({
           >
             {heroUrl ? (
               <Image
+                sizes="66px"
                 src={
                   heroUrl
                 }
