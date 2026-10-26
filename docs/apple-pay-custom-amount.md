@@ -110,3 +110,39 @@ the reporting iPhone still needs a post-release custom-amount retest.
 Official references:
 - https://docs.stripe.com/payments/advanced/dynamically-update-line-items
 - https://docs.stripe.com/api/checkout/sessions/update
+
+## Follow-up: delay still reported — 2026-10-26
+
+The reporter said the delay felt unchanged. This remains unresolved on the
+reporting iPhone; a deployed optimization and passing unit tests do not establish
+a faster native-device interaction.
+
+Production logs show iPhone Safari requests to `/api/stripe/express-checkout/amount`
+around 17:56–17:57 Asia/Shanghai, on the current deployment, returning HTTP 200.
+One request at 17:57:17 took 962 ms overall, with 660 ms of function execution
+(Stripe retrieval 138 ms and update 515 ms). The request entered in Mumbai and
+ran in Washington, D.C. These observations establish use of the update path,
+but cannot identify the individual caller or measure the browser's subsequent
+Stripe refresh/rendering time. No real payment was made in this investigation.
+
+Use `/akram-shake?wallet_debug=1` for an opt-in timing panel inside the donation
+modal. It records selection, Session preparation, Stripe SDK readiness, wallet
+readiness, amount API start/end, SDK amount refresh completion and the point at
+which the selected amount becomes payable. Late completions retain their
+original selection number. A failed refresh is explicitly recorded before the
+existing fresh-Session fallback. This instrumentation does not change payment
+amounts, authorization or confirmation behavior.
+
+The panel is lazy-loaded only for that diagnostic URL. Ordinary visits record
+nothing. The report contains only numbered selections, phase names and relative
+milliseconds; it excludes donor data, amounts, Session identifiers/secrets,
+request/response bodies and URL query strings. It stays in browser memory,
+bounded to 60 events, with no server upload. Copy requires a user tap; a
+selectable text fallback is available when clipboard access is denied.
+
+Ask the reporter to open the diagnostic URL in Safari, open Donate, enter a
+custom amount, wait for the button, and copy the timing report. No payment or
+card details are needed. Those timings are needed to locate the remaining delay
+before claiming another device-speed fix. The controlled Windows Chrome session
+cannot reproduce native iPhone Apple Pay, and raw browser network inspection is
+unavailable in the current browser automation session.

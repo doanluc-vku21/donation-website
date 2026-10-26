@@ -2,6 +2,8 @@
 
 import { metaCheckoutFetch } from "@/lib/meta/client";
 import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
+import { beginWalletTiming, currentWalletTiming, recordWalletTiming } from "@/lib/stripe/wallet-diagnostics";
+import { WalletDiagnostics } from "./wallet-diagnostics";
 
 
 
@@ -1072,6 +1074,12 @@ export function DonationFlow({
     : previousActiveExpressKey;
   const expressAvailable = desiredExpressSession?.ready ? desiredExpressSession.available : previousExpressAvailable;
   const expressLoading = desiredExpressSession ? !desiredExpressSession.ready : isExpressRequestLoading;
+  useEffect(() => { beginWalletTiming(desiredExpressKey, hasValidAmount); }, [desiredExpressKey, hasValidAmount]);
+  useEffect(() => {
+    if (hasValidAmount && desiredExpressSession?.ready && desiredExpressSession.available) {
+      recordWalletTiming("selection_ready");
+    }
+  }, [desiredExpressKey, hasValidAmount, desiredExpressSession?.ready, desiredExpressSession?.available]);
 
 
 
@@ -1225,6 +1233,7 @@ export function DonationFlow({
 
 
     const loadExpressSession = async () => {
+          const timingTrace = currentWalletTiming();
 
           try {
             // Cancelling a fetch cannot cancel a write already received by Stripe.
@@ -1248,6 +1257,7 @@ export function DonationFlow({
                 // A failed response/SDK refresh may follow a successful server
                 // write. Discard the ambiguous Session and create a fresh one.
                 amountUpdatersRef.current.delete(reusable.sessionId);
+                recordWalletTiming("amount_sync_failed", timingTrace);
                 failedAmountKeyRef.current = desiredExpressKey;
                 if (mountedExpressRef.current) {
                   setExpressSessions((current) => current.filter((session) => session.sessionId !== reusable.sessionId));
@@ -1257,6 +1267,7 @@ export function DonationFlow({
               }
               return;
             }
+            recordWalletTiming("session_start", timingTrace);
             setExpressLoading(
 
               true,
@@ -1451,6 +1462,7 @@ export function DonationFlow({
 
 
 
+            recordWalletTiming("session_received", timingTrace);
             setExpressSessions(
 
               (
@@ -1569,6 +1581,7 @@ export function DonationFlow({
 
 
 
+            recordWalletTiming("session_failed", timingTrace);
             console.error(
 
               "Express checkout session failed:",
@@ -3965,6 +3978,8 @@ function resetCheckoutSession() {
             </div>
 
 
+
+            <WalletDiagnostics />
 
             {showDivider &&
 

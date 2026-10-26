@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -23,6 +24,7 @@ import type {
 } from "@/lib/i18n";
 import { getUiTranslations } from "@/lib/ui-translations";
 import { metaCheckoutFetch } from "@/lib/meta/client";
+import { currentWalletTiming, recordWalletTiming } from "@/lib/stripe/wallet-diagnostics";
 
 export type ExpressAmountUpdater = (amountCents: number) => Promise<void>;
 
@@ -160,6 +162,11 @@ function ExpressCheckoutForm({
   const checkoutResult =
     useCheckoutElements();
   const confirmationInFlight = useRef(false);
+  const initialTimingTrace = useRef(currentWalletTiming());
+  useEffect(() => {
+    recordWalletTiming(checkoutResult.type === "loading" ? "sdk_loading" :
+      checkoutResult.type === "success" ? "sdk_ready" : "wallet_unavailable", initialTimingTrace.current);
+  }, [checkoutResult.type]);
 
   const [
     submitting,
@@ -174,8 +181,11 @@ function ExpressCheckoutForm({
       throw new Error("Wallet is not ready for an amount update.");
     }
     const checkout = checkoutResult.checkout;
+    const trace = currentWalletTiming();
+    recordWalletTiming("amount_sync_start", trace);
     let expectedTotal: number | undefined;
     const result = await checkout.runServerUpdate(async () => {
+      recordWalletTiming("amount_api_start", trace);
       const response = await metaCheckoutFetch("/api/stripe/express-checkout/amount", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -186,11 +196,13 @@ function ExpressCheckoutForm({
         throw new Error("Unable to synchronize wallet amount.");
       }
       expectedTotal = data.totalAmountMinor;
+      recordWalletTiming("amount_api_end", trace);
     });
     if (result.type === "error" || expectedTotal === undefined ||
         result.session.total.total.minorUnitsAmount !== expectedTotal) {
       throw new Error("Wallet amount synchronization failed.");
     }
+    recordWalletTiming("amount_sync_end", trace);
   }
 
   async function handleConfirm(
@@ -411,6 +423,7 @@ function ExpressCheckoutForm({
             Boolean(
               availablePaymentMethods,
             );
+          recordWalletTiming(available ? "wallet_ready" : "wallet_unavailable", initialTimingTrace.current);
 
           onAvailabilityChange?.(
             available,
