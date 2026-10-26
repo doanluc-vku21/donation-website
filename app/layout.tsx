@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { MetaAttribution } from "@/components/analytics/meta-attribution";
-import { metaPixelId } from "@/lib/meta/config";
+import { metaBrowserPixelIds } from "@/lib/meta/config";
 
 import "./globals.css";
 
@@ -57,7 +57,7 @@ export default function RootLayout({
                 'https://connect.facebook.net/en_US/fbevents.js'
               );
 
-              fbq('init', '${metaPixelId}');
+              ${metaBrowserPixelIds.map((pixelId) => `fbq('init', ${JSON.stringify(pixelId)});`).join("\n")}
               fbq('track', 'PageView');
             `,
           }}
@@ -68,17 +68,18 @@ export default function RootLayout({
       <body>
         <MetaAttribution />
         <noscript>
-          {/* A tracking pixel must bypass Next.js image optimization. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            height="1"
-            width="1"
-            style={{
-              display: "none",
-            }}
-            src={`https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1`}
-            alt=""
-          />
+          {metaBrowserPixelIds.map((pixelId) => (
+            // A tracking pixel must bypass Next.js image optimization.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={pixelId}
+              height="1"
+              width="1"
+              style={{ display: "none" }}
+              src={`https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1`}
+              alt=""
+            />
+          ))}
         </noscript>
 
         {children}

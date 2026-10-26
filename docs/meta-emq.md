@@ -7,6 +7,16 @@ events; that integration is not represented in this repository.
 
 ## Configuration
 
+Browser tracking initializes both `2187720428848027` (the default primary Pixel)
+and `1116237120993773` (added at the user's request). The SDK loads once and a
+single PageView call follows both initializations. Existing InitiateCheckout
+and paid Purchase calls broadcast to both initialized Pixels with the existing
+Purchase event ID and reload/remount deduplication. Each Pixel also has a
+JavaScript-disabled PageView image. Duplicate IDs are initialized only once.
+
+The additional Pixel receives browser events only. It does not change the
+primary CAPI dataset, reuse its token for another dataset, or enable CAPI.
+
 Use `.env.example` for variable names. Set `NEXT_PUBLIC_SITE_URL` to the actual
 HTTPS site origin. Configure `META_CAPI_ACCESS_TOKEN` as a **server-only** secret
 in the deployment platform. `NEXT_PUBLIC_META_PIXEL_ID` must equal the dataset
