@@ -37,11 +37,9 @@ import {
   ArrowRight,
   CalendarHeart,
   Check,
-  CircleDollarSign,
   CreditCard,
   Gift,
   Heart,
-  Landmark,
   LockKeyhole,
   ShieldCheck,
   Users,
@@ -1248,7 +1246,10 @@ export function DonationFlow({
             // Cancelling a fetch cannot cancel a write already received by Stripe.
             // Finish it, record its actual amount, then synchronize the latest input.
             if (amountMutationRef.current) return;
-            const reusable = customAmount.trim() ? expressSessions.find((session) =>
+            // Presets can use the same verified in-place update as custom
+            // amounts. Keep frequency/currency/fee changes on separate Sessions.
+            const reusable = amount >= minimumCustomAmount && failedAmountKeyRef.current !== desiredExpressKey
+              ? expressSessions.find((session) =>
               session.reuseKey === expressReuseKey && session.ready && session.available &&
               amountUpdatersRef.current.has(session.sessionId)) : undefined;
             if (reusable) {
@@ -1681,6 +1682,8 @@ export function DonationFlow({
     keepExpressVisible,
 
     locale,
+
+    minimumCustomAmount,
 
     prefetchedExpress,
 
@@ -2318,17 +2321,9 @@ function resetCheckoutSession() {
 
       isHostedCheckoutPage ||
 
-      (
-
-        step !==
-
-          "amount" &&
-
-        step !==
-
-          "donor"
-
-      ) ||
+      // Let the wallet initialize without a competing card SDK/iframe. Card
+      // preparation starts on explicit intent and continues in the donor step.
+      step !== "donor" ||
 
       !hasValidAmount
 

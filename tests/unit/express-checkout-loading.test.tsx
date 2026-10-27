@@ -59,6 +59,109 @@ function response(id: string) {
 }
 
 describe("Apple Pay session loading", () => {
+  it("does not initialize a competing card checkout until the donor chooses Card", async () => {
+    const fetch = vi.fn((url) => Promise.resolve(url === "/api/stripe/checkout"
+      ? new Response(JSON.stringify({ clientSecret: "card_secret", sessionId: "cs_card", totalAmountMinor: 5000, currency: "USD" }))
+      : response("cs_wallet_priority")));
+    vi.stubGlobal("fetch", fetch);
+    mountModal(); await advance(121); openModal(); await advance(1000);
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual(["/api/stripe/express-checkout"]);
+    act(() => { fireEvent.click(screen.getByRole("button", { name: "Pay $50 by Card" })); });
+    await advance(200);
+    expect(fetch.mock.calls.filter(([url]) => url === "/api/stripe/checkout")).toHaveLength(1);
+    expect(screen.getByRole("heading", { name: "Your information" })).toBeInTheDocument();
+  });
+
+  it("updates a preset amount in the existing wallet instead of initializing another iframe", async () => {
+    walletReadiness.update = vi.fn().mockResolvedValue(undefined);
+    const express = vi.fn().mockImplementation(() => Promise.resolve(response("cs_preset_reuse")));
+    vi.stubGlobal("fetch", express);
+    mountModal(); await advance(121); openModal(); await advance(1);
+    const wallet = screen.getByTestId("wallet-session");
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: /\$100\b/ })); });
+    await advance(1);
+    expect(walletReadiness.update).toHaveBeenCalledExactlyOnceWith(10000);
+    expect(screen.getByTestId("wallet-session")).toBe(wallet);
+    expect(wallet.closest("[inert]")).toBeNull();
+    expect(express).toHaveBeenCalledOnce();
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: /^\$50(?!\d)/ })); });
+    await advance(1);
+    expect(walletReadiness.update).toHaveBeenLastCalledWith(5000);
+    expect(express).toHaveBeenCalledOnce();
+  });
+
+  it("blocks stale preset amounts and serializes changes while a wallet update is in flight", async () => {
+    let complete!: () => void;
+    const update = vi.fn().mockReturnValueOnce(new Promise<void>((resolve) => { complete = resolve; }))
+      .mockResolvedValue(undefined);
+    walletReadiness.update = update;
+    const fetch = vi.fn().mockImplementation(() => Promise.resolve(response("cs_preset_serial")));
+    vi.stubGlobal("fetch", fetch);
+    mountModal(); await advance(121); openModal(); await advance(1);
+    const wallet = screen.getByTestId("wallet-session");
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: /\$100\b/ })); });
+    await advance(1);
+    expect(wallet.closest("[inert]")).not.toBeNull();
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: /^\$50(?!\d)/ })); });
+    await advance(1);
+    expect(update).toHaveBeenCalledExactlyOnceWith(10000);
+    expect(wallet.closest("[inert]")).not.toBeNull();
+    await act(async () => { complete(); });
+    await advance(1);
+    expect(update).toHaveBeenLastCalledWith(5000);
+    expect(wallet.closest("[inert]")).toBeNull();
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("keeps monthly and one-time wallets separate when amount reuse is available", async () => {
+    walletReadiness.update = vi.fn().mockResolvedValue(undefined);
+    const fetch = vi.fn().mockResolvedValueOnce(response("cs_monthly_boundary"))
+      .mockResolvedValueOnce(response("cs_once_boundary"));
+    vi.stubGlobal("fetch", fetch);
+    mountModal(); await advance(121); openModal(); await advance(1);
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: "Give once" })); });
+    await advance(1);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toMatchObject({ frequency: "one_time" });
+    expect(walletReadiness.update).not.toHaveBeenCalled();
+  });
+
+  it("replaces a wallet after a failed preset update instead of enabling an uncertain amount", async () => {
+    walletReadiness.update = vi.fn().mockRejectedValue(new Error("SDK total mismatch"));
+    const fetch = vi.fn().mockResolvedValueOnce(response("cs_failed_preset"))
+      .mockResolvedValueOnce(response("cs_fresh_preset"));
+    vi.stubGlobal("fetch", fetch);
+    mountModal(); await advance(121); openModal(); await advance(1);
+    const oldWallet = screen.getByTestId("wallet-session");
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: /\$100\b/ })); });
+    await advance(2);
+    await advance(1);
+    expect(walletReadiness.update).toHaveBeenCalledExactlyOnceWith(10000);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(oldWallet).not.toBeInTheDocument();
+    expect(screen.getByTestId("wallet-session")).toHaveTextContent("cs_fresh_preset_secret");
+    expect(screen.getByTestId("wallet-session").closest("[inert]")).toBeNull();
+  });
+
+  it("creates a separate Session for a preset below the amount-update endpoint minimum", async () => {
+    walletReadiness.update = vi.fn().mockResolvedValue(undefined);
+    const fetch = vi.fn().mockResolvedValueOnce(response("cs_regular_preset"))
+      .mockResolvedValueOnce(response("cs_small_preset"));
+    vi.stubGlobal("fetch", fetch);
+    render(<DonationModal campaign={{ ...sampleCampaign, id: `loading-campaign-${++campaignIndex}`,
+      donationOptions: [...sampleCampaign.donationOptions.map((option) => ({ ...option, frequency: "monthly" as const })),
+        { ...sampleCampaign.donationOptions[0], frequency: "monthly", amountUsd: 500, featured: false }] }}
+      content={{ _id: "test-content", title: "Test campaign", slug: sampleCampaign.slug }}
+      locale="en" currency="USD" exchangeRate={1} />);
+    await advance(121); openModal(); await advance(1);
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: /^\$5$/ })); });
+    await advance(1);
+    await advance(1);
+    expect(walletReadiness.update).not.toHaveBeenCalled();
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toMatchObject({ amountCents: 500 });
+    expect(screen.getByText("cs_small_preset_secret").closest("[inert]")).toBeNull();
+  });
+
   it("restores the same wallet when availability changes on the Akram screenshot page", async () => {
     navigation.pathname = "/akram-shake-2";
     vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(response("cs_akram"))));

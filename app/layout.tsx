@@ -19,6 +19,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="preconnect" href="https://js.stripe.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://api.stripe.com" crossOrigin="anonymous" />
         {/* Meta Pixel Code */}
         <Script
           id="meta-pixel"
