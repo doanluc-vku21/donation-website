@@ -261,7 +261,7 @@ const en: UiTranslations = {
     "Select an amount to continue",
 
   securePaymentByStripe:
-    "Secure payment by Stripe",
+  "Pay by Card",
 
   back:
     "Back",
@@ -497,7 +497,7 @@ const fr: UiTranslations = {
     "Sélectionnez un montant pour continuer",
 
   securePaymentByStripe:
-    "Paiement sécurisé par Stripe",
+    "Payer par carte",
 
   back:
     "Retour",
@@ -727,7 +727,7 @@ const de: UiTranslations = {
     "Betrag auswählen, um fortzufahren",
 
   securePaymentByStripe:
-    "Sichere Zahlung über Stripe",
+    "Mit Karte bezahlen",
 
   back:
     "Zurück",
@@ -957,7 +957,7 @@ const es: UiTranslations = {
     "Selecciona una cantidad para continuar",
 
   securePaymentByStripe:
-    "Pago seguro mediante Stripe",
+    "Pagar con tarjeta",
 
   back:
     "Atrás",
@@ -1187,7 +1187,7 @@ const ar: UiTranslations = {
     "اختر مبلغًا للمتابعة",
 
   securePaymentByStripe:
-    "دفع آمن عبر Stripe",
+    "الدفع بالبطاقة",
 
   back:
     "رجوع",
