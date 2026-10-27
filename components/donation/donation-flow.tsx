@@ -4061,135 +4061,31 @@ function resetCheckoutSession() {
 
 
                 <div
-
-                  className="
-
-                    flex
-
-                    shrink-0
-
-                    items-center
-
-                    divide-x
-
-                    divide-[#d9dedb]
-
-                    text-[#5f6964]
-
-                  "
-
-                >
-
-                  <span
-
-                    className="
-
-                      inline-flex
-
-                      items-center
-
-                      gap-1.5
-
-                      px-2
-
-                      text-[12px]
-
-                      font-medium
-
-                    "
-
-                  >
-
-                    <CreditCard
-
-                      aria-hidden="true"
-
-                      className="size-4"
-
-                    />
-
-                    Card
-
-                  </span>
-
-
-                  {!keepExpressVisible && (
-
-                    <>
-
-
-
-                  <span
-
-                    className="
-
-                      inline-flex
-
-                      items-center
-
-                      gap-1.5
-
-                      px-2
-
-                      text-[12px]
-
-                      font-medium
-
-                    "
-
-                  >
-
-                    <CircleDollarSign
-
-                      aria-hidden="true"
-
-                      className="size-4"
-
-                    />
-
-                    Crypto
-
-                  </span>
-
-
-
-                  <span
-
-                    className="
-
-                      inline-flex
-
-                      items-center
-
-                      gap-1.5
-
-                      px-2
-
-                      text-[12px]
-
-                      font-medium
-
-                    "
-
-                  >
-
-                    <Landmark
-
-                      aria-hidden="true"
-
-                      className="size-4"
-
-                    />
-
-                    Bank
-
-                  </span>
-
-                    </>
-
-                  )}
-
-                </div>
+  className="
+    flex
+    shrink-0
+    items-center
+    text-[#5f6964]
+  "
+>
+  <span
+    className="
+      inline-flex
+      items-center
+      gap-1.5
+      px-2
+      text-[12px]
+      font-medium
+    "
+  >
+    <CreditCard
+      aria-hidden="true"
+      className="size-4"
+    />
+
+    Card
+  </span>
+</div>
 
 
 
