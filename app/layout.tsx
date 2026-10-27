@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { MetaAttribution } from "@/components/analytics/meta-attribution";
 import { metaBrowserPixelIds } from "@/lib/meta/config";
+import { applePayBootstrapScript } from "@/lib/stripe/apple-pay-bootstrap";
 
 import "./globals.css";
 
@@ -21,6 +22,8 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://js.stripe.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://api.stripe.com" crossOrigin="anonymous" />
+        <Script id="apple-pay-sdk-preload" strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: applePayBootstrapScript }} />
         {/* Meta Pixel Code */}
         <Script
           id="meta-pixel"

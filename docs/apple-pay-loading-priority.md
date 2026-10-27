@@ -34,6 +34,11 @@ supported a verified in-place amount update.
   connection setup can overlap page loading. These hints do not initialize
   Stripe, Google Pay, or card Elements. The shared pure Stripe loader and iOS
   wallet warm-up remain in place.
+- On iPhone/iPad, start downloading the official async Stripe SDK before React
+  hydration, rather than waiting for the modal's effect. The normal pure loader
+  discovers the existing script and initializes one controller. Hosted checkout
+  entry pages, Android, and desktop retain deferred SDK loading. A failed
+  speculative script is removed so the normal loader can retry.
 
 No payment method, fraud protection, consent handling, payment confirmation,
 webhook accounting, or Meta attribution is disabled. Switching frequency
@@ -47,8 +52,10 @@ preset iframe reuse, rapid preset changes with stale-amount blocking,
 frequency separation, failed-update replacement, and presets below the amount
 update minimum. The first three failed against the previous implementation.
 
-The focused payment, wallet, Meta, and thank-you suite passes 115 tests across
-12 files. Type checking and ESLint with zero warnings pass. The full suite
+The focused payment, wallet, Meta, and thank-you checks pass 127 tests across
+14 files, including eleven bootstrap cases and an integration case exercising
+the actual pure loader's script discovery without network access. Type checking
+and ESLint with zero warnings pass. The full suite
 before the last two additional regressions passed 117 tests with five failed
 assertions in unchanged campaign-story/donation-panel files; campaign-page
 also cannot initialize without `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. This is
@@ -58,11 +65,35 @@ The production build compiled and completed its TypeScript step, then stopped
 while collecting `/thank-you` page data because local `STRIPE_SECRET_KEY` is
 unavailable. No production credentials were copied to bypass that failure.
 
-The change is verified locally. New production timings must be measured after
-deployment, including default wallet opening, preset/custom amount changes,
-monthly/one-time switching, and card fallback. Native iPhone/Safari wallet
-presentation and authorization remain separate checks; mocked tests do not
-establish a real-device speed improvement. No actual charge is used for
-performance validation.
+## First production release: `7b56f80`
+
+Vercel reported a successful deployment. All three public campaign pages
+returned HTTP 200 and served the preconnect hints, preset reuse, and card-intent
+logic. A live Chromium/GBP review measured:
+
+| Action | Observed time |
+| --- | ---: |
+| Open the donation modal | 8 ms |
+| First monthly wallet readiness | 9,291 ms |
+| Change a preset amount | 1,666 ms |
+| Change a custom amount | 1,830 ms |
+| Switch to Give once | 4,823 ms |
+| Return to monthly and restore its default amount | 1,537 ms |
+
+Preset/custom changes retained the same wallet iframe and used only the amount
+endpoint. No card Session was created until Card was selected; that request
+returned HTTP 200 and the donor-information screen opened normally.
+
+The slow first-wallet sample is retained. It spent about 4.3 seconds reaching
+Stripe SDK readiness and another 4.9 seconds reaching wallet availability;
+removing card initialization does not establish a first-load speed gain.
+Frequency changes still initialize a separate Session. These observations
+motivated the additional iOS-only download bootstrap; Chromium desktop does
+not execute that bootstrap.
+
+Native iPhone/Safari wallet presentation and authorization remain separate
+checks. Unit tests and user-agent emulation do not establish real-device
+performance. No actual charge is used for performance validation. Raw timing
+reports and screenshots remain under Git-ignored `.local/diagnostics/`.
 
 Reference: [Stripe Express Checkout integration](https://docs.stripe.com/elements/express-checkout-element/accept-a-payment?payment-ui=embedded-components).
