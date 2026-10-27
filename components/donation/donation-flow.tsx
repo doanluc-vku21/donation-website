@@ -113,7 +113,7 @@ import type {
 
 const MIN_CUSTOM_DONATION_USD_CENTS =
 
-  2000;
+  1000;
 
 
 
@@ -6264,26 +6264,34 @@ function resetCheckoutSession() {
         >
 
           {hasValidAmount
-
-            ? `${t.continueWith} ${formatMoney(
-
-                total,
-
-                currency,
-
-                locale,
-
-                {
-
-                  hideZeroDecimals:
-
-                    true,
-
-                },
-
-              )}`
-
-            : t.selectAmountToContinue}
+  ? `${locale === "fr"
+      ? "Payer"
+      : locale === "de"
+        ? "Zahlen"
+        : locale === "es"
+          ? "Pagar"
+          : locale === "ar"
+            ? "الدفع"
+            : "Pay"
+    } ${formatMoney(
+      total,
+      currency,
+      locale,
+      {
+        hideZeroDecimals: true,
+      },
+    )} ${
+      locale === "fr"
+        ? "par carte"
+        : locale === "de"
+          ? "mit Karte"
+          : locale === "es"
+            ? "con tarjeta"
+            : locale === "ar"
+              ? "بالبطاقة"
+              : "by Card"
+    }`
+  : t.selectAmountToContinue}
 
 
 
