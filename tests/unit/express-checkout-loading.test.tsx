@@ -8,6 +8,7 @@ import type { Currency } from "@/lib/currency";
 const navigation = vi.hoisted(() => ({ pathname: "/gaza-food" }));
 const walletReadiness = vi.hoisted(() => ({ available: true, update: undefined as undefined | ((amount: number) => Promise<void>) }));
 const stripePreparation = vi.hoisted(() => ({ prepare: vi.fn() }));
+const walletAvailability = vi.hoisted(() => new Map<string, (available: boolean) => void>());
 vi.mock("@/lib/stripe/client", () => ({ prepareStripe: stripePreparation.prepare }));
 vi.mock("next/navigation", () => ({ usePathname: () => navigation.pathname }));
 vi.mock("next/image", () => ({
@@ -17,6 +18,10 @@ vi.mock("next/image", () => ({
 }));
 vi.mock("@/components/donation/donation-payment", () => ({ DonationPayment: () => null }));
 function MockWallet({ clientSecret, onAvailabilityChange, onAmountUpdater }: { clientSecret: string; onAvailabilityChange?: (available: boolean) => void; onAmountUpdater?: (update: (amount: number) => Promise<void>) => void }) {
+  useEffect(() => {
+    if (onAvailabilityChange) walletAvailability.set(clientSecret, onAvailabilityChange);
+    return () => { walletAvailability.delete(clientSecret); };
+  }, [clientSecret, onAvailabilityChange]);
   const reportReady = useEffectEvent(() => {
     onAvailabilityChange?.(walletReadiness.available);
     if (walletReadiness.update) onAmountUpdater?.(walletReadiness.update);
@@ -33,6 +38,7 @@ import { DonationModal } from "@/components/donation/donation-modal";
 beforeEach(() => {
   vi.useFakeTimers(); navigation.pathname = "/gaza-food"; walletReadiness.available = true; walletReadiness.update = undefined;
   stripePreparation.prepare.mockClear();
+  walletAvailability.clear();
   vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)");
 });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
@@ -53,6 +59,42 @@ function response(id: string) {
 }
 
 describe("Apple Pay session loading", () => {
+  it("restores the same wallet when availability changes on the Akram screenshot page", async () => {
+    navigation.pathname = "/akram-shake-2";
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(response("cs_akram"))));
+    mountModal(); await advance(121); openModal(); await advance(1);
+    const wallet = screen.getByTestId("wallet-session");
+    expect(wallet.closest("[inert]")).toBeNull();
+    expect(screen.getByText("or")).toBeInTheDocument();
+    act(() => { walletAvailability.get("cs_akram_secret")!(false); });
+    expect(wallet.closest("[inert]")).not.toBeNull();
+    expect(screen.queryByText("or")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    act(() => { walletAvailability.get("cs_akram_secret")!(true); });
+    expect(screen.getByTestId("wallet-session")).toBe(wallet);
+    expect(wallet.closest("[inert]")).toBeNull();
+    expect(screen.getByText("or")).toBeInTheDocument();
+  });
+
+  it("shows the Give once wallet and reuses the monthly wallet when switching back on Akram", async () => {
+    navigation.pathname = "/akram-shake-2";
+    const express = vi.fn().mockResolvedValueOnce(response("cs_monthly")).mockResolvedValueOnce(response("cs_one_time"));
+    vi.stubGlobal("fetch", vi.fn((url) => url === "/api/stripe/express-checkout" ? express() : Promise.resolve(response("cs_card"))));
+    mountModal(); await advance(121); openModal(); await advance(1);
+    const monthlyWallet = screen.getByText("cs_monthly_secret");
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: "Give once" })); });
+    await advance(1);
+    const oneTimeWallet = screen.getByText("cs_one_time_secret");
+    expect(oneTimeWallet.closest("[inert]")).toBeNull();
+    expect(monthlyWallet.closest("[inert]")).not.toBeNull();
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: "Monthly" })); });
+    await advance(1);
+    expect(screen.getByText("cs_monthly_secret")).toBe(monthlyWallet);
+    expect(monthlyWallet.closest("[inert]")).toBeNull();
+    expect(oneTimeWallet.closest("[inert]")).not.toBeNull();
+    expect(express).toHaveBeenCalledTimes(2);
+  });
+
   it("starts custom amount synchronization at 200ms and retains the existing Apple Pay DOM", async () => {
     walletReadiness.update = vi.fn().mockResolvedValue(undefined);
     const express = vi.fn().mockImplementation(() => Promise.resolve(response("cs_reuse")));

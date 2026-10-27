@@ -102,3 +102,48 @@ confirmation separately.
 
 Stripe's [Express Checkout integration guide](https://docs.stripe.com/elements/express-checkout-element/accept-a-payment?payment-ui=embedded-components)
 documents the `confirm` event and forwarding `expressCheckoutConfirmEvent`.
+
+## Missing wallet button follow-up — 2026-10-27
+
+The new screenshot shows the Akram donation modal with Give once selected,
+a $150 gift and an empty wallet area above the Card divider. The screenshot
+does not contain a path or a device network trace. The Card-only divider matches
+the `/akram-shake-2` entry's layout; tests cover that entry explicitly.
+
+A read-only fetch of the public `/akram-shake-2` HTML returned HTTP 200. Its
+`/_next/static/immutable/chunks/28uv7y1nzid4e.js` contains the same application
+handler as the local baseline: `onReady` coerces the entire
+`availablePaymentMethods` object to a boolean and only registers `onConfirm`.
+The application does not subscribe to later availability or load-error events.
+The Stripe library itself also contains these event names; merely finding their
+names anywhere in the bundle does not establish that the application uses them.
+
+Five new regressions failed before this patch: empty/all-false method maps were
+reported as available, later Apple Pay availability was ignored, actual button
+availability could not supersede potential support, and iframe/SDK load failures
+were not reported to the parent. These are confirmed application defects, not
+proof of the specific device's failure cause.
+
+The wallet now checks individual method flags, listens for
+`onAvailablePaymentMethodsChange`, and gives the actual button-availability
+event precedence over the initial potential-support list, regardless of event
+order. A later available event restores the existing wallet without creating
+another Session or iframe. Iframe and Checkout SDK failures clear loading
+through the existing availability callback and reach the payment error UI.
+Payment authorization, amount updates and the normal confirmation flow are
+unchanged.
+
+Validation: 71 focused tests pass across wallet loading, confirmation, amount
+updates and the Stripe loader. This includes Akram wallet availability loss and
+recovery, plus Give once/monthly switching with cached DOM reuse. Type checking
+and lint on all changed code/test files pass. Three existing tests for the
+separate `DonationPanel` component fail because they expect an initial $50
+selection while that component initializes its amount to zero; its source,
+tests and data are unchanged from HEAD.
+
+No deployment, production configuration change, Checkout Session creation or
+payment was performed. Native iPhone validation and remaining latency measurement
+are still outstanding; this patch does not establish an end-to-end speed gain.
+Stripe documents that the
+[availability-change event](https://docs.stripe.com/js/elements_object/express_checkout_element_availablepaymentmethodschange_event)
+fires on initial render and when the available buttons change.

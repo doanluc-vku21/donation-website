@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useEffectEvent,
   useMemo,
   useRef,
   useState,
@@ -9,6 +10,8 @@ import {
 
 import {
   type StripeExpressCheckoutElementConfirmEvent,
+  type StripeExpressCheckoutElementAvailablePaymentMethodsChangeEvent,
+  type StripeExpressCheckoutElementReadyEvent,
 } from "@stripe/stripe-js";
 import { getStripePromise } from "@/lib/stripe/client";
 import { getWalletPlatform } from "@/lib/stripe/wallet-platform";
@@ -167,6 +170,9 @@ function ExpressCheckoutForm({
   const checkoutResult =
     useCheckoutElements();
   const confirmationInFlight = useRef(false);
+  // `ready` lists potentially supported methods. The change event describes
+  // buttons actually rendered, including changes after hidden modal warm-up.
+  const renderedAvailability = useRef<boolean | undefined>(undefined);
   const initialTimingTrace = useRef(currentWalletTiming());
   useEffect(() => {
     recordWalletTiming(checkoutResult.type === "loading" ? "sdk_loading" :
@@ -210,6 +216,32 @@ function ExpressCheckoutForm({
     }
     recordWalletTiming("amount_sync_end", trace);
   }
+
+  function reportAvailability(available: boolean) {
+    recordWalletTiming(available ? "wallet_ready" : "wallet_unavailable", initialTimingTrace.current);
+    onAvailabilityChange?.(available);
+    if (available) onAmountUpdater?.(updateAmount);
+  }
+
+  function handleReady({ availablePaymentMethods }: StripeExpressCheckoutElementReadyEvent) {
+    reportAvailability(renderedAvailability.current ??
+      Object.values(availablePaymentMethods ?? {}).some((available) => available === true));
+  }
+
+  function handleAvailabilityChange({ paymentMethods }: StripeExpressCheckoutElementAvailablePaymentMethodsChangeEvent) {
+    const available = Object.values(paymentMethods ?? {}).some((method) => method?.available === true);
+    renderedAvailability.current = available;
+    reportAvailability(available);
+  }
+
+  const reportSdkError = useEffectEvent((message: string) => {
+    reportAvailability(false);
+    onError?.(message);
+  });
+  const sdkError = checkoutResult.type === "error" ? checkoutResult.error.message : undefined;
+  useEffect(() => {
+    if (sdkError) reportSdkError(sdkError);
+  }, [sdkError]);
 
   async function handleConfirm(
     event:
@@ -422,29 +454,11 @@ function ExpressCheckoutForm({
                 : "always",
           },
         }}
-        onReady={({
-          availablePaymentMethods,
-        }) => {
-          const available =
-            Boolean(
-              availablePaymentMethods,
-            );
-          recordWalletTiming(available ? "wallet_ready" : "wallet_unavailable", initialTimingTrace.current);
-
-          onAvailabilityChange?.(
-            available,
-          );
-          if (available) onAmountUpdater?.(updateAmount);
-
-          console.log(
-            "Express Checkout platform:",
-            platform,
-          );
-
-          console.log(
-            "Express Checkout methods:",
-            availablePaymentMethods,
-          );
+        onReady={handleReady}
+        onAvailablePaymentMethodsChange={handleAvailabilityChange}
+        onLoadError={({ error }) => {
+          reportAvailability(false);
+          onError?.(error.message ?? "Unable to load express checkout.");
         }}
         onConfirm={
           handleConfirm
