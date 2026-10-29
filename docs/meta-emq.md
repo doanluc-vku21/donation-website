@@ -1,11 +1,23 @@
 # Meta Purchase matching and deployment
 
+For the reusable operational procedure, see the [CAPI runbook](meta-capi-runbook.md).
+For the successful 2026-10-29 production activation and later user confirmation,
+see the [dated activation record](meta-capi-activation-2026-10-29.md). The
+2026-10-24 verification section below is historical evidence; its disabled-CAPI
+and missing-token observations do not describe the later deployment.
+
 The checked-in implementation previously emitted only browser Purchase events
 on `/thank-you`, without an event ID or server delivery. The screenshot's
 `Multiple` integration label means an external integration may also be sending
 events; that integration is not represented in this repository.
 
 ## Configuration
+
+The following two-Pixel configuration describes this checkout's earlier
+implementation. The 2026-10-29 deployed revision `d7290ed` uses only
+`1116237120993773`, with that ID explicitly configured as the primary CAPI
+dataset. Follow the activation record for that rollout and verify the intended
+revision and environment before reusing older defaults.
 
 Browser tracking initializes both `2187720428848027` (the default primary Pixel)
 and `1116237120993773` (added at the user's request). The SDK loads once and a

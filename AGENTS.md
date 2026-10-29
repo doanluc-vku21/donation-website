@@ -59,7 +59,7 @@ Use npm and the committed `package-lock.json`. Follow the `packageManager` versi
 
 ## Meta Attribution
 
-- Read `docs/meta-emq.md` before making changes. Browser and server Purchase events share `purchase_<Stripe Checkout Session ID>`. Send only for server-confirmed paid Sessions with positive amounts, using the actual charged amount and currency.
+- Read `docs/meta-emq.md` before making changes and `docs/meta-capi-runbook.md` for configuration, deployment, verification, and rollback. Browser and server Purchase events share `purchase_<Stripe Checkout Session ID>`. Send only for server-confirmed paid Sessions with positive amounts, using the actual charged amount and currency.
 - Preserve `meta_purchase_sent_at`, stable event IDs, and retry behavior. An existing donation record must not prevent an incomplete CAPI delivery from being retried.
 - Follow the normalization, hashing, and unhashed-parameter rules in `lib/meta/`. Do not invent `fbclid`, `fbc`, IP addresses, international phone prefixes, or user details. Do not substitute the webhook server's IP/UA for the original visitor's. Respect applicable consent controls.
 - Configure additional browser Pixels separately from the primary CAPI dataset. Adding a browser Pixel must not automatically reuse a token or enable CAPI. Before production enablement, follow the documented Test Events, deduplication, and overlapping-sender checks.
