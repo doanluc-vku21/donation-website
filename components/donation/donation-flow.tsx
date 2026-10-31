@@ -1,6 +1,7 @@
 "use client";
 
 import { metaCheckoutFetch } from "@/lib/meta/client";
+import { isMonthlyOnlyDonationPage } from "@/lib/donation-page-policy";
 import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
 import { beginWalletTiming, currentWalletTiming, recordWalletTiming } from "@/lib/stripe/wallet-diagnostics";
 import { WalletDiagnostics } from "./wallet-diagnostics";
@@ -263,6 +264,8 @@ export function DonationFlow({
   const pathname =
 
     usePathname();
+
+  const monthlyOnly = isMonthlyOnlyDonationPage(pathname);
   const isApplePayDevice = useMemo(() => shouldPrewarmApplePay(), []);
 
 
@@ -5259,11 +5262,11 @@ function resetCheckoutSession() {
 
         <fieldset
 
-          className="
+          className={`
 
             grid
 
-            grid-cols-2
+            ${monthlyOnly ? "grid-cols-1" : "grid-cols-2"}
 
             gap-1
 
@@ -5273,7 +5276,7 @@ function resetCheckoutSession() {
 
             p-1
 
-          "
+          `}
 
         >
 
@@ -5291,13 +5294,13 @@ function resetCheckoutSession() {
 
           {(
 
-            [
+            (monthlyOnly ? ["monthly"] : [
 
               "monthly",
 
               "one_time",
 
-            ] as const
+            ]) as DonationFrequency[]
 
           ).map(
 
@@ -5472,6 +5475,12 @@ function resetCheckoutSession() {
                     flex
 
                     min-h-[42px]
+
+                    peer-focus-visible:outline
+
+                    peer-focus-visible:outline-2
+
+                    peer-focus-visible:outline-offset-2
 
                     items-center
 

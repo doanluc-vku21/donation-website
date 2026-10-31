@@ -19,8 +19,8 @@ import {
 } from "@/lib/currency-server";
 
 import {
-  localizeCampaign,
-} from "@/lib/localize-campaign";
+  localizePalestineMonthlyCampaign,
+} from "@/lib/palestine-monthly-campaign";
 
 import {
   sanityClient,
@@ -92,7 +92,7 @@ export default async function GazaFoodPage() {
   // =========================================
 
   const localizedContent =
-    localizeCampaign(
+    localizePalestineMonthlyCampaign(
       content,
       locale,
     );

@@ -444,6 +444,7 @@ export function CampaignPage({
               locale={locale}
             >
               <CampaignStory
+                locale={locale}
                 campaign={
                   campaign
                 }
@@ -492,6 +493,7 @@ export function CampaignPage({
             "
           >
             <CampaignStory
+              locale={locale}
               campaign={
                 campaign
               }

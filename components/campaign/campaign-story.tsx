@@ -2,6 +2,7 @@ import { PortableText } from "@portabletext/react";
 
 import type { Campaign } from "@/lib/sample-data";
 import type { SanityCampaign } from "@/sanity/types/campaign";
+import { getDirection, type Locale } from "@/lib/i18n";
 
 type StoryContent = Pick<
   SanityCampaign,
@@ -20,11 +21,13 @@ function editableText(
 type CampaignStoryProps = {
   campaign: Campaign;
   content: StoryContent;
+  locale?: Locale;
 };
 
 export function CampaignStory({
   campaign,
   content,
+  locale = "en",
 }: CampaignStoryProps) {
   const { story } = content;
 
@@ -33,7 +36,7 @@ export function CampaignStory({
     story.length > 0;
 
   return (
-    <section aria-labelledby="story-title">
+    <section dir={getDirection(locale)} aria-labelledby="story-title">
       <p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--accent)]">
         {editableText(
           content.storyEyebrow,

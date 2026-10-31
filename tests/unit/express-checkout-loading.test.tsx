@@ -59,6 +59,23 @@ function response(id: string) {
 }
 
 describe("Apple Pay session loading", () => {
+  it.each(["/gaza-food", "/gaza-food/donate", "/akram-shake-3"])("offers only monthly gifts on %s, including after reopening", async (path) => {
+    navigation.pathname = path;
+    const fetch = vi.fn().mockImplementation(() => Promise.resolve(response("cs_monthly_only")));
+    vi.stubGlobal("fetch", fetch);
+    mountModal(); await advance(121); openModal(); await advance(1);
+    expect(screen.getByRole("radio", { name: "Monthly" })).toBeChecked();
+    expect(screen.queryByRole("radio", { name: "Give once" })).not.toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Donation frequency" })).toHaveClass("grid-cols-1");
+    act(() => { fireEvent.click(screen.getByRole("button", { name: "Close donation form" })); });
+    await advance(151); openModal(); await advance(1);
+    expect(screen.getByRole("radio", { name: "Monthly" })).toBeChecked();
+    expect(screen.queryByRole("radio", { name: "Give once" })).not.toBeInTheDocument();
+    for (const [, init] of fetch.mock.calls) {
+      expect(JSON.parse(init.body)).toMatchObject({ frequency: "monthly", campaignPath: path });
+    }
+  });
+
   it("does not initialize a competing card checkout until the donor chooses Card", async () => {
     const fetch = vi.fn((url) => Promise.resolve(url === "/api/stripe/checkout"
       ? new Response(JSON.stringify({ clientSecret: "card_secret", sessionId: "cs_card", totalAmountMinor: 5000, currency: "USD" }))
@@ -114,6 +131,7 @@ describe("Apple Pay session loading", () => {
   });
 
   it("keeps monthly and one-time wallets separate when amount reuse is available", async () => {
+    navigation.pathname = "/akram-shake";
     walletReadiness.update = vi.fn().mockResolvedValue(undefined);
     const fetch = vi.fn().mockResolvedValueOnce(response("cs_monthly_boundary"))
       .mockResolvedValueOnce(response("cs_once_boundary"));

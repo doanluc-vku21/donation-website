@@ -2,6 +2,7 @@ import {
   NextResponse,
 } from "next/server";
 import { captureMetaRequest } from "@/lib/meta/server";
+import { isMonthlyOnlyDonationPage } from "@/lib/donation-page-policy";
 
 import {
   stripe,
@@ -388,10 +389,17 @@ export async function POST(
         ? "/child-health-1"
         : campaignSlug ===
               "akram-shake" &&
-            requestedCampaignPath ===
-              "/akram-shake-2"
-          ? "/akram-shake-2"
+            (requestedCampaignPath === "/akram-shake-2" ||
+              requestedCampaignPath === "/akram-shake-3")
+          ? requestedCampaignPath
           : defaultCampaignPath;
+
+    if (isMonthlyOnlyDonationPage(campaignPath) && frequency !== "monthly") {
+      return NextResponse.json(
+        { error: "This page accepts monthly donations only." },
+        { status: 400 },
+      );
+    }
 
     const siteUrl =
       process.env
