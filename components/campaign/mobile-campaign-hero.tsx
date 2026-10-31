@@ -9,6 +9,7 @@ import {
 import {
   DonationModalTrigger,
 } from "@/components/donation/donation-modal-trigger";
+import { MonthlySupporterProgress } from "@/components/campaign/monthly-supporter-progress";
 
 import {
   ShareMenu,
@@ -405,6 +406,9 @@ export function MobileCampaignHero({
           shadow-[0_5px_18px_rgba(0,0,0,.04)]
         "
       >
+        {campaign.supporterProgress ? (
+          <MonthlySupporterProgress progress={campaign.supporterProgress} locale={locale} />
+        ) : (
         <div
           className="
             flex
@@ -557,6 +561,8 @@ export function MobileCampaignHero({
             )}
           </div>
         </div>
+
+        )}
 
         <div className="mt-3">
           <DonationModalTrigger

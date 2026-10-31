@@ -152,15 +152,15 @@ export function CampaignPage({
   return (
     <main
       dir="ltr"
-      className="
+      className={`
         min-h-screen
         w-full
         overflow-x-hidden
         bg-white
-        pb-[140px]
+        ${campaign.supporterProgress ? "pb-[220px]" : "pb-[140px]"}
 
         lg:pb-0
-      "
+      `}
     >
       {/* =====================================================
           LANGUAGE SWITCHER

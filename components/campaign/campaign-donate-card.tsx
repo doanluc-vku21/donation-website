@@ -35,6 +35,7 @@ import {
 import {
   DonationModalTrigger,
 } from "@/components/donation/donation-modal-trigger";
+import { MonthlySupporterProgress } from "@/components/campaign/monthly-supporter-progress";
 
 type CampaignDonateCardProps = {
   campaign: Campaign;
@@ -112,6 +113,9 @@ export function CampaignDonateCard({
         shadow-[0_18px_50px_rgba(15,35,60,0.08)]
       "
     >
+      {campaign.supporterProgress ? (
+        <MonthlySupporterProgress progress={campaign.supporterProgress} locale={locale} />
+      ) : (
       <div className="flex items-start gap-4">
         <div
           className="
@@ -202,6 +206,8 @@ export function CampaignDonateCard({
           )}
         </div>
       </div>
+
+      )}
 
       <div className="mt-6">
         <DonationModalTrigger

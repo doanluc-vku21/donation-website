@@ -48,6 +48,7 @@ export function FundUsage({
 
   return (
     <section
+      dir={locale === "ar" ? "rtl" : "ltr"}
       className="
         mt-10
         w-full

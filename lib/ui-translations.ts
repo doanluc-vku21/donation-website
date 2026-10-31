@@ -34,6 +34,11 @@ export type UiTranslations = {
   highestAmount: string;
 
   monthly: string;
+  monthlySupporter: string;
+  monthlySupporters: string;
+  supporterGoal: string;
+  joinAkramSupporters: string;
+  supporterCountUnavailable: string;
 
   spreadTheWord: string;
   shareThisCampaign: string;
@@ -184,6 +189,11 @@ const en: UiTranslations = {
 
   monthly:
     "Monthly",
+  monthlySupporter: "Monthly Supporter",
+  monthlySupporters: "Monthly Supporters",
+  supporterGoal: "of our {goal} supporter goal",
+  joinAkramSupporters: "Join us in helping more people like Akram",
+  supporterCountUnavailable: "Supporter count is temporarily unavailable.",
 
   spreadTheWord:
     "Spread the word",
@@ -420,6 +430,11 @@ const fr: UiTranslations = {
 
   monthly:
     "Mensuel",
+  monthlySupporter: "soutien mensuel",
+  monthlySupporters: "soutiens mensuels",
+  supporterGoal: "sur notre objectif de {goal} soutiens",
+  joinAkramSupporters: "Aidez-nous à soutenir davantage de personnes comme Akram",
+  supporterCountUnavailable: "Le nombre de soutiens est temporairement indisponible.",
 
   spreadTheWord:
     "Faites passer le message",
@@ -650,6 +665,11 @@ const de: UiTranslations = {
 
   monthly:
     "Monatlich",
+  monthlySupporter: "monatlicher Unterstützer",
+  monthlySupporters: "monatliche Unterstützer",
+  supporterGoal: "von unserem Ziel von {goal} Unterstützern",
+  joinAkramSupporters: "Helfen Sie uns, mehr Menschen wie Akram zu unterstützen",
+  supporterCountUnavailable: "Die Anzahl der Unterstützer ist vorübergehend nicht verfügbar.",
 
   spreadTheWord:
     "Weitersagen",
@@ -880,6 +900,11 @@ const es: UiTranslations = {
 
   monthly:
     "Mensual",
+  monthlySupporter: "colaborador mensual",
+  monthlySupporters: "colaboradores mensuales",
+  supporterGoal: "de nuestra meta de {goal} colaboradores",
+  joinAkramSupporters: "Ayúdanos a apoyar a más personas como Akram",
+  supporterCountUnavailable: "El número de colaboradores no está disponible temporalmente.",
 
   spreadTheWord:
     "Comparte la campaña",
@@ -1110,6 +1135,11 @@ const ar: UiTranslations = {
 
   monthly:
     "شهري",
+  monthlySupporter: "داعم شهري",
+  monthlySupporters: "داعمون شهريون",
+  supporterGoal: "من هدفنا البالغ {goal} داعم",
+  joinAkramSupporters: "انضم إلينا لمساعدة المزيد من الأشخاص مثل أكرم",
+  supporterCountUnavailable: "عدد الداعمين غير متاح مؤقتًا.",
 
   spreadTheWord:
     "انشر الخبر",

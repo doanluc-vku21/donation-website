@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import { CampaignPage } from "@/components/campaign/campaign-page";
 import { getLocale } from "@/lib/i18n-server";
 import { getCurrencyContext } from "@/lib/currency-server";
-import { localizePalestineMonthlyCampaign } from "@/lib/palestine-monthly-campaign";
+import { localizeAkramMonthlyCampaign } from "@/lib/akram-monthly-campaign";
 import { getCampaignBySlug } from "@/lib/queries/campaigns";
+import { getMonthlySupporterCount } from "@/lib/queries/monthly-supporters";
 import { sanityClient } from "@/sanity/lib/client";
 import { CAMPAIGN_QUERY } from "@/sanity/lib/queries";
 import type { SanityCampaign } from "@/sanity/types/campaign";
@@ -25,7 +26,9 @@ export default async function AkramShakeMonthlyPage() {
 
   const locale = await getLocale();
   const { currency, exchangeRate } = await getCurrencyContext();
+  const monthlySupporterCount = await getMonthlySupporterCount(campaign.id);
+  const monthlyCampaign = { ...campaign, supporterProgress: { count: monthlySupporterCount, goal: 100 } };
 
-  return <CampaignPage campaign={campaign} content={localizePalestineMonthlyCampaign(content, locale)}
+  return <CampaignPage campaign={monthlyCampaign} content={localizeAkramMonthlyCampaign(content, locale)}
     locale={locale} currency={currency} exchangeRate={exchangeRate} />;
 }

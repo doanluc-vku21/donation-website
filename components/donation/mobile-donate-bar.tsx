@@ -38,6 +38,7 @@ import {
 import {
   DonationModalTrigger,
 } from "@/components/donation/donation-modal-trigger";
+import { MonthlySupporterProgress } from "@/components/campaign/monthly-supporter-progress";
 
 type MobileDonateBarProps = {
   campaign: Campaign;
@@ -172,6 +173,9 @@ export function MobileDonateBar({
           shadow-[0_-8px_28px_rgba(15,30,40,0.14)]
         "
       >
+        {campaign.supporterProgress ? (
+          <MonthlySupporterProgress progress={campaign.supporterProgress} locale={locale} />
+        ) : (
         <div className="flex items-center gap-3">
           <ProgressCircle
             progress={progress}
@@ -223,6 +227,8 @@ export function MobileDonateBar({
             )}
           </div>
         </div>
+
+        )}
 
         <div
           dir="ltr"

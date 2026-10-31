@@ -3,10 +3,11 @@ import { isValidElement } from "react";
 import { sampleCampaign, type Campaign } from "@/lib/sample-data";
 import type { SanityCampaign } from "@/sanity/types/campaign";
 
-const mocks = vi.hoisted(() => ({ campaign: vi.fn(), content: vi.fn() }));
+const mocks = vi.hoisted(() => ({ campaign: vi.fn(), content: vi.fn(), supporters: vi.fn() }));
 vi.mock("@/components/campaign/campaign-page", () => ({ CampaignPage: () => null }));
 vi.mock("@/components/donation/donate-page", () => ({ DonatePage: () => null }));
 vi.mock("@/lib/queries/campaigns", () => ({ getCampaignBySlug: mocks.campaign }));
+vi.mock("@/lib/queries/monthly-supporters", () => ({ getMonthlySupporterCount: mocks.supporters }));
 vi.mock("@/sanity/lib/client", () => ({ sanityClient: { fetch: mocks.content } }));
 vi.mock("@/lib/i18n-server", () => ({ getLocale: () => Promise.resolve("en") }));
 vi.mock("@/lib/currency-server", () => ({ getCurrencyContext: () => Promise.resolve({ currency: "USD", exchangeRate: 1 }) }));
@@ -23,6 +24,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.campaign.mockImplementation(async (slug: string) => ({ ...sampleCampaign, slug, id: `campaign-${slug}` }));
   mocks.content.mockResolvedValue(original);
+  mocks.supporters.mockResolvedValue(12);
 });
 
 describe("monthly campaign entry routes", () => {
@@ -33,8 +35,17 @@ describe("monthly campaign entry routes", () => {
   ] as const)("renders new copy on %s while retaining the original campaign accounting", async (_path, page, slug) => {
     const result = await page();
     expect(isValidElement<{ content: SanityCampaign; campaign: Campaign }>(result)).toBe(true);
-    expect(result.props.content.title).toBe("🇵🇸 ❤️ Bring Hope and Relief to Palestine");
+    expect(result.props.content.title).toBe(_path === "/akram-shake-3"
+      ? "❤️ Help More People Like Akram Build a Better Future"
+      : "🇵🇸 ❤️ Bring Hope and Relief to Palestine");
     expect(result.props.campaign.id).toBe(`campaign-${slug}`);
+    if (_path === "/akram-shake-3") {
+      expect(mocks.supporters).toHaveBeenCalledWith(`campaign-${slug}`);
+      expect(result.props.campaign.supporterProgress).toEqual({ count: 12, goal: 100 });
+    } else {
+      expect(mocks.supporters).not.toHaveBeenCalled();
+      expect(result.props.campaign.supporterProgress).toBeUndefined();
+    }
     expect(mocks.campaign).toHaveBeenCalledWith(slug);
     expect(mocks.content).toHaveBeenCalledWith(expect.any(String), { slug }, { cache: "no-store" });
   });
@@ -50,5 +61,12 @@ describe("monthly campaign entry routes", () => {
     mocks.campaign.mockResolvedValue(null);
     await expect(AkramShakeMonthlyPage()).rejects.toThrow("not-found");
     expect(mocks.content).not.toHaveBeenCalled();
+    expect(mocks.supporters).not.toHaveBeenCalled();
+  });
+
+  it("keeps the page available without inventing a count if the supporter query fails", async () => {
+    mocks.supporters.mockResolvedValue(null);
+    const result = await AkramShakeMonthlyPage();
+    expect(result.props.campaign.supporterProgress).toEqual({ count: null, goal: 100 });
   });
 });

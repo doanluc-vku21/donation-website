@@ -32,6 +32,11 @@ export type Campaign = {
   raisedAmountUsd: number;
   donorCount: number;
 
+  supporterProgress?: {
+    count: number | null;
+    goal: number;
+  };
+
   donationOptions:
     DonationOption[];
 
