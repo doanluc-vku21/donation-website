@@ -8,6 +8,7 @@ import { WalletDiagnostics } from "./wallet-diagnostics";
 import { prepareStripe } from "@/lib/stripe/client";
 import { shouldPrewarmApplePay } from "@/lib/stripe/wallet-platform";
 import { CardApplePayIcons } from "@/components/donation/card-apple-pay-icons";
+import { requestHostedCheckout } from "@/lib/stripe/hosted-checkout-client";
 
 
 
@@ -548,6 +549,8 @@ export function DonationFlow({
   const donationAttemptKeyRef =
 
     useRef("");
+
+  const hostedCheckoutRequestRef = useRef<{ key: string; id: string } | null>(null);
 
 
 
@@ -3135,139 +3138,33 @@ function resetCheckoutSession() {
 
         const donationAttemptId =
 
-          await ensureDonationAttempt();
-
-
-
-        const response =
-
-          await metaCheckoutFetch(
-
-            "/api/stripe/hosted-checkout",
-
-            {
-
-              method:
-
-                "POST",
-
-
-
-              headers: {
-
-                "Content-Type":
-
-                  "application/json",
-
-              },
-
-
-
-              body:
-
-                JSON.stringify(
-
-                  {
-
-                    campaignId:
-
-                      campaign.id,
-
-
-
-                    campaignSlug:
-
-                      campaign.slug,
-
-
-
-                    campaignPath:
-
-                      pathname,
-
-
-
-                    donationAttemptId,
-
-
-
-                    amountCents:
-
-                      amount,
-
-
-
-                    currency,
-
-
-
-                    coverFee,
-
-
-
-                    frequency,
-
-
-
-                    locale,
-
-
-
-                    displayPublicly:
-
-                      !isAnonymous,
-
-
-
-                    donor: {
-
-                      firstName:
-
-                        firstName.trim(),
-
-
-
-                      lastName:
-
-                        lastName.trim(),
-
-
-
-                      email:
-
-                        email.trim(),
-
-
-
-                      displayPublicly:
-
-                        !isAnonymous,
-
-                    },
-
-                  },
-
-                ),
-
-            },
-
-          );
-
-
-
-        const data =
-
-          await response.json();
-
-
+          isAkramDirectPage ? null : await ensureDonationAttempt();
+
+
+
+        const donor = { firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), displayPublicly: !isAnonymous };
+        const selectionKey = JSON.stringify([getDonationAttemptKey(), donor.firstName, donor.lastName, coverFee, locale, isAnonymous]);
+        if (isAkramDirectPage && hostedCheckoutRequestRef.current?.key !== selectionKey) {
+          hostedCheckoutRequestRef.current = { key: selectionKey, id: crypto.randomUUID() };
+        }
+        const { response, data } = await requestHostedCheckout({
+          campaignId: campaign.id, campaignSlug: campaign.slug, campaignPath: pathname,
+          donationAttemptId, prepareDonationAttempt: isAkramDirectPage,
+          checkoutRequestId: isAkramDirectPage ? hostedCheckoutRequestRef.current?.id : undefined,
+          amountCents: amount, currency, coverFee, frequency, locale,
+          displayPublicly: !isAnonymous, donor,
+        }, isAkramDirectPage ? { timeoutMs: 30_000, message: t.errorCheckoutTimeout, responseErrorMessage: t.errorCheckout } : undefined);
+        if (isAkramDirectPage && !response.ok) hostedCheckoutRequestRef.current = null;
 
         if (
 
           !response.ok ||
 
-          !data.url ||
+          typeof data.url !== "string" ||
 
-          !data.sessionId ||
+          typeof data.sessionId !== "string" ||
+
+          typeof data.totalAmountMinor !== "number" ||
 
           !Number.isInteger(
 

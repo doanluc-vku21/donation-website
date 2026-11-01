@@ -117,6 +117,7 @@ export type UiTranslations = {
   errorValidEmail: string;
   errorValidAmount: string;
   errorCheckout: string;
+  errorCheckoutTimeout: string;
 
   justNow: string;
 
@@ -319,6 +320,7 @@ const en: UiTranslations = {
   continueSecureCheckout:
     "Continue to secure checkout",
   continueSecurePayment: "Continue to Secure Payment",
+  errorCheckoutTimeout: "Opening the payment page took too long. Please try again.",
   payWithCardOrApplePay: "Pay {amount} with Card or Apple Pay",
 
   paymentProcessedStripe:
@@ -564,6 +566,7 @@ const fr: UiTranslations = {
   continueSecureCheckout:
     "Continuer vers le paiement sécurisé",
   continueSecurePayment: "Continuer vers le paiement sécurisé",
+  errorCheckoutTimeout: "L’ouverture de la page de paiement a pris trop de temps. Veuillez réessayer.",
   payWithCardOrApplePay: "Payer {amount} par carte ou Apple Pay",
 
   paymentProcessedStripe:
@@ -803,6 +806,7 @@ const de: UiTranslations = {
   continueSecureCheckout:
     "Weiter zur sicheren Zahlung",
   continueSecurePayment: "Weiter zur sicheren Zahlung",
+  errorCheckoutTimeout: "Das Öffnen der Zahlungsseite hat zu lange gedauert. Bitte versuchen Sie es erneut.",
   payWithCardOrApplePay: "{amount} mit Karte oder Apple Pay bezahlen",
 
   paymentProcessedStripe:
@@ -1042,6 +1046,7 @@ const es: UiTranslations = {
   continueSecureCheckout:
     "Continuar al pago seguro",
   continueSecurePayment: "Continuar al pago seguro",
+  errorCheckoutTimeout: "La página de pago está tardando demasiado en abrirse. Vuelve a intentarlo.",
   payWithCardOrApplePay: "Pagar {amount} con tarjeta o Apple Pay",
 
   paymentProcessedStripe:
@@ -1281,6 +1286,7 @@ const ar: UiTranslations = {
   continueSecureCheckout:
     "المتابعة إلى الدفع الآمن",
   continueSecurePayment: "المتابعة إلى الدفع الآمن",
+  errorCheckoutTimeout: "استغرق فتح صفحة الدفع وقتًا طويلًا. يُرجى المحاولة مجددًا.",
   payWithCardOrApplePay: "ادفع {amount} بالبطاقة أو Apple Pay",
 
   paymentProcessedStripe:

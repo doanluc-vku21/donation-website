@@ -88,8 +88,35 @@ describe("Apple Pay session loading", () => {
     await advance(5);
     const hostedRequest = fetch.mock.calls.find(([url]) => url === "/api/stripe/hosted-checkout");
     expect(hostedRequest).toBeDefined();
-    expect(JSON.parse(String(hostedRequest?.[1]?.body))).toMatchObject({ frequency: "monthly", donor: { firstName: "", lastName: "", email: "unit@example.com" } });
+    expect(JSON.parse(String(hostedRequest?.[1]?.body))).toMatchObject({ prepareDonationAttempt: true, frequency: "monthly", donor: { firstName: "", lastName: "", email: "unit@example.com" } });
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual(["/api/stripe/hosted-checkout"]);
     expect(screen.getByRole("alert")).toHaveTextContent("Unit checkout reached");
+  });
+
+  it("recovers from a stuck direct checkout after 30 seconds and retains its identity for an uncertain retry", async () => {
+    navigation.pathname = "/akram-shake-1";
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetch = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>()
+      .mockImplementationOnce(() => new Promise<Response>(() => {}))
+      .mockResolvedValue(new Response(JSON.stringify({ error: "Unit definitive failure" }), { status: 503 }));
+    vi.stubGlobal("fetch", fetch);
+    mountModal(); openModal(); await advance(1);
+    act(() => { fireEvent.click(screen.getByRole("button", { name: "Pay $50 with Card or Apple Pay" })); });
+    await advance(1);
+    act(() => { fireEvent.change(screen.getByRole("textbox", { name: /Email address/ }), { target: { value: "unit@example.com" } }); });
+    act(() => { fireEvent.click(screen.getByRole("button", { name: "Continue to Secure Payment" })); });
+    await advance(29_999);
+    expect(screen.getByRole("button", { name: "Opening checkout..." })).toBeDisabled();
+    await advance(1);
+    expect(screen.getByRole("alert")).toHaveTextContent("Opening the payment page took too long. Please try again.");
+    expect(screen.getByRole("button", { name: "Continue to Secure Payment" })).toBeEnabled();
+    expect(fetch.mock.calls[0][1]?.signal?.aborted).toBe(true);
+    act(() => { fireEvent.click(screen.getByRole("button", { name: "Continue to Secure Payment" })); });
+    await advance(1);
+    const identities = fetch.mock.calls.map(([, init]) => JSON.parse(String(init?.body)).checkoutRequestId);
+    expect(identities[0]).toBeTruthy();
+    expect(identities[1]).toBe(identities[0]);
+    expect(screen.getByRole("alert")).toHaveTextContent("Unit definitive failure");
   });
 
   it("continues requiring names on other Hosted Checkout entry pages", async () => {

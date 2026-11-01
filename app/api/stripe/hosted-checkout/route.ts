@@ -3,6 +3,9 @@ import {
 } from "next/server";
 import { captureMetaRequest } from "@/lib/meta/server";
 import { areDonorNamesOptional, isMonthlyOnlyDonationPage } from "@/lib/donation-page-policy";
+import { saveDonationAttempt } from "@/lib/donation-attempt";
+import { createHash } from "node:crypto";
+import type Stripe from "stripe";
 
 import {
   stripe,
@@ -43,6 +46,9 @@ type HostedCheckoutBody = {
 
   donationAttemptId?:
     string | null;
+
+  prepareDonationAttempt?: boolean;
+  checkoutRequestId?: string;
 
   amountCents:
     number;
@@ -226,6 +232,19 @@ export async function POST(
   request:
     Request,
 ) {
+  const startedAt = performance.now();
+  const timings: string[] = [];
+  const timed = async <T,>(name: string, operation: () => Promise<T>): Promise<T> => {
+    const start = performance.now();
+    try { return await operation(); }
+    finally { timings.push(`${name};dur=${(performance.now() - start).toFixed(1)}`); }
+  };
+  const timingHeaders = () => {
+    const value = [...timings, `total;dur=${(performance.now() - startedAt).toFixed(1)}`].join(", ");
+    console.info("hosted_checkout_timing", value);
+    return { "Server-Timing": value };
+  };
+
   try {
     const body =
       (await request.json()) as HostedCheckoutBody;
@@ -236,6 +255,8 @@ export async function POST(
       campaignPath:
         requestedCampaignPath,
       donationAttemptId,
+      prepareDonationAttempt,
+      checkoutRequestId,
       amountCents,
       currency,
       coverFee,
@@ -401,6 +422,11 @@ export async function POST(
         ?.displayPublicly ===
       true;
 
+    if (checkoutRequestId !== undefined &&
+        (typeof checkoutRequestId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(checkoutRequestId))) {
+      return NextResponse.json({ error: "Invalid checkout request ID." }, { status: 400 });
+    }
+
     const displayName =
       displayPublicly
         ? buildPublicDisplayName(
@@ -428,10 +454,32 @@ export async function POST(
       Currency =
       currency;
 
-    const exchangeRate =
-      await getUsdToCurrencyRate(
-        siteCurrency,
-      );
+    const [rateResult, attemptResult] = await Promise.allSettled([
+      timed("exchange_rate", () => getUsdToCurrencyRate(siteCurrency)),
+      prepareDonationAttempt === true && campaignPath === "/akram-shake-1"
+        ? timed("donation_attempt", () => saveDonationAttempt({
+            campaignId, campaignSlug, campaignPath, amountCents, currency, frequency,
+            email, firstName, lastName,
+          }))
+        : Promise.resolve(null),
+    ]);
+
+    // Finish persistence even if the independent rate lookup fails; returning
+    // early could strand an in-flight database write in a serverless runtime.
+    if (attemptResult.status === "rejected") throw attemptResult.reason;
+    const attemptResponse = attemptResult.value;
+    let resolvedAttemptId = donationAttemptId;
+    if (attemptResponse) {
+      if (!attemptResponse.ok) {
+        attemptResponse.headers.set("Server-Timing", timingHeaders()["Server-Timing"]);
+        return attemptResponse;
+      }
+      const attempt = await attemptResponse.json() as { attemptId?: string };
+      if (!attempt.attemptId) throw new Error("Donation attempt ID was not returned.");
+      resolvedAttemptId = attempt.attemptId;
+    }
+    if (rateResult.status === "rejected") throw rateResult.reason;
+    const exchangeRate = rateResult.value;
 
     const feeAmountCents =
       coverFee
@@ -532,7 +580,7 @@ export async function POST(
         campaignPath,
 
       donation_attempt_id:
-        donationAttemptId ??
+        resolvedAttemptId ??
         "",
 
       locale:
@@ -606,8 +654,7 @@ export async function POST(
      * no ui_mode: "elements".
      * Stripe returns session.url and the frontend redirects there.
      */
-    const session =
-      await stripe.checkout.sessions.create(
+    const sessionParameters: Stripe.Checkout.SessionCreateParams =
         {
           mode:
             frequency ===
@@ -672,8 +719,18 @@ export async function POST(
                   },
               }
             : {}),
-        },
-      );
+        };
+
+    // Keep an uncertain client/network retry on the same Stripe request. Hash
+    // the complete payment parameters so changed amounts or metadata never
+    // reuse an idempotency key for a different request. No donor text is put in
+    // the key or diagnostic log.
+    const idempotencyKey = campaignPath === "/akram-shake-1" && checkoutRequestId
+      ? `hosted_${createHash("sha256").update(JSON.stringify([checkoutRequestId, sessionParameters])).digest("hex")}`
+      : undefined;
+    const session = await timed("stripe_session", () => stripe.checkout.sessions.create(
+      sessionParameters, idempotencyKey ? { idempotencyKey } : undefined,
+    ));
 
     if (!session.url) {
       throw new Error(
@@ -709,6 +766,7 @@ export async function POST(
         totalAmountMinor:
           totalAmountCents,
       },
+      { headers: timingHeaders() },
     );
   } catch (
     error
@@ -725,6 +783,7 @@ export async function POST(
       },
       {
         status: 500,
+        headers: timingHeaders(),
       },
     );
   }

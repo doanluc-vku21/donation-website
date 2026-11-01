@@ -1,10 +1,11 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ create: vi.fn(), rate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ create: vi.fn(), rate: vi.fn(), attempt: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/stripe/server", () => ({ stripe: { checkout: { sessions: { create: mocks.create } } } }));
 vi.mock("@/lib/exchange-rate", () => ({ getUsdToCurrencyRate: mocks.rate }));
+vi.mock("@/lib/donation-attempt", () => ({ saveDonationAttempt: mocks.attempt }));
 
 import { POST as cardCheckout } from "@/app/api/stripe/checkout/route";
 import { POST as walletCheckout } from "@/app/api/stripe/express-checkout/route";
@@ -14,7 +15,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.rate.mockImplementation(async (currency: string) => currency === "USD" ? 1 : 0.8);
   mocks.create.mockResolvedValue({ id: "cs_monthly", client_secret: "unit_secret" });
+  mocks.attempt.mockImplementation(async () => new Response(JSON.stringify({ attemptId: "attempt-unit" }), { status: 201 }));
+  vi.spyOn(console, "info").mockImplementation(() => {});
 });
+afterEach(() => { vi.restoreAllMocks(); });
 
 const pages = [
   { campaignSlug: "give-a-child-a-brighter-tomorrow", campaignPath: "/gaza-food" },
@@ -74,6 +78,70 @@ describe.each([["card", cardCheckout], ["wallet", walletCheckout]] as const)("mo
 describe("monthly-only direct Hosted Checkout", () => {
   const akram = { campaignSlug: "akram-shake", campaignPath: "/akram-shake-1" };
   const donor = { firstName: "Test", lastName: "Donor", email: "unit@example.com", displayPublicly: false };
+
+  it("saves the attempt before Stripe in one endpoint and returns non-personal stage timings", async () => {
+    let completeAttempt!: (value: Response) => void;
+    mocks.attempt.mockReturnValue(new Promise<Response>((resolve) => { completeAttempt = resolve; }));
+    mocks.create.mockResolvedValue({ id: "cs_combined", url: "https://checkout.stripe.com/c/pay/unit_combined" });
+    const pending = hostedCheckout(request(akram, { prepareDonationAttempt: true, donor, currency: "GBP" }));
+    await new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+    expect(mocks.rate).toHaveBeenCalledWith("GBP");
+    expect(mocks.attempt).toHaveBeenCalledWith(expect.objectContaining({ campaignPath: "/akram-shake-1", email: "unit@example.com" }));
+    expect(mocks.create).not.toHaveBeenCalled();
+    completeAttempt(new Response(JSON.stringify({ attemptId: "attempt-prepared" }), { status: 201 }));
+    const response = await pending;
+    expect(response.status).toBe(200);
+    expect(mocks.create.mock.calls[0][0]).toMatchObject({ metadata: { donation_attempt_id: "attempt-prepared" },
+      subscription_data: { metadata: { donation_attempt_id: "attempt-prepared" } } });
+    const timings = response.headers.get("Server-Timing");
+    expect(timings).toMatch(/donation_attempt;dur=[\d.]+/);
+    expect(timings).toMatch(/exchange_rate;dur=[\d.]+/);
+    expect(timings).toMatch(/stripe_session;dur=[\d.]+/);
+    expect(timings).not.toContain("unit@example.com");
+    expect(timings).not.toContain("attempt-prepared");
+  });
+
+  it("retains attempt-save failure recovery rather than creating an untracked Stripe Session", async () => {
+    mocks.attempt.mockResolvedValue(new Response(JSON.stringify({ error: "Unable to save donation attempt." }), { status: 503 }));
+    const response = await hostedCheckout(request(akram, { prepareDonationAttempt: true, donor }));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "Unable to save donation attempt." });
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("finishes the attempt operation before returning an independent exchange-rate failure", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.rate.mockRejectedValue(new Error("Unit rate failure"));
+    let completeAttempt!: (value: Response) => void;
+    mocks.attempt.mockReturnValue(new Promise<Response>((resolve) => { completeAttempt = resolve; }));
+    let settled = false;
+    const pending = hostedCheckout(request(akram, { prepareDonationAttempt: true, donor, currency: "GBP" }));
+    void pending.then(() => { settled = true; });
+    await new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+    expect(settled).toBe(false);
+    completeAttempt(new Response(JSON.stringify({ attemptId: "attempt-before-rate-error" })));
+    expect((await pending).status).toBe(500);
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("keeps repeated requests on one Stripe idempotency key and separates changed amounts", async () => {
+    mocks.create.mockResolvedValue({ id: "cs_idempotent", url: "https://checkout.stripe.com/c/pay/unit_idempotent" });
+    const options = { prepareDonationAttempt: true, checkoutRequestId: "c15a176b-6f2c-45df-893a-bec0508333d1", donor };
+    expect((await hostedCheckout(request(akram, options))).status).toBe(200);
+    expect((await hostedCheckout(request(akram, options))).status).toBe(200);
+    expect((await hostedCheckout(request(akram, { ...options, amountCents: 5000 }))).status).toBe(200);
+    const keys = mocks.create.mock.calls.map(([, init]) => init.idempotencyKey);
+    expect(keys[0]).toMatch(/^hosted_[a-f0-9]{64}$/);
+    expect(keys[1]).toBe(keys[0]);
+    expect(keys[2]).not.toBe(keys[0]);
+    expect(keys[0]).not.toContain(donor.email);
+  });
+
+  it("rejects an invalid request identity before saving attempts or creating a Session", async () => {
+    expect((await hostedCheckout(request(akram, { prepareDonationAttempt: true, checkoutRequestId: "invalid", donor }))).status).toBe(400);
+    expect(mocks.attempt).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
 
   it.each([
     { firstName: "", lastName: "" },
