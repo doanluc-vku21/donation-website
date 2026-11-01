@@ -17,8 +17,15 @@ import GazaFoodPage from "@/app/gaza-food/page";
 import GazaFoodDonatePage from "@/app/gaza-food/donate/page";
 import AkramShakeMonthlyPage from "@/app/akram-shake-3/page";
 import AkramShakeUpsellPage from "@/app/akram-shake-2/page";
+import AkramShakeDirectPage, { generateMetadata as generateDirectMetadata } from "@/app/akram-shake-1/page";
 
-const original: SanityCampaign = { _id: "shared", slug: "shared", title: "Existing campaign headline", titleI18n: { en: "Existing campaign headline" } };
+const original: SanityCampaign = {
+  _id: "shared", slug: "shared", title: "Existing campaign headline", titleI18n: { en: "Existing campaign headline" },
+  storyHeading: "Existing story heading",
+  story: [{ _type: "block", _key: "original-story", style: "normal", markDefs: [],
+    children: [{ _type: "span", _key: "original-text", marks: [], text: "Existing Akram story." }] }],
+  fundUsageTitle: "Existing fund uses", fundUsageItems: [{ _key: "housing", amount: 7000, title: "Housing" }],
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -28,6 +35,32 @@ beforeEach(() => {
 });
 
 describe("monthly campaign entry routes", () => {
+  it("updates only the direct page headline and summary while retaining story, funds, campaign totals and donation options", async () => {
+    const result = await AkramShakeDirectPage();
+    expect(result.props.content.title).toBe("❤️ Help More People Like Akram Build a Better Future");
+    expect(result.props.content.summary).toMatch(/^Akram's story is just one of many\./);
+    expect(result.props.content.storyHeading).toBe(original.storyHeading);
+    expect(result.props.content.story).toEqual(original.story);
+    expect(result.props.content.fundUsageTitle).toBe(original.fundUsageTitle);
+    expect(result.props.content.fundUsageItems).toMatchObject(original.fundUsageItems ?? []);
+    expect(result.props.campaign).toEqual({ ...sampleCampaign, slug: "akram-shake", id: "campaign-akram-shake" });
+    expect(mocks.supporters).not.toHaveBeenCalled();
+  });
+
+  it("provides the new direct page headline and description to link crawlers without querying supporter data", async () => {
+    const metadata = await generateDirectMetadata();
+    expect(metadata.title).toBe("❤️ Help More People Like Akram Build a Better Future");
+    expect(metadata.description).toMatch(/^Akram's story is just one of many\./);
+    expect(metadata.openGraph).toMatchObject({ title: metadata.title, description: metadata.description });
+    expect(metadata.twitter).toMatchObject({ title: metadata.title, description: metadata.description });
+    expect(mocks.supporters).not.toHaveBeenCalled();
+  });
+
+  it("returns not-found metadata for an unavailable direct campaign document", async () => {
+    mocks.content.mockResolvedValue(null);
+    await expect(generateDirectMetadata()).rejects.toThrow("not-found");
+  });
+
   it.each([
     ["/gaza-food", GazaFoodPage, "give-a-child-a-brighter-tomorrow"],
     ["/gaza-food/donate", GazaFoodDonatePage, "give-a-child-a-brighter-tomorrow"],

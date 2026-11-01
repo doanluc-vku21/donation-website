@@ -1,3 +1,6 @@
+import type { Metadata } from "next";
+import { cache } from "react";
+
 import {
   notFound,
 } from "next/navigation";
@@ -18,6 +21,10 @@ import {
   localizeCampaign,
 } from "@/lib/localize-campaign";
 
+import { localizeAkramMonthlyCampaign } from "@/lib/akram-monthly-campaign";
+import { getCampaignMetadata } from "@/lib/campaign-metadata";
+import type { Locale } from "@/lib/i18n";
+
 import {
   getCampaignBySlug,
 } from "@/lib/queries/campaigns";
@@ -37,11 +44,33 @@ import type {
 const CAMPAIGN_SLUG =
   "akram-shake";
 
+const getCampaignContent = cache(async (): Promise<SanityCampaign | null> =>
+  sanityClient.fetch<SanityCampaign | null>(CAMPAIGN_QUERY, { slug: CAMPAIGN_SLUG }, { cache: "no-store" }),
+);
+
+function localizeDirectCampaign(content: SanityCampaign, locale: Locale): SanityCampaign {
+  const headlineCopy = localizeAkramMonthlyCampaign(content, locale);
+  return {
+    ...localizeCampaign(content, locale),
+    title: headlineCopy.title,
+    summary: headlineCopy.summary,
+    seoTitle: headlineCopy.seoTitle,
+    seoDescription: headlineCopy.seoDescription,
+  };
+}
+
 export const dynamic =
   "force-dynamic";
 
 export const revalidate =
   0;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const content = await getCampaignContent();
+  if (!content) notFound();
+  const locale = await getLocale();
+  return getCampaignMetadata(localizeDirectCampaign(content, locale), "/akram-shake-1");
+}
 
 export default async function AkramShakeDirectPage() {
   /*
@@ -59,17 +88,7 @@ export default async function AkramShakeDirectPage() {
   }
 
   const content =
-    await sanityClient.fetch<SanityCampaign>(
-      CAMPAIGN_QUERY,
-      {
-        slug:
-          CAMPAIGN_SLUG,
-      },
-      {
-        cache:
-          "no-store",
-      },
-    );
+    await getCampaignContent();
 
   if (!content) {
     notFound();
@@ -85,7 +104,7 @@ export default async function AkramShakeDirectPage() {
     await getCurrencyContext();
 
   const localizedContent =
-    localizeCampaign(
+    localizeDirectCampaign(
       content,
       locale,
     );

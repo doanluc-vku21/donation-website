@@ -59,6 +59,18 @@ function response(id: string) {
 }
 
 describe("Apple Pay session loading", () => {
+  it("retains both donation frequencies and disabled wallet warm-up on the direct Akram page", async () => {
+    navigation.pathname = "/akram-shake-1";
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    mountModal(); await advance(121); openModal(); await advance(1);
+    expect(screen.getByRole("radio", { name: "Monthly" })).toBeChecked();
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: "Give once" })); });
+    expect(screen.getByRole("radio", { name: "Give once" })).toBeChecked();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(stripePreparation.prepare).not.toHaveBeenCalled();
+  });
+
   it.each(["/gaza-food", "/gaza-food/donate", "/akram-shake-3"])("offers only monthly gifts on %s, including after reopening", async (path) => {
     navigation.pathname = path;
     const fetch = vi.fn().mockImplementation(() => Promise.resolve(response("cs_monthly_only")));
