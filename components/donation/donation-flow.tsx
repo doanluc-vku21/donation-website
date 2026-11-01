@@ -7,6 +7,7 @@ import { beginWalletTiming, currentWalletTiming, recordWalletTiming } from "@/li
 import { WalletDiagnostics } from "./wallet-diagnostics";
 import { prepareStripe } from "@/lib/stripe/client";
 import { shouldPrewarmApplePay } from "@/lib/stripe/wallet-platform";
+import { CardApplePayIcons } from "@/components/donation/card-apple-pay-icons";
 
 
 
@@ -264,6 +265,8 @@ export function DonationFlow({
   const pathname =
 
     usePathname();
+
+  const isAkramDirectPage = pathname === "/akram-shake-1";
 
   const monthlyOnly = isMonthlyOnlyDonationPage(pathname);
   const isApplePayDevice = useMemo(() => shouldPrewarmApplePay(), []);
@@ -6269,7 +6272,11 @@ function resetCheckoutSession() {
 
         >
 
-          {hasValidAmount
+          {hasValidAmount && isAkramDirectPage && <CardApplePayIcons />}
+          <span className={isAkramDirectPage ? "min-w-0 flex-1 text-center text-[13px] leading-snug sm:text-[15px]" : undefined}>
+          {hasValidAmount && isAkramDirectPage
+            ? t.payWithCardOrApplePay.replace("{amount}", formatMoney(total, currency, locale, { hideZeroDecimals: true }))
+            : hasValidAmount
   ? `${locale === "fr"
       ? "Payer"
       : locale === "de"
@@ -6298,6 +6305,7 @@ function resetCheckoutSession() {
               : "by Card"
     }`
   : t.selectAmountToContinue}
+          </span>
 
 
 
@@ -6307,7 +6315,7 @@ function resetCheckoutSession() {
 
               aria-hidden="true"
 
-              className="size-4"
+              className={isAkramDirectPage ? "size-4 shrink-0 rtl:rotate-180" : "size-4"}
 
             />
 
@@ -6321,7 +6329,7 @@ function resetCheckoutSession() {
 
           {
 
-            t.securePaymentByStripe
+            isAkramDirectPage ? t.securePaymentThroughStripe : t.securePaymentByStripe
 
           }
 
@@ -6969,7 +6977,7 @@ function resetCheckoutSession() {
 
           ? t.openingCheckout
 
-          : t.continueSecureCheckout}
+          : isAkramDirectPage ? t.continueSecurePayment : t.continueSecureCheckout}
 
       </button>
 

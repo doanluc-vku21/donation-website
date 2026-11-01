@@ -105,6 +105,8 @@ export type UiTranslations = {
   walletPreparingHint: string;
   walletAmountUpdating: string;
   continueSecureCheckout: string;
+  continueSecurePayment: string;
+  payWithCardOrApplePay: string;
 
   paymentProcessedStripe: string;
 
@@ -316,6 +318,8 @@ const en: UiTranslations = {
 
   continueSecureCheckout:
     "Continue to secure checkout",
+  continueSecurePayment: "Continue to Secure Payment",
+  payWithCardOrApplePay: "Pay {amount} with Card or Apple Pay",
 
   paymentProcessedStripe:
     "Payment processed securely by Stripe",
@@ -559,6 +563,8 @@ const fr: UiTranslations = {
 
   continueSecureCheckout:
     "Continuer vers le paiement sécurisé",
+  continueSecurePayment: "Continuer vers le paiement sécurisé",
+  payWithCardOrApplePay: "Payer {amount} par carte ou Apple Pay",
 
   paymentProcessedStripe:
     "Paiement traité en toute sécurité par Stripe",
@@ -796,6 +802,8 @@ const de: UiTranslations = {
 
   continueSecureCheckout:
     "Weiter zur sicheren Zahlung",
+  continueSecurePayment: "Weiter zur sicheren Zahlung",
+  payWithCardOrApplePay: "{amount} mit Karte oder Apple Pay bezahlen",
 
   paymentProcessedStripe:
     "Zahlung wird sicher von Stripe verarbeitet",
@@ -1033,6 +1041,8 @@ const es: UiTranslations = {
 
   continueSecureCheckout:
     "Continuar al pago seguro",
+  continueSecurePayment: "Continuar al pago seguro",
+  payWithCardOrApplePay: "Pagar {amount} con tarjeta o Apple Pay",
 
   paymentProcessedStripe:
     "Pago procesado de forma segura por Stripe",
@@ -1270,6 +1280,8 @@ const ar: UiTranslations = {
 
   continueSecureCheckout:
     "المتابعة إلى الدفع الآمن",
+  continueSecurePayment: "المتابعة إلى الدفع الآمن",
+  payWithCardOrApplePay: "ادفع {amount} بالبطاقة أو Apple Pay",
 
   paymentProcessedStripe:
     "تتم معالجة الدفع بأمان عبر Stripe",
