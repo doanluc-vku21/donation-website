@@ -6586,6 +6586,7 @@ function resetCheckoutSession() {
           }
 
           name="firstName"
+          placeholder={areDonorNamesOptional(pathname, frequency) ? t.optionalFieldPlaceholder : undefined}
 
           autoComplete="given-name"
 
@@ -6626,6 +6627,7 @@ function resetCheckoutSession() {
           }
 
           name="lastName"
+          placeholder={areDonorNamesOptional(pathname, frequency) ? t.optionalFieldPlaceholder : undefined}
 
           autoComplete="family-name"
 
@@ -7613,6 +7615,8 @@ function SecureText({
 
 type FormFieldProps = {
 
+  placeholder?: string;
+
   label:
 
     string;
@@ -7668,6 +7672,8 @@ type FormFieldProps = {
 
 
 function FormField({
+
+  placeholder,
 
   label,
 
@@ -7770,6 +7776,8 @@ function FormField({
           autoComplete
 
         }
+
+        placeholder={placeholder}
 
         value={
 
