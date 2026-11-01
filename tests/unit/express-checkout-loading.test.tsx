@@ -59,14 +59,17 @@ function response(id: string) {
 }
 
 describe("Apple Pay session loading", () => {
-  it("retains both donation frequencies and disabled wallet warm-up on the direct Akram page", async () => {
+  it("offers only monthly gifts and keeps wallet warm-up disabled on the direct Akram page", async () => {
     navigation.pathname = "/akram-shake-1";
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
     mountModal(); await advance(121); openModal(); await advance(1);
     expect(screen.getByRole("radio", { name: "Monthly" })).toBeChecked();
-    act(() => { fireEvent.click(screen.getByRole("radio", { name: "Give once" })); });
-    expect(screen.getByRole("radio", { name: "Give once" })).toBeChecked();
+    expect(screen.queryByRole("radio", { name: "Give once" })).not.toBeInTheDocument();
+    act(() => { fireEvent.click(screen.getByRole("button", { name: "Close donation form" })); });
+    await advance(151); openModal(); await advance(1);
+    expect(screen.getByRole("radio", { name: "Monthly" })).toBeChecked();
+    expect(screen.queryByRole("radio", { name: "Give once" })).not.toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
     expect(stripePreparation.prepare).not.toHaveBeenCalled();
   });

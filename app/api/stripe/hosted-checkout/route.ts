@@ -2,6 +2,7 @@ import {
   NextResponse,
 } from "next/server";
 import { captureMetaRequest } from "@/lib/meta/server";
+import { isMonthlyOnlyDonationPage } from "@/lib/donation-page-policy";
 
 import {
   stripe,
@@ -315,6 +316,13 @@ export async function POST(
         {
           status: 400,
         },
+      );
+    }
+
+    if (isMonthlyOnlyDonationPage(campaignPath) && frequency !== "monthly") {
+      return NextResponse.json(
+        { error: "This page accepts monthly donations only." },
+        { status: 400 },
       );
     }
 

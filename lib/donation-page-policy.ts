@@ -3,5 +3,6 @@
 export function isMonthlyOnlyDonationPage(pathname: string | null | undefined): boolean {
   return pathname === "/gaza-food" ||
     pathname === "/gaza-food/donate" ||
+    pathname === "/akram-shake-1" ||
     pathname === "/akram-shake-3";
 }

@@ -354,7 +354,8 @@ export async function POST(
         ? "/child-health-1"
         : campaignSlug ===
               "akram-shake" &&
-            (requestedCampaignPath === "/akram-shake-2" ||
+            (requestedCampaignPath === "/akram-shake-1" ||
+              requestedCampaignPath === "/akram-shake-2" ||
               requestedCampaignPath === "/akram-shake-3")
           ? requestedCampaignPath
           : defaultCampaignPath;
