@@ -1,7 +1,7 @@
 "use client";
 
 import { metaCheckoutFetch } from "@/lib/meta/client";
-import { isMonthlyOnlyDonationPage } from "@/lib/donation-page-policy";
+import { areDonorNamesOptional, isMonthlyOnlyDonationPage } from "@/lib/donation-page-policy";
 import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
 import { beginWalletTiming, currentWalletTiming, recordWalletTiming } from "@/lib/stripe/wallet-diagnostics";
 import { WalletDiagnostics } from "./wallet-diagnostics";
@@ -408,6 +408,8 @@ export function DonationFlow({
     frequency ===
 
       "monthly";
+
+  const namesOptional = isMonthlyInformationOptional || areDonorNamesOptional(pathname, frequency);
 
 
 
@@ -2986,7 +2988,7 @@ function resetCheckoutSession() {
 
       if (
 
-        !firstName.trim()
+        !namesOptional && !firstName.trim()
 
       ) {
 
@@ -3006,7 +3008,7 @@ function resetCheckoutSession() {
 
       if (
 
-        !lastName.trim()
+        !namesOptional && !lastName.trim()
 
       ) {
 
@@ -6545,7 +6547,7 @@ function resetCheckoutSession() {
 
               )
 
-            : t.enterDetails}
+            : namesOptional ? t.optionalDonorNamesHint : t.enterDetails}
 
         </p>
 
@@ -6607,7 +6609,7 @@ function resetCheckoutSession() {
 
           required={
 
-            !isMonthlyInformationOptional
+            !namesOptional
 
           }
 
@@ -6647,7 +6649,7 @@ function resetCheckoutSession() {
 
           required={
 
-            !isMonthlyInformationOptional
+            !namesOptional
 
           }
 

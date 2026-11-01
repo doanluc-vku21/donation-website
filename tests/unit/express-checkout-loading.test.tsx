@@ -59,6 +59,52 @@ function response(id: string) {
 }
 
 describe("Apple Pay session loading", () => {
+  it("accepts empty first and last names on Akram while requiring a valid email before Hosted Checkout", async () => {
+    navigation.pathname = "/akram-shake-1";
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetch = vi.fn((url: string, init?: RequestInit) => {
+      void init;
+      return Promise.resolve(url === "/api/donation-attempt"
+        ? new Response(JSON.stringify({ attemptId: "unit_optional_names" }))
+        : new Response(JSON.stringify({ error: "Unit checkout reached" }), { status: 400 }));
+    });
+    vi.stubGlobal("fetch", fetch);
+    mountModal(); openModal(); await advance(1);
+    act(() => { fireEvent.click(screen.getByRole("button", { name: "Pay $50 by Card" })); });
+    await advance(1);
+    expect(screen.getByLabelText("First name")).not.toBeRequired();
+    expect(screen.getByLabelText("Last name")).not.toBeRequired();
+    const email = screen.getByRole("textbox", { name: /Email address/ });
+    expect(email).toBeRequired();
+    expect(screen.getByText("First and last names are optional. Email is required.")).toBeInTheDocument();
+    act(() => { fireEvent.click(screen.getByRole("button", { name: "Continue to secure checkout" })); });
+    expect(screen.getByRole("alert")).toHaveTextContent(/email/i);
+    expect(fetch).not.toHaveBeenCalled();
+    act(() => { fireEvent.change(email, { target: { value: "invalid-email" } }); fireEvent.click(screen.getByRole("button", { name: "Continue to secure checkout" })); });
+    expect(screen.getByRole("alert")).toHaveTextContent(/valid email/i);
+    expect(fetch).not.toHaveBeenCalled();
+    act(() => { fireEvent.change(email, { target: { value: "unit@example.com" } }); });
+    act(() => { fireEvent.click(screen.getByRole("button", { name: "Continue to secure checkout" })); });
+    await advance(5);
+    const hostedRequest = fetch.mock.calls.find(([url]) => url === "/api/stripe/hosted-checkout");
+    expect(hostedRequest).toBeDefined();
+    expect(JSON.parse(String(hostedRequest?.[1]?.body))).toMatchObject({ frequency: "monthly", donor: { firstName: "", lastName: "", email: "unit@example.com" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("Unit checkout reached");
+  });
+
+  it("continues requiring names on other Hosted Checkout entry pages", async () => {
+    navigation.pathname = "/gaza-help";
+    const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
+    mountModal(); openModal(); await advance(1);
+    act(() => { fireEvent.click(screen.getByRole("button", { name: "Pay $50 by Card" })); });
+    await advance(1);
+    expect(screen.getByRole("textbox", { name: /First name/ })).toBeRequired();
+    expect(screen.getByRole("textbox", { name: /Last name/ })).toBeRequired();
+    act(() => { fireEvent.click(screen.getByRole("button", { name: "Continue to secure checkout" })); });
+    expect(screen.getByRole("alert")).toHaveTextContent(/first name/i);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("offers only monthly gifts and keeps wallet warm-up disabled on the direct Akram page", async () => {
     navigation.pathname = "/akram-shake-1";
     const fetch = vi.fn();

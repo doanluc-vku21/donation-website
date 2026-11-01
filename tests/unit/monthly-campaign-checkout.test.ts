@@ -75,6 +75,39 @@ describe("monthly-only direct Hosted Checkout", () => {
   const akram = { campaignSlug: "akram-shake", campaignPath: "/akram-shake-1" };
   const donor = { firstName: "Test", lastName: "Donor", email: "unit@example.com", displayPublicly: false };
 
+  it.each([
+    { firstName: "", lastName: "" },
+    { firstName: " Ada ", lastName: "" },
+    { firstName: "", lastName: " Lovelace " },
+    { firstName: "   ", lastName: "   " },
+    {},
+  ])("accepts omitted or partial Akram names without inventing donor metadata: %j", async (names) => {
+    mocks.create.mockResolvedValue({ id: "cs_optional_names", url: "https://checkout.stripe.com/c/pay/unit_optional" });
+    const response = await hostedCheckout(request(akram, { donor: { email: " Unit@Example.com ", displayPublicly: false, ...names } }));
+    expect(response.status).toBe(200);
+    expect(mocks.create.mock.calls[0][0]).toMatchObject({ mode: "subscription", customer_email: "unit@example.com", metadata: {
+      donor_first_name: names.firstName?.trim() ?? "", donor_last_name: names.lastName?.trim() ?? "",
+      donor_email: "unit@example.com", display_name: "Anonymous", frequency: "monthly",
+    } });
+  });
+
+  it.each([undefined, "", "invalid-email", "donor@"])("still rejects missing or invalid email when names are optional: %s", async (email) => {
+    const response = await hostedCheckout(request(akram, { donor: { email } }));
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toMatch(/email/i);
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { campaignSlug: "give-a-child-a-brighter-tomorrow", campaignPath: "/gaza-help" },
+    { campaignSlug: "child-health", campaignPath: "/child-health" },
+  ])("retains required names for monthly Hosted Checkout on $campaignPath", async (page) => {
+    const response = await hostedCheckout(request(page, { donor: { email: "unit@example.com" } }));
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toBe("Please enter your name and email.");
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
   it.each(["/akram-shake-1", undefined, "/untrusted-path"])("rejects one-time Akram checkout with requested path %s without contacting Stripe", async (campaignPath) => {
     const response = await hostedCheckout(request(akram, { campaignPath, frequency: "one_time", donor }));
     expect(response.status).toBe(400);

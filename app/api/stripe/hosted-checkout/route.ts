@@ -2,7 +2,7 @@ import {
   NextResponse,
 } from "next/server";
 import { captureMetaRequest } from "@/lib/meta/server";
-import { isMonthlyOnlyDonationPage } from "@/lib/donation-page-policy";
+import { areDonorNamesOptional, isMonthlyOnlyDonationPage } from "@/lib/donation-page-policy";
 
 import {
   stripe,
@@ -60,10 +60,10 @@ type HostedCheckoutBody = {
     Locale;
 
   donor: {
-    firstName:
+    firstName?:
       string;
 
-    lastName:
+    lastName?:
       string;
 
     email:
@@ -363,15 +363,13 @@ export async function POST(
         .toLowerCase() ??
       "";
 
-    if (
-      !firstName ||
-      !lastName ||
-      !email
-    ) {
+    const namesOptional = areDonorNamesOptional(campaignPath, frequency);
+
+    if (!email || (!namesOptional && (!firstName || !lastName))) {
       return NextResponse.json(
         {
           error:
-            "Please enter your name and email.",
+            namesOptional ? "Please enter your email address." : "Please enter your name and email.",
         },
         {
           status: 400,

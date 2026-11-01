@@ -86,6 +86,7 @@ export type UiTranslations = {
   yourInformation: string;
 
   enterDetails: string;
+  optionalDonorNamesHint: string;
 
   firstName: string;
   lastName: string;
@@ -281,6 +282,7 @@ const en: UiTranslations = {
 
   enterDetails:
     "Enter your details to continue to secure checkout.",
+  optionalDonorNamesHint: "First and last names are optional. Email is required.",
 
   firstName:
     "First name",
@@ -522,6 +524,7 @@ const fr: UiTranslations = {
 
   enterDetails:
     "Saisissez vos informations pour continuer vers le paiement sécurisé.",
+  optionalDonorNamesHint: "Le prénom et le nom sont facultatifs. L’adresse e-mail est obligatoire.",
 
   firstName:
     "Prénom",
@@ -757,6 +760,7 @@ const de: UiTranslations = {
 
   enterDetails:
     "Geben Sie Ihre Daten ein, um zur sicheren Zahlung fortzufahren.",
+  optionalDonorNamesHint: "Vor- und Nachname sind optional. Eine E-Mail-Adresse ist erforderlich.",
 
   firstName:
     "Vorname",
@@ -992,6 +996,7 @@ const es: UiTranslations = {
 
   enterDetails:
     "Ingresa tus datos para continuar al pago seguro.",
+  optionalDonorNamesHint: "El nombre y el apellido son opcionales. El correo electrónico es obligatorio.",
 
   firstName:
     "Nombre",
@@ -1227,6 +1232,7 @@ const ar: UiTranslations = {
 
   enterDetails:
     "أدخل بياناتك للمتابعة إلى الدفع الآمن.",
+  optionalDonorNamesHint: "الاسم الأول واسم العائلة اختياريان. البريد الإلكتروني مطلوب.",
 
   firstName:
     "الاسم الأول",
