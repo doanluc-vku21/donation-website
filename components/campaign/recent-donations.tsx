@@ -49,6 +49,7 @@ type RecentDonationsProps = {
   className?: string;
 
   previewLimit?: number;
+  monthlySupporterCount?: number | null;
 };
 
 type SortMode =
@@ -74,6 +75,7 @@ export function RecentDonations({
   exchangeRate,
   className = "mt-12",
   previewLimit = 4,
+  monthlySupporterCount,
 }: RecentDonationsProps) {
   const t =
     getUiTranslations(
@@ -84,6 +86,13 @@ export function RecentDonations({
     locale === "ar"
       ? "rtl"
       : "ltr";
+
+  const isMonthlySupporters = monthlySupporterCount !== undefined;
+  const count = isMonthlySupporters ? monthlySupporterCount : donations.length;
+  const title = isMonthlySupporters ? t.monthlySupporters : t.contributions;
+  const countLabel = isMonthlySupporters
+    ? count === 1 ? t.monthlySupporter : t.monthlySupporters
+    : count === 1 ? t.contribution : t.contributions;
 
   const [
     modalOpen,
@@ -175,7 +184,7 @@ export function RecentDonations({
 
   if (
     donations.length ===
-    0
+    0 && !isMonthlySupporters
   ) {
     return null;
   }
@@ -201,12 +210,9 @@ export function RecentDonations({
           "
         >
           <div
-            className="
-              flex
-              items-end
-              justify-between
-              gap-4
-            "
+            className={isMonthlySupporters
+              ? "flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4"
+              : "flex items-end justify-between gap-4"}
           >
             {/* HEADER TEXT */}
 
@@ -247,7 +253,7 @@ export function RecentDonations({
                 "
               >
                 {
-                  t.contributions
+                  title
                 }
               </h2>
             </div>
@@ -270,16 +276,13 @@ export function RecentDonations({
                 text-[#6f7a86]
               "
             >
-              {donations.length.toLocaleString(
+              {count == null ? "—" : count.toLocaleString(
                 localeMap[
                   locale
                 ],
               )}{" "}
 
-              {donations.length ===
-              1
-                ? t.contribution
-                : t.contributions}
+              {countLabel}
             </span>
           </div>
 
@@ -296,7 +299,7 @@ export function RecentDonations({
             "
           >
             {
-              t.recentSupport
+              isMonthlySupporters && count == null ? t.supporterCountUnavailable : t.recentSupport
             }
           </p>
         </div>
@@ -305,7 +308,7 @@ export function RecentDonations({
             LIST
         ====================================== */}
 
-        <div
+        {donations.length > 0 && <div
           className="
             mt-5
             overflow-hidden
@@ -345,7 +348,7 @@ export function RecentDonations({
               ),
             )}
           </ul>
-        </div>
+        </div>}
 
         {/* =====================================
             SEE ALL
@@ -392,7 +395,7 @@ export function RecentDonations({
             "
           >
             {
-              t.seeAllContributions
+              isMonthlySupporters ? t.seeAllMonthlySupporters : t.seeAllContributions
             }
           </button>
         )}
@@ -508,7 +511,7 @@ export function RecentDonations({
                     "
                   >
                     {
-                      t.contributions
+                      title
                     }
                   </h2>
 
@@ -521,7 +524,7 @@ export function RecentDonations({
                     "
                   >
                     {
-                      t.browseLatestDonations
+                      isMonthlySupporters ? t.recentSupport : t.browseLatestDonations
                     }
                   </p>
                 </div>
@@ -531,7 +534,7 @@ export function RecentDonations({
                 <button
                   type="button"
                   aria-label={
-                    t.closeContributions
+                    isMonthlySupporters ? t.closeMonthlySupporters : t.closeContributions
                   }
                   onClick={() =>
                     setModalOpen(

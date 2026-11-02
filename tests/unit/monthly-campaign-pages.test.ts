@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({ campaign: vi.fn(), content: vi.fn(), supporter
 vi.mock("@/components/campaign/campaign-page", () => ({ CampaignPage: () => null }));
 vi.mock("@/components/donation/donate-page", () => ({ DonatePage: () => null }));
 vi.mock("@/lib/queries/campaigns", () => ({ getCampaignBySlug: mocks.campaign }));
-vi.mock("@/lib/queries/monthly-supporters", () => ({ getMonthlySupporterCount: mocks.supporters }));
+vi.mock("@/lib/queries/monthly-supporters", () => ({ getMonthlySupporters: mocks.supporters }));
 vi.mock("@/sanity/lib/client", () => ({ sanityClient: { fetch: mocks.content } }));
 vi.mock("@/lib/i18n-server", () => ({ getLocale: () => Promise.resolve("en") }));
 vi.mock("@/lib/currency-server", () => ({ getCurrencyContext: () => Promise.resolve({ currency: "USD", exchangeRate: 1 }) }));
@@ -31,7 +31,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.campaign.mockImplementation(async (slug: string) => ({ ...sampleCampaign, slug, id: `campaign-${slug}` }));
   mocks.content.mockResolvedValue(original);
-  mocks.supporters.mockResolvedValue(12);
+  mocks.supporters.mockResolvedValue(Array.from({ length: 12 }, (_, index) => ({ ...sampleCampaign.recentDonations[1], id: String(index) })));
 });
 
 describe("monthly campaign entry routes", () => {
@@ -75,6 +75,8 @@ describe("monthly campaign entry routes", () => {
     if (_path === "/akram-shake-3") {
       expect(mocks.supporters).toHaveBeenCalledWith(`campaign-${slug}`);
       expect(result.props.campaign.supporterProgress).toEqual({ count: 12, goal: 100 });
+      expect(result.props.campaign.recentDonations).toHaveLength(12);
+      expect(result.props.campaign.recentDonations.every((donation: { frequency: string }) => donation.frequency === "monthly")).toBe(true);
     } else {
       expect(mocks.supporters).not.toHaveBeenCalled();
       expect(result.props.campaign.supporterProgress).toBeUndefined();
@@ -101,5 +103,13 @@ describe("monthly campaign entry routes", () => {
     mocks.supporters.mockResolvedValue(null);
     const result = await AkramShakeMonthlyPage();
     expect(result.props.campaign.supporterProgress).toEqual({ count: null, goal: 100 });
+    expect(result.props.campaign.recentDonations).toEqual([]);
+  });
+
+  it("uses zero and an empty list together when no monthly supporter has paid", async () => {
+    mocks.supporters.mockResolvedValue([]);
+    const result = await AkramShakeMonthlyPage();
+    expect(result.props.campaign.supporterProgress).toEqual({ count: 0, goal: 100 });
+    expect(result.props.campaign.recentDonations).toEqual([]);
   });
 });

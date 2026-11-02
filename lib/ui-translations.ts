@@ -36,6 +36,8 @@ export type UiTranslations = {
   monthly: string;
   monthlySupporter: string;
   monthlySupporters: string;
+  seeAllMonthlySupporters: string;
+  closeMonthlySupporters: string;
   supporterGoal: string;
   joinAkramSupporters: string;
   supporterCountUnavailable: string;
@@ -196,6 +198,8 @@ const en: UiTranslations = {
     "Monthly",
   monthlySupporter: "Monthly Supporter",
   monthlySupporters: "Monthly Supporters",
+  seeAllMonthlySupporters: "See all monthly supporters",
+  closeMonthlySupporters: "Close monthly supporters",
   supporterGoal: "of our {goal} supporter goal",
   joinAkramSupporters: "Join us in helping more people like Akram",
   supporterCountUnavailable: "Supporter count is temporarily unavailable.",
@@ -442,6 +446,8 @@ const fr: UiTranslations = {
     "Mensuel",
   monthlySupporter: "soutien mensuel",
   monthlySupporters: "soutiens mensuels",
+  seeAllMonthlySupporters: "Voir tous les soutiens mensuels",
+  closeMonthlySupporters: "Fermer les soutiens mensuels",
   supporterGoal: "sur notre objectif de {goal} soutiens",
   joinAkramSupporters: "Aidez-nous à soutenir davantage de personnes comme Akram",
   supporterCountUnavailable: "Le nombre de soutiens est temporairement indisponible.",
@@ -682,6 +688,8 @@ const de: UiTranslations = {
     "Monatlich",
   monthlySupporter: "monatlicher Unterstützer",
   monthlySupporters: "monatliche Unterstützer",
+  seeAllMonthlySupporters: "Alle monatlichen Unterstützer ansehen",
+  closeMonthlySupporters: "Monatliche Unterstützer schließen",
   supporterGoal: "von unserem Ziel von {goal} Unterstützern",
   joinAkramSupporters: "Helfen Sie uns, mehr Menschen wie Akram zu unterstützen",
   supporterCountUnavailable: "Die Anzahl der Unterstützer ist vorübergehend nicht verfügbar.",
@@ -922,6 +930,8 @@ const es: UiTranslations = {
     "Mensual",
   monthlySupporter: "colaborador mensual",
   monthlySupporters: "colaboradores mensuales",
+  seeAllMonthlySupporters: "Ver todos los colaboradores mensuales",
+  closeMonthlySupporters: "Cerrar colaboradores mensuales",
   supporterGoal: "de nuestra meta de {goal} colaboradores",
   joinAkramSupporters: "Ayúdanos a apoyar a más personas como Akram",
   supporterCountUnavailable: "El número de colaboradores no está disponible temporalmente.",
@@ -1162,6 +1172,8 @@ const ar: UiTranslations = {
     "شهري",
   monthlySupporter: "داعم شهري",
   monthlySupporters: "داعمون شهريون",
+  seeAllMonthlySupporters: "عرض جميع الداعمين الشهريين",
+  closeMonthlySupporters: "إغلاق قائمة الداعمين الشهريين",
   supporterGoal: "من هدفنا البالغ {goal} داعم",
   joinAkramSupporters: "انضم إلينا لمساعدة المزيد من الأشخاص مثل أكرم",
   supporterCountUnavailable: "عدد الداعمين غير متاح مؤقتًا.",

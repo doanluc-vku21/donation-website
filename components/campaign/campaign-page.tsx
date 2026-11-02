@@ -518,6 +518,7 @@ export function CampaignPage({
             />
 
             <RecentDonations
+              monthlySupporterCount={campaign.supporterProgress?.count}
               donations={
                 campaign
                   .recentDonations
@@ -551,6 +552,7 @@ export function CampaignPage({
             "
           >
             <RecentDonations
+              monthlySupporterCount={campaign.supporterProgress?.count}
               donations={
                 campaign
                   .recentDonations
