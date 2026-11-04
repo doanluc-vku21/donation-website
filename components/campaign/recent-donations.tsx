@@ -34,6 +34,7 @@ import type {
 } from "@/lib/sample-data";
 
 type RecentDonationsProps = {
+  showDonationTimes?: boolean;
   donations:
     RecentDonation[];
 
@@ -76,6 +77,7 @@ export function RecentDonations({
   className = "mt-12",
   previewLimit = 4,
   monthlySupporterCount,
+  showDonationTimes = true,
 }: RecentDonationsProps) {
   const t =
     getUiTranslations(
@@ -329,6 +331,7 @@ export function RecentDonations({
                 donation,
               ) => (
                 <ContributionRow
+                  showDonationTimes={showDonationTimes}
                   key={
                     donation.id
                   }
@@ -695,6 +698,7 @@ export function RecentDonations({
                     donation,
                   ) => (
                     <ContributionRow
+                      showDonationTimes={showDonationTimes}
                       key={
                         donation.id
                       }
@@ -733,6 +737,7 @@ function ContributionRow({
   currency,
   exchangeRate,
   modal = false,
+  showDonationTimes = true,
 }: {
   donation:
     RecentDonation;
@@ -747,6 +752,7 @@ function ContributionRow({
     number;
 
   modal?: boolean;
+  showDonationTimes?: boolean;
 }) {
   const t =
     getUiTranslations(
@@ -878,7 +884,7 @@ function ContributionRow({
           )}
         </div>
 
-        <p
+        {showDonationTimes && <p
           className="
             mt-1
             truncate
@@ -889,7 +895,7 @@ function ContributionRow({
           {
             translatedTime
           }
-        </p>
+        </p>}
       </div>
 
       {/* =====================================

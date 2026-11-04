@@ -12,6 +12,14 @@ const supporters: RecentDonation[] = Array.from({ length: 20 }, (_, index) => ({
 const props = { donations: supporters, locale: "en" as const, currency: "USD" as const, exchangeRate: 1 };
 
 describe("community supporter list", () => {
+  it("hides times in both the preview and all-contributions dialog when requested", () => {
+    render(<RecentDonations {...props} showDonationTimes={false} />);
+    expect(screen.queryByText("1 hour ago")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "See all contributions" }));
+    expect(screen.queryByText("1 hour ago")).not.toBeInTheDocument();
+    expect(within(screen.getByRole("dialog")).getAllByRole("listitem")).toHaveLength(20);
+  });
+
   it("matches the progress count and shows all unique supporters in the modal", () => {
     render(<RecentDonations {...props} monthlySupporterCount={20} />);
     expect(screen.getByRole("heading", { name: "Monthly Supporters" })).toBeVisible();

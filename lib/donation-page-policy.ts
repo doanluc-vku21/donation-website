@@ -1,5 +1,9 @@
 import type { DonationFrequency } from "@/lib/sample-data";
 
+export function getDonationPageMinimumUsdCents(pathname: string | null | undefined): number {
+  return pathname === "/akram-shake-2" ? 2500 : 1000;
+}
+
 // Keep this policy scoped to public entry pages; campaigns can share their data
 // with other pages that still support one-time gifts.
 export function isMonthlyOnlyDonationPage(pathname: string | null | undefined): boolean {

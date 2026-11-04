@@ -1,3 +1,5 @@
+import { getDonationPageMinimumUsdCents } from "@/lib/donation-page-policy";
+import { convertUsdToCurrencyMinor as pageMinimumMinor } from "@/lib/money";
 import {
   NextResponse,
 } from "next/server";
@@ -400,6 +402,10 @@ export async function POST(
         { error: "This page accepts monthly donations only." },
         { status: 400 },
       );
+    }
+
+    if (campaignPath === "/akram-shake-2" && amountCents < pageMinimumMinor(getDonationPageMinimumUsdCents(campaignPath), exchangeRate)) {
+      return NextResponse.json({ error: "Minimum donation is $25 or its equivalent in the selected currency." }, { status: 400 });
     }
 
     const siteUrl =

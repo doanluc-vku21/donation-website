@@ -59,6 +59,23 @@ function response(id: string) {
 }
 
 describe("Apple Pay session loading", () => {
+  it("mirrors Ryan presets in the input and rejects custom gifts below $25", async () => {
+    navigation.pathname = "/akram-shake-2";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response("cs_ryan")));
+    mountModal(); openModal(); await advance(1);
+    const input = screen.getByPlaceholderText("Enter amount");
+    expect(input).toHaveValue(50);
+    fireEvent.click(screen.getByRole("radio", { name: /\$100/ }));
+    expect(input).toHaveValue(100);
+    expect(screen.getByRole("radio", { name: /\$100/ })).toBeChecked();
+    fireEvent.change(input, { target: { value: "24" } });
+    expect(input).toHaveValue(24);
+    expect(screen.getByText("❤️ Every donation starts at just $25")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Select an amount to continue" })).toBeDisabled();
+    fireEvent.change(input, { target: { value: "25" } });
+    expect(screen.getByRole("button", { name: /Pay.*Card/ })).toBeEnabled();
+  });
+
   it("accepts empty first and last names on Akram while requiring a valid email before Hosted Checkout", async () => {
     navigation.pathname = "/akram-shake-1";
     vi.spyOn(console, "error").mockImplementation(() => {});

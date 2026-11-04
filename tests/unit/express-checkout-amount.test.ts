@@ -33,6 +33,18 @@ const signedContext = (expiresAt = Date.now() + 3600_000) => signWalletUpdateCon
 }, "unit_secret", expiresAt);
 
 describe("in-place wallet amount updates", () => {
+  it.each([false, true])("enforces the Ryan minimum during wallet updates (signed context: %s)", async (signed) => {
+    const updateContext = signed ? signWalletUpdateContext({
+      sessionId: "cs_unit_amount", productId: "prod_existing", currency: "USD", frequency: "monthly",
+      coverFee: false, exchangeRate: 1, campaignPath: "/akram-shake-2",
+    }, "unit_secret", Date.now() + 3600_000) : undefined;
+    mocks.retrieve.mockResolvedValue({ ...session(), metadata: { ...session().metadata, campaign_path: "/akram-shake-2" } });
+    expect((await POST(request({ amountCents: 2499, updateContext }))).status).toBe(400);
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect((await POST(request({ amountCents: 2500, updateContext }))).status).toBe(200);
+    expect(mocks.update.mock.calls[0][1].line_items[0].price_data.unit_amount).toBe(2500);
+  });
+
   it("creates a signed context from the expanded Stripe response", async () => {
     mocks.create.mockResolvedValue({ ...session(), expires_at: Math.floor(Date.now() / 1000) + 3600 });
     const created = await CREATE(new Request("https://example.org/api/stripe/express-checkout", {

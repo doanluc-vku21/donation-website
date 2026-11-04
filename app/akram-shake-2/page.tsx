@@ -1,3 +1,4 @@
+import { withRyanCampaignName } from "@/lib/ryan-campaign";
 import {
   notFound,
 } from "next/navigation";
@@ -90,14 +91,13 @@ export default async function AkramShakeUpsellPage() {
       locale,
     );
 
+  const ryanContent = withRyanCampaignName(localizedContent);
+
   return (
     <CampaignPage
-      campaign={
-        campaign
-      }
-      content={
-        localizedContent
-      }
+      campaign={{ ...campaign, title: ryanContent.title, donationOptions: campaign.donationOptions.filter(option => option.amountUsd >= 2500) }}
+      content={ryanContent}
+      showDonationTimes={false}
       locale={
         locale
       }

@@ -74,7 +74,9 @@ export function CampaignPage({
   locale,
   currency,
   exchangeRate,
+  showDonationTimes = true,
 }: {
+  showDonationTimes?: boolean;
   campaign: Campaign;
 
   content:
@@ -518,6 +520,7 @@ export function CampaignPage({
             />
 
             <RecentDonations
+              showDonationTimes={showDonationTimes}
               monthlySupporterCount={campaign.supporterProgress?.count}
               donations={
                 campaign
@@ -552,6 +555,7 @@ export function CampaignPage({
             "
           >
             <RecentDonations
+              showDonationTimes={showDonationTimes}
               monthlySupporterCount={campaign.supporterProgress?.count}
               donations={
                 campaign

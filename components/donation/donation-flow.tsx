@@ -1,7 +1,7 @@
 "use client";
 
 import { metaCheckoutFetch } from "@/lib/meta/client";
-import { areDonorNamesOptional, isMonthlyOnlyDonationPage } from "@/lib/donation-page-policy";
+import { areDonorNamesOptional, getDonationPageMinimumUsdCents, isMonthlyOnlyDonationPage } from "@/lib/donation-page-policy";
 import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
 import { beginWalletTiming, currentWalletTiming, recordWalletTiming } from "@/lib/stripe/wallet-diagnostics";
 import { WalletDiagnostics } from "./wallet-diagnostics";
@@ -112,9 +112,7 @@ import type {
 
 
 
-const MIN_CUSTOM_DONATION_USD_CENTS =
 
-  1000;
 
 
 
@@ -815,7 +813,7 @@ export function DonationFlow({
 
     convertUsdToCurrencyMinor(
 
-      MIN_CUSTOM_DONATION_USD_CENTS,
+      getDonationPageMinimumUsdCents(pathname),
 
       exchangeRate,
 
@@ -863,7 +861,7 @@ export function DonationFlow({
 
     (
 
-      !isCustomAmount ||
+      (!isAkramShakeUpsellPage && !isCustomAmount) ||
 
       amount >=
 
@@ -5862,7 +5860,7 @@ function resetCheckoutSession() {
 
             value={
 
-              customAmount
+              isAkramShakeUpsellPage && selectedPreset !== null ? String(amount / 100) : customAmount
 
             }
 

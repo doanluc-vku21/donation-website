@@ -43,13 +43,13 @@ export async function POST(request: Request) {
 
       const product = typeof item.price.product === "string" ? item.price.product : item.price.product.id;
       context = { sessionId, productId: product, currency, frequency: session.mode === "subscription" ? "monthly" : "one_time",
-        coverFee: Number(metadata.charged_fee_amount_cents) > 0, exchangeRate: await getUsdToCurrencyRate(currency) };
+        campaignPath: metadata.campaign_path, coverFee: Number(metadata.charged_fee_amount_cents) > 0, exchangeRate: await getUsdToCurrencyRate(currency) };
     }
     // Signed immutable fields were verified at creation, including the secret
     // hash and FX quote. The client cannot replace currency, product or fees.
     const { currency, coverFee, exchangeRate, productId, frequency } = context;
     const amounts = getDonationAmounts(amountCents, coverFee, exchangeRate);
-    if (amountCents < convertUsdToCurrencyMinor(2_000, exchangeRate) || amounts.totalAmountCents > 99_999_999) {
+    if (amountCents < convertUsdToCurrencyMinor(context.campaignPath === "/akram-shake-2" ? 2500 : 2000, exchangeRate) || amounts.totalAmountCents > 99_999_999) {
       return NextResponse.json({ error: "Invalid custom donation amount." }, { status: 400 });
     }
     const updated = await stripe.checkout.sessions.update(sessionId, {

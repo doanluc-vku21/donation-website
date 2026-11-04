@@ -1,3 +1,5 @@
+import { getDonationPageMinimumUsdCents } from "@/lib/donation-page-policy";
+import { convertUsdToCurrencyMinor as pageMinimumMinor } from "@/lib/money";
 import {
   NextResponse,
 } from "next/server";
@@ -367,6 +369,10 @@ export async function POST(
       );
     }
 
+    if (campaignPath === "/akram-shake-2" && amountCents < pageMinimumMinor(getDonationPageMinimumUsdCents(campaignPath), exchangeRate)) {
+      return NextResponse.json({ error: "Minimum donation is $25 or its equivalent in the selected currency." }, { status: 400 });
+    }
+
     const siteUrl =
       process.env
         .NEXT_PUBLIC_SITE_URL ??
@@ -565,7 +571,7 @@ export async function POST(
       {
         updateContext: session.line_items?.data[0]?.price?.product
           ? signWalletUpdateContext({
-              sessionId: session.id, currency: siteCurrency, frequency, coverFee, exchangeRate,
+              sessionId: session.id, currency: siteCurrency, frequency, coverFee, exchangeRate, campaignPath,
               productId: typeof session.line_items.data[0].price.product === "string"
                 ? session.line_items.data[0].price.product : session.line_items.data[0].price.product.id,
             }, session.client_secret, session.expires_at * 1000)

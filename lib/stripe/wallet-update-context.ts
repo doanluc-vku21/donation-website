@@ -3,7 +3,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { isCurrency, type Currency } from "@/lib/currency";
 
 export type WalletUpdateContext = {
-  sessionId: string; productId: string; currency: Currency;
+  sessionId: string; productId: string; currency: Currency; campaignPath?: string;
   frequency: "monthly" | "one_time"; coverFee: boolean; exchangeRate: number;
 };
 type SignedContext = WalletUpdateContext & { secretHash: string; expiresAt: number };
@@ -39,6 +39,7 @@ export function verifyWalletUpdateContext(token: unknown, sessionId: string, cli
         !/^[a-f0-9]{64}$/.test(data.secretHash) ||
         !timingSafeEqual(Buffer.from(data.secretHash, "hex"), Buffer.from(hash(clientSecret), "hex"))) return null;
     return { sessionId: data.sessionId, productId: data.productId, currency: data.currency,
-      frequency: data.frequency, coverFee: data.coverFee, exchangeRate: data.exchangeRate };
+      frequency: data.frequency, coverFee: data.coverFee, exchangeRate: data.exchangeRate,
+      campaignPath: typeof data.campaignPath === "string" ? data.campaignPath : undefined };
   } catch { return null; }
 }

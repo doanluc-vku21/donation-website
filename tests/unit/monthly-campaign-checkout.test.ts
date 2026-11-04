@@ -36,6 +36,16 @@ function request(page: (typeof pages)[number], changes: Record<string, unknown> 
 }
 
 describe.each([["card", cardCheckout], ["wallet", walletCheckout]] as const)("monthly campaign %s checkout", (_name, checkout) => {
+  it.each(["monthly", "one_time"])("enforces the Ryan minimum for %s without changing other entry pages", async (frequency) => {
+    const page = { campaignSlug: "akram-shake", campaignPath: "/akram-shake-2" };
+    for (const selection of [{ currency: "USD", amountCents: 2499 }, { currency: "GBP", amountCents: 1999 }]) {
+      expect((await checkout(request(page, { ...selection, frequency }))).status).toBe(400);
+      expect(mocks.create).not.toHaveBeenCalled();
+    }
+    expect((await checkout(request(page, { currency: "GBP", amountCents: 2000, frequency }))).status).toBe(200);
+    expect((await checkout(request({ ...page, campaignPath: "/akram-shake" }, { amountCents: 1000, frequency }))).status).toBe(200);
+  });
+
   it.each(pages)("rejects one-time gifts for $campaignPath before creating a Stripe Session", async (page) => {
     const result = await checkout(request(page, { frequency: "one_time" }));
     expect(result.status).toBe(400);
