@@ -2,7 +2,7 @@ import type { SanityCampaign } from "@/sanity/types/campaign";
 
 // Apply only to the Ryan entry page, leaving the shared CMS document intact.
 const rename = (text: string): string => text.replace(/\bakram\b/gi, "Ryan").replace(/أكرم/g, "رايان");
-const optional = (text: string | undefined): string | undefined => text === undefined ? undefined : rename(text);
+const optional = (text: string | null | undefined): string | undefined => typeof text === "string" ? rename(text) : undefined;
 
 export function withRyanCampaignName(content: SanityCampaign): SanityCampaign {
   return {
