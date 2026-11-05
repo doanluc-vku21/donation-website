@@ -148,6 +148,12 @@ export function MobileCampaignHero({
     content.organizationName ||
     campaign.organizationName;
 
+  const verificationBadge = showOrganizationVerification ? (
+    <span className="inline-flex shrink-0 items-center justify-center text-[#5aa2ff]">
+      <BadgeCheck aria-hidden="true" className="size-[16px] fill-[#2f7df4] text-white" />
+    </span>
+  ) : null;
+
   return (
     <div
       dir="ltr"
@@ -298,13 +304,15 @@ export function MobileCampaignHero({
             </span>
 
             <span className={showOrganizationCharityStatus ? "min-w-0 py-1" : "min-w-0"}>
-              <span
-                dir="ltr"
-                className={showOrganizationCharityStatus
-                  ? "block whitespace-normal break-words text-[12px] font-semibold leading-4 tracking-[-0.01em] text-white"
-                  : "block min-w-0 max-w-[108px] truncate text-[12px] font-semibold leading-none tracking-[-0.01em] text-white"}
-              >
-                {organizationName}
+              <span dir="ltr" className={showOrganizationCharityStatus ? "flex items-center gap-1.5" : "block"}>
+                <span
+                  className={showOrganizationCharityStatus
+                    ? "block whitespace-normal break-words text-[12px] font-semibold leading-4 tracking-[-0.01em] text-white"
+                    : "block min-w-0 max-w-[108px] truncate text-[12px] font-semibold leading-none tracking-[-0.01em] text-white"}
+                >
+                  {organizationName}
+                </span>
+                {showOrganizationCharityStatus && verificationBadge}
               </span>
               {showOrganizationCharityStatus && (
                 <span dir={textDirection} className="mt-1 block text-[10px] font-normal leading-[1.4] text-white/85">
@@ -313,24 +321,7 @@ export function MobileCampaignHero({
               )}
             </span>
 
-            {showOrganizationVerification && <span
-              className="
-                inline-flex
-                shrink-0
-                items-center
-                justify-center
-                text-[#5aa2ff]
-              "
-            >
-              <BadgeCheck
-                aria-hidden="true"
-                className="
-                  size-[16px]
-                  fill-[#2f7df4]
-                  text-white
-                "
-              />
-            </span>}
+            {!showOrganizationCharityStatus && verificationBadge}
           </div>
         </div>
 
