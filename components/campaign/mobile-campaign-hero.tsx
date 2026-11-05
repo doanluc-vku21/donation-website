@@ -42,6 +42,8 @@ import {
 } from "@/lib/money";
 
 type MobileCampaignHeroProps = {
+  showOrganizationCharityStatus?: boolean;
+  showOrganizationVerification?: boolean;
   campaign: Campaign;
   content: SanityCampaign;
   locale: Locale;
@@ -55,6 +57,8 @@ export function MobileCampaignHero({
   locale,
   currency,
   exchangeRate,
+  showOrganizationCharityStatus = false,
+  showOrganizationVerification = true,
 }: MobileCampaignHeroProps) {
   const t =
     getUiTranslations(
@@ -216,13 +220,9 @@ export function MobileCampaignHero({
         />
 
         <div
-          className="
-            absolute
-            left-4
-            right-[168px]
-            top-4
-            z-10
-          "
+          className={showOrganizationCharityStatus
+            ? "absolute left-4 right-4 top-16 z-10 sm:right-[248px] sm:top-4"
+            : "absolute left-4 right-[168px] top-4 z-10"}
         >
           <div
             dir="ltr"
@@ -297,25 +297,23 @@ export function MobileCampaignHero({
               )}
             </span>
 
-            <span
-              dir="ltr"
-              className="
-                min-w-0
-                max-w-[108px]
-                truncate
-                text-[12px]
-                font-semibold
-                leading-none
-                tracking-[-0.01em]
-                text-white
-              "
-            >
-              {
-                organizationName
-              }
+            <span className={showOrganizationCharityStatus ? "min-w-0 py-1" : "min-w-0"}>
+              <span
+                dir="ltr"
+                className={showOrganizationCharityStatus
+                  ? "block whitespace-normal break-words text-[12px] font-semibold leading-4 tracking-[-0.01em] text-white"
+                  : "block min-w-0 max-w-[108px] truncate text-[12px] font-semibold leading-none tracking-[-0.01em] text-white"}
+              >
+                {organizationName}
+              </span>
+              {showOrganizationCharityStatus && (
+                <span dir={textDirection} className="mt-1 block text-[10px] font-normal leading-[1.4] text-white/85">
+                  {t.organizationCharityStatus}
+                </span>
+              )}
             </span>
 
-            <span
+            {showOrganizationVerification && <span
               className="
                 inline-flex
                 shrink-0
@@ -332,7 +330,7 @@ export function MobileCampaignHero({
                   text-white
                 "
               />
-            </span>
+            </span>}
           </div>
         </div>
 

@@ -3,6 +3,7 @@ import type {
 } from "@/lib/i18n";
 
 export type UiTranslations = {
+  organizationCharityStatus: string;
   organizedBy: string;
 
   raised: string;
@@ -137,6 +138,7 @@ export type UiTranslations = {
 };
 
 const en: UiTranslations = {
+  organizationCharityStatus: "IRS-Recognized 501(c)(3) Charity",
   organizedBy:
     "Organized by",
 
@@ -385,6 +387,7 @@ const en: UiTranslations = {
 const fr: UiTranslations = {
   ...en,
 
+  organizationCharityStatus: "Organisme caritatif 501(c)(3) reconnu par l’IRS",
   organizedBy:
     "Organisé par",
 
@@ -627,6 +630,7 @@ const fr: UiTranslations = {
 const de: UiTranslations = {
   ...en,
 
+  organizationCharityStatus: "Vom IRS anerkannte 501(c)(3)-Wohltätigkeitsorganisation",
   organizedBy:
     "Organisiert von",
 
@@ -869,6 +873,7 @@ const de: UiTranslations = {
 const es: UiTranslations = {
   ...en,
 
+  organizationCharityStatus: "Organización benéfica 501(c)(3) reconocida por el IRS",
   organizedBy:
     "Organizado por",
 
@@ -1111,6 +1116,7 @@ const es: UiTranslations = {
 const ar: UiTranslations = {
   ...en,
 
+  organizationCharityStatus: "مؤسسة خيرية معترف بها من مصلحة الضرائب الأمريكية بموجب 501(c)(3)",
   organizedBy:
     "تنظيم",
 

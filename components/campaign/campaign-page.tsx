@@ -75,7 +75,11 @@ export function CampaignPage({
   currency,
   exchangeRate,
   showDonationTimes = true,
+  showOrganizationCharityStatus = false,
+  showOrganizationVerification = true,
 }: {
+  showOrganizationCharityStatus?: boolean;
+  showOrganizationVerification?: boolean;
   showDonationTimes?: boolean;
   campaign: Campaign;
 
@@ -211,6 +215,8 @@ export function CampaignPage({
         ====================================================== */}
 
         <MobileCampaignHero
+          showOrganizationCharityStatus={showOrganizationCharityStatus}
+          showOrganizationVerification={showOrganizationVerification}
           campaign={
             campaignWithGoal
           }
@@ -339,6 +345,7 @@ export function CampaignPage({
                 />
               )}
 
+              <div className="min-w-0">
               <p
   dir={
     locale === "ar"
@@ -363,6 +370,12 @@ export function CampaignPage({
                     campaign.organizationName}
                 </strong>
               </p>
+              {showOrganizationCharityStatus && (
+                <p dir={locale === "ar" ? "rtl" : "ltr"} className="mt-1 text-xs leading-5 text-[#687386]">
+                  {t.organizationCharityStatus}
+                </p>
+              )}
+              </div>
 
               <div
                 className="

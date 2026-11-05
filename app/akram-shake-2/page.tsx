@@ -96,8 +96,10 @@ export default async function AkramShakeUpsellPage() {
   return (
     <CampaignPage
       campaign={{ ...campaign, title: ryanContent.title, donationOptions: campaign.donationOptions.filter(option => option.amountUsd >= 2500) }}
-      content={ryanContent}
+      content={{ ...ryanContent, organizationName: "MEAL SUPPORT INC" }}
       showDonationTimes={false}
+      showOrganizationCharityStatus
+      showOrganizationVerification
       locale={
         locale
       }
