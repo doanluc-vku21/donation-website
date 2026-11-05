@@ -150,23 +150,25 @@ export function MobileCampaignHero({
 
   const verificationBadge = showOrganizationVerification ? (
     <span className="inline-flex shrink-0 items-center justify-center text-[#5aa2ff]">
-      <BadgeCheck aria-hidden="true" className="size-[16px] fill-[#2f7df4] text-white" />
+      <BadgeCheck aria-hidden="true" className={showOrganizationCharityStatus
+        ? "size-3 fill-[#2f7df4] text-white min-[380px]:size-3.5 sm:size-4"
+        : "size-4 fill-[#2f7df4] text-white"} />
     </span>
   ) : null;
 
   const organizationBadge = (
     <div
       className={showOrganizationCharityStatus
-        ? "relative z-10"
+        ? "absolute left-3 right-[148px] top-4 z-10 min-[380px]:left-4 sm:right-[248px]"
         : "absolute left-4 right-[168px] top-4 z-10"}
     >
       <div
         dir="ltr"
-        className="
+        className={`
           inline-flex
           max-w-full
           items-center
-          gap-2
+          ${showOrganizationCharityStatus ? "gap-1 sm:gap-2" : "gap-2"}
           rounded-full
           border
           border-white/15
@@ -177,12 +179,12 @@ export function MobileCampaignHero({
           text-white
           shadow-[0_4px_18px_rgba(0,0,0,.18)]
           backdrop-blur-md
-        "
+        `}
       >
         <span
-          className="
+          className={`
             grid
-            size-[34px]
+            ${showOrganizationCharityStatus ? "size-6 min-[380px]:size-7 sm:size-[34px]" : "size-[34px]"}
             shrink-0
             place-items-center
             overflow-hidden
@@ -191,7 +193,7 @@ export function MobileCampaignHero({
             border-white/70
             bg-white
             shadow-sm
-          "
+          `}
         >
           {logoUrl ? (
             <Image
@@ -233,11 +235,11 @@ export function MobileCampaignHero({
           )}
         </span>
 
-        <span className={showOrganizationCharityStatus ? "min-w-0 py-1" : "min-w-0"}>
-          <span dir="ltr" className={showOrganizationCharityStatus ? "flex items-center gap-1.5" : "block"}>
+        <span className={showOrganizationCharityStatus ? "min-w-0 sm:py-1" : "min-w-0"}>
+          <span dir="ltr" className={showOrganizationCharityStatus ? "flex items-center gap-1 sm:gap-1.5" : "block"}>
             <span
               className={showOrganizationCharityStatus
-                ? "block whitespace-normal break-words text-[12px] font-semibold leading-4 tracking-[-0.01em] text-white"
+                ? "block whitespace-normal break-words text-[10px] font-semibold leading-[14px] tracking-[-0.01em] text-white min-[380px]:text-[11px] sm:text-[12px] sm:leading-4"
                 : "block min-w-0 max-w-[108px] truncate text-[12px] font-semibold leading-none tracking-[-0.01em] text-white"}
             >
               {organizationName}
@@ -245,7 +247,7 @@ export function MobileCampaignHero({
             {showOrganizationCharityStatus && verificationBadge}
           </span>
           {showOrganizationCharityStatus && (
-            <span dir={textDirection} className="mt-1 block text-[10px] font-normal leading-[1.4] text-white/85">
+            <span dir={textDirection} className="mt-0.5 block text-[8px] font-normal leading-[10px] text-white/85 sm:mt-1 sm:text-[10px] sm:leading-[14px]">
               {t.organizationCharityStatus}
             </span>
           )}
@@ -266,12 +268,6 @@ export function MobileCampaignHero({
         lg:hidden
       "
     >
-      {showOrganizationCharityStatus && (
-        <div className="bg-[#1e281d] px-4 pb-3 pt-16 sm:pr-[248px] sm:pt-4">
-          {organizationBadge}
-        </div>
-      )}
-
       <section
         className="
           relative
@@ -333,7 +329,7 @@ export function MobileCampaignHero({
           "
         />
 
-        {!showOrganizationCharityStatus && organizationBadge}
+        {organizationBadge}
 
         <div
           className="
