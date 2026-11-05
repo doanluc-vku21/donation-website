@@ -154,6 +154,108 @@ export function MobileCampaignHero({
     </span>
   ) : null;
 
+  const organizationBadge = (
+    <div
+      className={showOrganizationCharityStatus
+        ? "relative z-10"
+        : "absolute left-4 right-[168px] top-4 z-10"}
+    >
+      <div
+        dir="ltr"
+        className="
+          inline-flex
+          max-w-full
+          items-center
+          gap-2
+          rounded-full
+          border
+          border-white/15
+          bg-black/30
+          py-1
+          pl-1
+          pr-2.5
+          text-white
+          shadow-[0_4px_18px_rgba(0,0,0,.18)]
+          backdrop-blur-md
+        "
+      >
+        <span
+          className="
+            grid
+            size-[34px]
+            shrink-0
+            place-items-center
+            overflow-hidden
+            rounded-full
+            border
+            border-white/70
+            bg-white
+            shadow-sm
+          "
+        >
+          {logoUrl ? (
+            <Image
+              src={
+                logoUrl
+              }
+              alt={
+                organizationName
+              }
+              width={
+                logoWidth
+              }
+              sizes="34px"
+              height={
+                logoHeight
+              }
+              className="
+                h-full
+                w-full
+                object-contain
+                p-[2px]
+              "
+            />
+          ) : (
+            <Image
+              src="/sample-logo.svg"
+              alt={
+                organizationName
+              }
+              width={40}
+              height={40}
+              className="
+                h-full
+                w-full
+                object-contain
+                p-[2px]
+              "
+            />
+          )}
+        </span>
+
+        <span className={showOrganizationCharityStatus ? "min-w-0 py-1" : "min-w-0"}>
+          <span dir="ltr" className={showOrganizationCharityStatus ? "flex items-center gap-1.5" : "block"}>
+            <span
+              className={showOrganizationCharityStatus
+                ? "block whitespace-normal break-words text-[12px] font-semibold leading-4 tracking-[-0.01em] text-white"
+                : "block min-w-0 max-w-[108px] truncate text-[12px] font-semibold leading-none tracking-[-0.01em] text-white"}
+            >
+              {organizationName}
+            </span>
+            {showOrganizationCharityStatus && verificationBadge}
+          </span>
+          {showOrganizationCharityStatus && (
+            <span dir={textDirection} className="mt-1 block text-[10px] font-normal leading-[1.4] text-white/85">
+              {t.organizationCharityStatus}
+            </span>
+          )}
+        </span>
+
+        {!showOrganizationCharityStatus && verificationBadge}
+      </div>
+    </div>
+  );
+
   return (
     <div
       dir="ltr"
@@ -164,6 +266,12 @@ export function MobileCampaignHero({
         lg:hidden
       "
     >
+      {showOrganizationCharityStatus && (
+        <div className="bg-[#1e281d] px-4 pb-3 pt-16 sm:pr-[248px] sm:pt-4">
+          {organizationBadge}
+        </div>
+      )}
+
       <section
         className="
           relative
@@ -225,105 +333,7 @@ export function MobileCampaignHero({
           "
         />
 
-        <div
-          className={showOrganizationCharityStatus
-            ? "absolute left-4 right-4 top-16 z-10 sm:right-[248px] sm:top-4"
-            : "absolute left-4 right-[168px] top-4 z-10"}
-        >
-          <div
-            dir="ltr"
-            className="
-              inline-flex
-              max-w-full
-              items-center
-              gap-2
-              rounded-full
-              border
-              border-white/15
-              bg-black/30
-              py-1
-              pl-1
-              pr-2.5
-              text-white
-              shadow-[0_4px_18px_rgba(0,0,0,.18)]
-              backdrop-blur-md
-            "
-          >
-            <span
-              className="
-                grid
-                size-[34px]
-                shrink-0
-                place-items-center
-                overflow-hidden
-                rounded-full
-                border
-                border-white/70
-                bg-white
-                shadow-sm
-              "
-            >
-              {logoUrl ? (
-                <Image
-                  src={
-                    logoUrl
-                  }
-                  alt={
-                    organizationName
-                  }
-                  width={
-                    logoWidth
-                  }
-                  sizes="34px"
-                  height={
-                    logoHeight
-                  }
-                  className="
-                    h-full
-                    w-full
-                    object-contain
-                    p-[2px]
-                  "
-                />
-              ) : (
-                <Image
-                  src="/sample-logo.svg"
-                  alt={
-                    organizationName
-                  }
-                  width={40}
-                  height={40}
-                  className="
-                    h-full
-                    w-full
-                    object-contain
-                    p-[2px]
-                  "
-                />
-              )}
-            </span>
-
-            <span className={showOrganizationCharityStatus ? "min-w-0 py-1" : "min-w-0"}>
-              <span dir="ltr" className={showOrganizationCharityStatus ? "flex items-center gap-1.5" : "block"}>
-                <span
-                  className={showOrganizationCharityStatus
-                    ? "block whitespace-normal break-words text-[12px] font-semibold leading-4 tracking-[-0.01em] text-white"
-                    : "block min-w-0 max-w-[108px] truncate text-[12px] font-semibold leading-none tracking-[-0.01em] text-white"}
-                >
-                  {organizationName}
-                </span>
-                {showOrganizationCharityStatus && verificationBadge}
-              </span>
-              {showOrganizationCharityStatus && (
-                <span dir={textDirection} className="mt-1 block text-[10px] font-normal leading-[1.4] text-white/85">
-                  {t.organizationCharityStatus}
-                </span>
-              )}
-            </span>
-
-            {!showOrganizationCharityStatus && verificationBadge}
-          </div>
-        </div>
+        {!showOrganizationCharityStatus && organizationBadge}
 
         <div
           className="
