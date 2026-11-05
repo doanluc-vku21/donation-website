@@ -159,7 +159,7 @@ export function MobileCampaignHero({
   const organizationBadge = (
     <div
       className={showOrganizationCharityStatus
-        ? "absolute left-3 right-[148px] top-4 z-10 min-[380px]:left-4 sm:right-[248px]"
+        ? "absolute left-3 right-[156px] top-4 z-10 min-[380px]:left-4 min-[380px]:right-[148px] sm:right-[248px]"
         : "absolute left-4 right-[168px] top-4 z-10"}
     >
       <div
@@ -239,7 +239,7 @@ export function MobileCampaignHero({
           <span dir="ltr" className={showOrganizationCharityStatus ? "flex items-center gap-1 sm:gap-1.5" : "block"}>
             <span
               className={showOrganizationCharityStatus
-                ? "block whitespace-normal break-words text-[10px] font-semibold leading-[14px] tracking-[-0.01em] text-white min-[380px]:text-[11px] sm:text-[12px] sm:leading-4"
+                ? "block whitespace-normal break-words text-[9px] font-semibold leading-[14px] tracking-[-0.01em] text-white min-[380px]:text-[11px] sm:text-[12px] sm:leading-4"
                 : "block min-w-0 max-w-[108px] truncate text-[12px] font-semibold leading-none tracking-[-0.01em] text-white"}
             >
               {organizationName}
