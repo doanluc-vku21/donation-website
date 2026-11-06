@@ -17,7 +17,9 @@ import GazaFoodPage from "@/app/gaza-food/page";
 import GazaFoodDonatePage from "@/app/gaza-food/donate/page";
 import AkramShakeMonthlyPage from "@/app/akram-shake-3/page";
 import AkramShakeUpsellPage from "@/app/akram-shake-2/page";
+import MangoSellerPage, { generateMetadata as generateMangoMetadata } from "@/app/help-mango-seller/page";
 import AkramShakeDirectPage, { generateMetadata as generateDirectMetadata } from "@/app/akram-shake-1/page";
+import { MANGO_SELLER_BASE_RAISED_USD, MANGO_SELLER_SEED_DONATIONS } from "@/lib/mango-seller-campaign";
 
 const original: SanityCampaign = {
   _id: "shared", slug: "shared", title: "Existing campaign headline", titleI18n: { en: "Existing campaign headline" },
@@ -35,6 +37,51 @@ beforeEach(() => {
 });
 
 describe("monthly campaign entry routes", () => {
+  it("loads the mango seller's own accounting and CMS document while keeping the reference page's options", async () => {
+    mocks.content.mockResolvedValue({ ...original, _id: "mango-content", slug: "help-mango-seller", story: [] });
+    const result = await MangoSellerPage();
+    expect(mocks.campaign).toHaveBeenCalledWith("help-mango-seller");
+    expect(mocks.content).toHaveBeenCalledWith(expect.any(String), { slug: "help-mango-seller" }, { cache: "no-store" });
+    expect(result.props.campaign.id).toBe("campaign-help-mango-seller");
+    expect(result.props.campaign.slug).toBe("help-mango-seller");
+    expect(result.props.content.title).toBe("❤️ He Had So Little, Yet He Chose to Help Us. Now It’s Our Turn to Help Him.");
+    expect(result.props.content.summary).toContain("$2,500 in monthly support");
+    expect(result.props.expandStory).toBe(true);
+    expect(result.props.showSummary).toBe(false);
+    expect(result.props.showOneTimeLabels).toBe(true);
+    expect(MANGO_SELLER_BASE_RAISED_USD).toBe(102_500);
+    expect(result.props.campaign.raisedAmountUsd).toBe(sampleCampaign.raisedAmountUsd + MANGO_SELLER_BASE_RAISED_USD);
+    expect(result.props.campaign.donorCount).toBe(sampleCampaign.donorCount + MANGO_SELLER_SEED_DONATIONS.length);
+    expect(result.props.campaign.recentDonations).toEqual([...sampleCampaign.recentDonations, ...MANGO_SELLER_SEED_DONATIONS]);
+    expect(result.props.campaign.donationOptions).toEqual(sampleCampaign.donationOptions.filter(option => option.amountUsd >= 2500));
+    expect(mocks.supporters).not.toHaveBeenCalled();
+  });
+
+  it("gives the new page its own headline, description and canonical URL in link previews", async () => {
+    const metadata = await generateMangoMetadata();
+    expect(String(metadata.alternates?.canonical)).toContain("/help-mango-seller");
+    expect(metadata.description).toContain("$2,500 in monthly support");
+    expect(metadata.openGraph).toMatchObject({ title: metadata.title, description: metadata.description });
+  });
+
+  it("does not fall back to the old accounting when the new campaign is absent", async () => {
+    mocks.campaign.mockResolvedValue(null);
+    await expect(MangoSellerPage()).rejects.toThrow("not-found");
+    expect(mocks.content).not.toHaveBeenCalled();
+  });
+
+  it("serves the supplied portrait and approved copy without requiring CMS write access", async () => {
+    mocks.campaign.mockResolvedValue({ ...sampleCampaign, slug: "help-mango-seller" });
+    mocks.content.mockResolvedValue(null);
+    const result = await MangoSellerPage();
+    expect(result.props.content.heroImage?.asset?.url).toBe("/mango-seller.jpg");
+    expect(result.props.content.story?.[0].children[0].text).toMatch(/^Despite living with a disability/);
+    expect(result.props.content.story?.[0].children[0].text).not.toContain("Akram");
+    expect(mocks.content).toHaveBeenCalledWith(expect.stringContaining("footerAbout"), { slug: "akram-shake" }, { cache: "no-store" });
+    const metadata = await generateMangoMetadata();
+    expect(metadata.openGraph).toMatchObject({ images: [{ url: "https://donate.mealsupport.org/mango-seller.jpg" }] });
+  });
+
   it("updates only the direct page headline and summary while retaining story, funds, campaign totals and donation options", async () => {
     const result = await AkramShakeDirectPage();
     expect(result.props.content.title).toBe("❤️ Help More People Like Akram Build a Better Future");

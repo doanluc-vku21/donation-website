@@ -1,4 +1,4 @@
-import { getDonationPageMinimumUsdCents } from "@/lib/donation-page-policy";
+import { getDonationPageMinimumUsdCents, isStandardUpsellDonationPage } from "@/lib/donation-page-policy";
 import { convertUsdToCurrencyMinor as pageMinimumMinor } from "@/lib/money";
 import {
   NextResponse,
@@ -369,7 +369,7 @@ export async function POST(
       );
     }
 
-    if (campaignPath === "/akram-shake-2" && amountCents < pageMinimumMinor(getDonationPageMinimumUsdCents(campaignPath), exchangeRate)) {
+    if (isStandardUpsellDonationPage(campaignPath) && amountCents < pageMinimumMinor(getDonationPageMinimumUsdCents(campaignPath), exchangeRate)) {
       return NextResponse.json({ error: "Minimum donation is $25 or its equivalent in the selected currency." }, { status: 400 });
     }
 

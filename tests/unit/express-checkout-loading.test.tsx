@@ -59,8 +59,8 @@ function response(id: string) {
 }
 
 describe("Apple Pay session loading", () => {
-  it("mirrors Ryan presets in the input and rejects custom gifts below $25", async () => {
-    navigation.pathname = "/akram-shake-2";
+  it.each(["/akram-shake-2", "/help-mango-seller"])("mirrors presets and rejects custom gifts below $25 on %s", async pathname => {
+    navigation.pathname = pathname;
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response("cs_ryan")));
     mountModal(); openModal(); await advance(1);
     const input = screen.getByPlaceholderText("Enter amount");

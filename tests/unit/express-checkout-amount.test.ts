@@ -33,12 +33,15 @@ const signedContext = (expiresAt = Date.now() + 3600_000) => signWalletUpdateCon
 }, "unit_secret", expiresAt);
 
 describe("in-place wallet amount updates", () => {
-  it.each([false, true])("enforces the Ryan minimum during wallet updates (signed context: %s)", async (signed) => {
+  it.each([
+    [false, "/akram-shake-2"], [true, "/akram-shake-2"],
+    [false, "/help-mango-seller"], [true, "/help-mango-seller"],
+  ])("enforces the reference minimum during wallet updates (signed: %s, page: %s)", async (signed, campaignPath) => {
     const updateContext = signed ? signWalletUpdateContext({
       sessionId: "cs_unit_amount", productId: "prod_existing", currency: "USD", frequency: "monthly",
-      coverFee: false, exchangeRate: 1, campaignPath: "/akram-shake-2",
+      coverFee: false, exchangeRate: 1, campaignPath: String(campaignPath),
     }, "unit_secret", Date.now() + 3600_000) : undefined;
-    mocks.retrieve.mockResolvedValue({ ...session(), metadata: { ...session().metadata, campaign_path: "/akram-shake-2" } });
+    mocks.retrieve.mockResolvedValue({ ...session(), metadata: { ...session().metadata, campaign_path: campaignPath } });
     expect((await POST(request({ amountCents: 2499, updateContext }))).status).toBe(400);
     expect(mocks.update).not.toHaveBeenCalled();
     expect((await POST(request({ amountCents: 2500, updateContext }))).status).toBe(200);

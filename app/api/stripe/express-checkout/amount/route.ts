@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe/server";
 import { isCurrency } from "@/lib/currency";
+import { isStandardUpsellDonationPage } from "@/lib/donation-page-policy";
 import { getUsdToCurrencyRate } from "@/lib/exchange-rate";
 import { getDonationAmounts } from "@/lib/stripe/donation-amount";
 import { convertUsdToCurrencyMinor } from "@/lib/money";
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
     // hash and FX quote. The client cannot replace currency, product or fees.
     const { currency, coverFee, exchangeRate, productId, frequency } = context;
     const amounts = getDonationAmounts(amountCents, coverFee, exchangeRate);
-    if (amountCents < convertUsdToCurrencyMinor(context.campaignPath === "/akram-shake-2" ? 2500 : 2000, exchangeRate) || amounts.totalAmountCents > 99_999_999) {
+    if (amountCents < convertUsdToCurrencyMinor(isStandardUpsellDonationPage(context.campaignPath) ? 2500 : 2000, exchangeRate) || amounts.totalAmountCents > 99_999_999) {
       return NextResponse.json({ error: "Invalid custom donation amount." }, { status: 400 });
     }
     const updated = await stripe.checkout.sessions.update(sessionId, {

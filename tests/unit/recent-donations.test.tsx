@@ -12,6 +12,18 @@ const supporters: RecentDonation[] = Array.from({ length: 20 }, (_, index) => ({
 const props = { donations: supporters, locale: "en" as const, currency: "USD" as const, exchangeRate: 1 };
 
 describe("community supporter list", () => {
+  it.each(locales)("labels actual one-time and monthly gifts in the preview and dialog in %s when enabled", locale => {
+    const t = getUiTranslations(locale);
+    render(<RecentDonations {...props} locale={locale} donations={sampleCampaign.recentDonations} previewLimit={1} showOneTimeLabels />);
+    const previewRow = screen.getByRole("listitem");
+    expect(within(previewRow).getByText(t.oneTime)).toBeVisible();
+    expect(within(previewRow).queryByText(t.monthly)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: t.seeAllContributions }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getAllByText(t.oneTime)).toHaveLength(2);
+    expect(within(dialog).getAllByText(t.monthly)).toHaveLength(1);
+  });
+
   it("hides times in both the preview and all-contributions dialog when requested", () => {
     render(<RecentDonations {...props} showDonationTimes={false} />);
     expect(screen.queryByText("1 hour ago")).not.toBeInTheDocument();
@@ -71,5 +83,6 @@ describe("community supporter list", () => {
     expect(screen.getByRole("heading", { name: "Contributions" })).toBeVisible();
     expect(screen.getByText("3 Contributions")).toBeVisible();
     expect(screen.getAllByRole("listitem")).toHaveLength(3);
+    expect(screen.queryByText("One time")).not.toBeInTheDocument();
   });
 });

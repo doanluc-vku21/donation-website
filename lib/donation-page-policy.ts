@@ -1,7 +1,12 @@
 import type { DonationFrequency } from "@/lib/sample-data";
 
 export function getDonationPageMinimumUsdCents(pathname: string | null | undefined): number {
-  return pathname === "/akram-shake-2" ? 2500 : 1000;
+  return isStandardUpsellDonationPage(pathname) ? 2500 : 1000;
+}
+
+// The new beneficiary keeps the existing /akram-shake-2 checkout behavior.
+export function isStandardUpsellDonationPage(pathname: string | null | undefined): boolean {
+  return pathname === "/akram-shake-2" || pathname === "/help-mango-seller";
 }
 
 // Keep this policy scoped to public entry pages; campaigns can share their data

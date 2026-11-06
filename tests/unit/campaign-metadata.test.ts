@@ -12,6 +12,13 @@ const original: SanityCampaign = {
 afterEach(() => { vi.unstubAllEnvs(); });
 
 describe("campaign link previews", () => {
+  it("resolves a supplied local campaign portrait against the public site URL", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://donate.mealsupport.org");
+    const metadata = getCampaignMetadata({ ...original, heroImage: { asset: { _id: "mango", url: "/mango-seller.jpg" } } }, "/help-mango-seller");
+    expect(metadata.openGraph).toMatchObject({ images: [{ url: "https://donate.mealsupport.org/mango-seller.jpg" }] });
+    expect(metadata.twitter).toMatchObject({ images: ["https://donate.mealsupport.org/mango-seller.jpg"] });
+  });
+
   it("uses the localized Akram copy and image for page title, Open Graph, and Twitter instead of the global child campaign", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://donate.mealsupport.org");
     const metadata = getCampaignMetadata(localizeAkramMonthlyCampaign(original, "en"), "/akram-shake-1");

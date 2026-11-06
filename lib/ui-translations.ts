@@ -35,6 +35,7 @@ export type UiTranslations = {
   highestAmount: string;
 
   monthly: string;
+  oneTime: string;
   monthlySupporter: string;
   monthlySupporters: string;
   seeAllMonthlySupporters: string;
@@ -198,6 +199,7 @@ const en: UiTranslations = {
 
   monthly:
     "Monthly",
+  oneTime: "One time",
   monthlySupporter: "Monthly Supporter",
   monthlySupporters: "Monthly Supporters",
   seeAllMonthlySupporters: "See all monthly supporters",
@@ -447,6 +449,7 @@ const fr: UiTranslations = {
 
   monthly:
     "Mensuel",
+  oneTime: "Ponctuel",
   monthlySupporter: "soutien mensuel",
   monthlySupporters: "soutiens mensuels",
   seeAllMonthlySupporters: "Voir tous les soutiens mensuels",
@@ -690,6 +693,7 @@ const de: UiTranslations = {
 
   monthly:
     "Monatlich",
+  oneTime: "Einmalig",
   monthlySupporter: "monatlicher Unterstützer",
   monthlySupporters: "monatliche Unterstützer",
   seeAllMonthlySupporters: "Alle monatlichen Unterstützer ansehen",
@@ -933,6 +937,7 @@ const es: UiTranslations = {
 
   monthly:
     "Mensual",
+  oneTime: "Única",
   monthlySupporter: "colaborador mensual",
   monthlySupporters: "colaboradores mensuales",
   seeAllMonthlySupporters: "Ver todos los colaboradores mensuales",
@@ -1176,6 +1181,7 @@ const ar: UiTranslations = {
 
   monthly:
     "شهري",
+  oneTime: "لمرة واحدة",
   monthlySupporter: "داعم شهري",
   monthlySupporters: "داعمون شهريون",
   seeAllMonthlySupporters: "عرض جميع الداعمين الشهريين",

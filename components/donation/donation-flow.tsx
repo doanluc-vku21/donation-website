@@ -1,7 +1,7 @@
 "use client";
 
 import { metaCheckoutFetch } from "@/lib/meta/client";
-import { areDonorNamesOptional, getDonationPageMinimumUsdCents, isMonthlyOnlyDonationPage } from "@/lib/donation-page-policy";
+import { areDonorNamesOptional, getDonationPageMinimumUsdCents, isMonthlyOnlyDonationPage, isStandardUpsellDonationPage } from "@/lib/donation-page-policy";
 import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
 import { beginWalletTiming, currentWalletTiming, recordWalletTiming } from "@/lib/stripe/wallet-diagnostics";
 import { WalletDiagnostics } from "./wallet-diagnostics";
@@ -299,10 +299,7 @@ export function DonationFlow({
 
 
   const isAkramShakeUpsellPage =
-
-    pathname ===
-
-      "/akram-shake-2";
+    isStandardUpsellDonationPage(pathname);
 
 
   const isOneTimeUpsellPage =

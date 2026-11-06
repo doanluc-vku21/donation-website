@@ -75,12 +75,18 @@ export function CampaignPage({
   currency,
   exchangeRate,
   showDonationTimes = true,
+  showOneTimeLabels = false,
   showOrganizationCharityStatus = false,
   showOrganizationVerification = true,
+  showSummary = false,
+  expandStory = false,
 }: {
+  showSummary?: boolean;
+  expandStory?: boolean;
   showOrganizationCharityStatus?: boolean;
   showOrganizationVerification?: boolean;
   showDonationTimes?: boolean;
+  showOneTimeLabels?: boolean;
   campaign: Campaign;
 
   content:
@@ -394,6 +400,12 @@ export function CampaignPage({
               </div>
             </div>
 
+            {showSummary && content.summary && (
+              <p dir={locale === "ar" ? "rtl" : "ltr"} className="mt-6 whitespace-pre-line text-[17px] leading-8 text-[var(--muted)]">
+                {content.summary}
+              </p>
+            )}
+
             {/* HERO */}
 
             <figure
@@ -455,19 +467,18 @@ export function CampaignPage({
               lg:hidden
             "
           >
-            <MobileStoryToggle
-              locale={locale}
-            >
-              <CampaignStory
-                locale={locale}
-                campaign={
-                  campaign
-                }
-                content={
-                  content
-                }
-              />
-            </MobileStoryToggle>
+            {showSummary && content.summary && (
+              <p dir={locale === "ar" ? "rtl" : "ltr"} className="mb-7 whitespace-pre-line text-[17px] leading-8 text-[var(--muted)]">
+                {content.summary}
+              </p>
+            )}
+            {expandStory ? (
+              <CampaignStory locale={locale} campaign={campaign} content={content} />
+            ) : (
+              <MobileStoryToggle locale={locale}>
+                <CampaignStory locale={locale} campaign={campaign} content={content} />
+              </MobileStoryToggle>
+            )}
           </div>
 
           {/* =================================================
@@ -534,6 +545,7 @@ export function CampaignPage({
 
             <RecentDonations
               showDonationTimes={showDonationTimes}
+              showOneTimeLabels={showOneTimeLabels}
               monthlySupporterCount={campaign.supporterProgress?.count}
               donations={
                 campaign
@@ -569,6 +581,7 @@ export function CampaignPage({
           >
             <RecentDonations
               showDonationTimes={showDonationTimes}
+              showOneTimeLabels={showOneTimeLabels}
               monthlySupporterCount={campaign.supporterProgress?.count}
               donations={
                 campaign

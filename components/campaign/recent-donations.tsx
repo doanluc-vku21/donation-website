@@ -35,6 +35,7 @@ import type {
 
 type RecentDonationsProps = {
   showDonationTimes?: boolean;
+  showOneTimeLabels?: boolean;
   donations:
     RecentDonation[];
 
@@ -78,6 +79,7 @@ export function RecentDonations({
   previewLimit = 4,
   monthlySupporterCount,
   showDonationTimes = true,
+  showOneTimeLabels = false,
 }: RecentDonationsProps) {
   const t =
     getUiTranslations(
@@ -332,6 +334,7 @@ export function RecentDonations({
               ) => (
                 <ContributionRow
                   showDonationTimes={showDonationTimes}
+                  showOneTimeLabels={showOneTimeLabels}
                   key={
                     donation.id
                   }
@@ -699,6 +702,7 @@ export function RecentDonations({
                   ) => (
                     <ContributionRow
                       showDonationTimes={showDonationTimes}
+                      showOneTimeLabels={showOneTimeLabels}
                       key={
                         donation.id
                       }
@@ -738,6 +742,7 @@ function ContributionRow({
   exchangeRate,
   modal = false,
   showDonationTimes = true,
+  showOneTimeLabels = false,
 }: {
   donation:
     RecentDonation;
@@ -753,6 +758,7 @@ function ContributionRow({
 
   modal?: boolean;
   showDonationTimes?: boolean;
+  showOneTimeLabels?: boolean;
 }) {
   const t =
     getUiTranslations(
@@ -861,8 +867,8 @@ function ContributionRow({
             }
           </p>
 
-          {donation.frequency ===
-            "monthly" && (
+          {(donation.frequency === "monthly" ||
+            (showOneTimeLabels && donation.frequency === "one_time")) && (
             <span
               className="
                 shrink-0
@@ -878,7 +884,7 @@ function ContributionRow({
               "
             >
               {
-                t.monthly
+                donation.frequency === "monthly" ? t.monthly : t.oneTime
               }
             </span>
           )}

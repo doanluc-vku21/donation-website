@@ -36,6 +36,20 @@ function request(page: (typeof pages)[number], changes: Record<string, unknown> 
 }
 
 describe.each([["card", cardCheckout], ["wallet", walletCheckout]] as const)("monthly campaign %s checkout", (_name, checkout) => {
+  it.each(["monthly", "one_time"])("keeps mango seller %s payments separate with the same amount and fee behavior", async frequency => {
+    const page = { campaignSlug: "help-mango-seller", campaignPath: "/help-mango-seller" };
+    expect((await checkout(request(page, { campaignId: "mango-id", frequency, amountCents: 1999, currency: "GBP" }))).status).toBe(400);
+    expect(mocks.create).not.toHaveBeenCalled();
+    const response = await checkout(request(page, { campaignId: "mango-id", frequency, amountCents: 3333, currency: "GBP", coverFee: true }));
+    expect(response.status).toBe(200);
+    const options = mocks.create.mock.calls[0][0];
+    expect(options.mode).toBe(frequency === "monthly" ? "subscription" : "payment");
+    expect(options.metadata).toMatchObject({ campaign_id: "mango-id", campaign_slug: "help-mango-seller", campaign_path: "/help-mango-seller", frequency, charged_donation_amount_cents: "3333" });
+    expect(options.line_items[0].price_data.unit_amount).toBeGreaterThan(3333);
+    expect(options.line_items[0].price_data.currency).toBe("gbp");
+    if (frequency === "monthly") expect(options.subscription_data.metadata).toEqual(options.metadata);
+  });
+
   it.each(["monthly", "one_time"])("enforces the Ryan minimum for %s without changing other entry pages", async (frequency) => {
     const page = { campaignSlug: "akram-shake", campaignPath: "/akram-shake-2" };
     for (const selection of [{ currency: "USD", amountCents: 2499 }, { currency: "GBP", amountCents: 1999 }]) {

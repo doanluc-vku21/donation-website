@@ -2,6 +2,17 @@ import {
   defineQuery,
 } from "next-sanity";
 
+// Shared organization information only: no beneficiary identity, portrait,
+// story, goal or fund allocations can leak into a new campaign through this.
+export const CAMPAIGN_BRANDING_QUERY = defineQuery(`
+  *[_type == "campaign" && slug.current == $slug && isActive == true][0]{
+    organizationLogo { asset-> { _id, url, metadata { dimensions, lqip } }, alt },
+    footerOrganizationName, footerSubtitle, footerSubtitleI18n,
+    footerSecureText, footerSecureTextI18n,
+    footerAbout, footerContact, footerPrivacy, footerTerms, footerRefund
+  }
+`);
+
 export const CAMPAIGN_QUERY =
   defineQuery(`
     *[
