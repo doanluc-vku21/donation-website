@@ -6,7 +6,7 @@ import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
 import { beginWalletTiming, currentWalletTiming, recordWalletTiming } from "@/lib/stripe/wallet-diagnostics";
 import { WalletDiagnostics } from "./wallet-diagnostics";
 import { prepareStripe } from "@/lib/stripe/client";
-import { shouldPrewarmApplePay } from "@/lib/stripe/wallet-platform";
+import { getWalletPlatform } from "@/lib/stripe/wallet-platform";
 import { CardApplePayIcons } from "@/components/donation/card-apple-pay-icons";
 import { requestHostedCheckout } from "@/lib/stripe/hosted-checkout-client";
 
@@ -268,7 +268,7 @@ export function DonationFlow({
   const isAkramDirectPage = pathname === "/akram-shake-1";
 
   const monthlyOnly = isMonthlyOnlyDonationPage(pathname);
-  const isApplePayDevice = useMemo(() => shouldPrewarmApplePay(), []);
+  const walletPlatform = useMemo(() => getWalletPlatform(), []);
 
 
 
@@ -3882,7 +3882,7 @@ function resetCheckoutSession() {
                 <div role="status" aria-live="polite" className="absolute inset-0 z-[20] flex items-center justify-center gap-2 rounded-[12px] bg-[#eef1ed] px-3 text-sm text-[#45534b]">
                   <span aria-hidden="true" className="size-4 animate-spin rounded-full border-2 border-[#b8c5bc] border-t-[#24543d]" />
                   <span className="text-center leading-tight">
-                    <span className="block">{previousActiveExpressKey ? t.walletAmountUpdating : isApplePayDevice ? t.applePayPreparing : t.walletPreparing}</span>
+                    <span className="block">{previousActiveExpressKey ? t.walletAmountUpdating : walletPlatform === "ios" ? t.applePayPreparing : walletPlatform === "android" ? t.googlePayPreparing : t.walletPreparing}</span>
                     {!previousActiveExpressKey && <span className="mt-1 block text-xs text-[#68726c]">{t.walletPreparingHint}</span>}
                   </span>
                 </div>
