@@ -7,6 +7,7 @@ import {
 import type {
   Campaign,
 } from "@/lib/sample-data";
+import { getPublicDonations } from "@/lib/public-donations";
 
 import type {
   Locale,
@@ -69,7 +70,7 @@ import {
 } from "./fund-usage";
 
 export function CampaignPage({
-  campaign,
+  campaign: sourceCampaign,
   content,
   locale,
   currency,
@@ -101,6 +102,11 @@ export function CampaignPage({
   exchangeRate:
     number;
 }) {
+  const campaign: Campaign = {
+    ...sourceCampaign,
+    recentDonations: getPublicDonations(sourceCampaign.recentDonations),
+  };
+
   const t =
     getUiTranslations(
       locale,
