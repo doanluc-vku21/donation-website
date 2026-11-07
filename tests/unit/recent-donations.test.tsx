@@ -12,6 +12,37 @@ const supporters: RecentDonation[] = Array.from({ length: 20 }, (_, index) => ({
 const props = { donations: supporters, locale: "en" as const, currency: "USD" as const, exchangeRate: 1 };
 
 describe("community supporter list", () => {
+  it("hides only the identified test contribution from the preview and sorted dialog", () => {
+    const donations: RecentDonation[] = [
+      { id: "838ce591-f138-439c-9258-0f421dff2d4d", displayName: "Hidden test payment", amountUsd: 1000, frequency: "monthly", relativeTime: "just now" },
+      { id: "real-ten-dollar-donor", displayName: "Another monthly donor", amountUsd: 1000, frequency: "monthly", relativeTime: "1 hour ago" },
+      { id: "real-donor-name", displayName: "Donor", amountUsd: 1000, frequency: "monthly", relativeTime: "2 hours ago" },
+      ...supporters.slice(0, 4),
+    ];
+    render(<RecentDonations {...props} donations={donations} previewLimit={2} />);
+    expect(screen.queryByText("Hidden test payment")).not.toBeInTheDocument();
+    expect(screen.getByText("Another monthly donor")).toBeVisible();
+    expect(screen.getByText("Donor")).toBeVisible();
+    expect(screen.getByText("6 Contributions")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "See all contributions" }));
+    const dialog = screen.getByRole("dialog", { name: "Contributions" });
+    expect(within(dialog).getAllByRole("listitem")).toHaveLength(6);
+    expect(within(dialog).queryByText("Hidden test payment")).not.toBeInTheDocument();
+    fireEvent.change(within(dialog).getByRole("combobox"), { target: { value: "highest" } });
+    expect(within(dialog).queryByText("Hidden test payment")).not.toBeInTheDocument();
+    expect(donations).toHaveLength(7);
+  });
+
+  it("preserves the supplied supporter total when a test contribution is hidden", () => {
+    render(<RecentDonations {...props} donations={[
+      { ...supporters[0], id: "838ce591-f138-439c-9258-0f421dff2d4d" },
+      supporters[1],
+    ]} monthlySupporterCount={2} />);
+    expect(screen.getByText("2 Monthly Supporters")).toBeVisible();
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    expect(screen.queryByText("Supporter 0")).not.toBeInTheDocument();
+  });
+
   it.each(locales)("labels actual one-time and monthly gifts in the preview and dialog in %s when enabled", locale => {
     const t = getUiTranslations(locale);
     render(<RecentDonations {...props} locale={locale} donations={sampleCampaign.recentDonations} previewLimit={1} showOneTimeLabels />);

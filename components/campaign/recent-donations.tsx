@@ -32,6 +32,7 @@ import {
 import type {
   RecentDonation,
 } from "@/lib/sample-data";
+import { getPublicDonations } from "@/lib/public-donations";
 
 type RecentDonationsProps = {
   showDonationTimes?: boolean;
@@ -71,7 +72,7 @@ const localeMap:
 };
 
 export function RecentDonations({
-  donations,
+  donations: allDonations,
   locale,
   currency,
   exchangeRate,
@@ -81,6 +82,8 @@ export function RecentDonations({
   showDonationTimes = true,
   showOneTimeLabels = false,
 }: RecentDonationsProps) {
+  const donations = useMemo(() => getPublicDonations(allDonations), [allDonations]);
+
   const t =
     getUiTranslations(
       locale,
