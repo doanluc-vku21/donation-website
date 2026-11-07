@@ -19,5 +19,6 @@ export function isMonthlyOnlyDonationPage(pathname: string | null | undefined): 
 }
 
 export function areDonorNamesOptional(pathname: string | null | undefined, frequency: DonationFrequency): boolean {
-  return pathname === "/akram-shake-1" && frequency === "monthly";
+  return isStandardUpsellDonationPage(pathname) ||
+    (pathname === "/akram-shake-1" && frequency === "monthly");
 }

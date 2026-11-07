@@ -92,9 +92,9 @@ describe.each(["/akram-shake-2", "/help-mango-seller"])("card donation flow on %
     await advance();
   }
 
-  async function pay() {
-    fireEvent.change(screen.getByRole("textbox", { name: /First name/ }), { target: { value: "Test" } });
-    fireEvent.change(screen.getByRole("textbox", { name: /Last name/ }), { target: { value: "Donor" } });
+  async function pay(firstName: string = "Test", lastName: string = "Donor") {
+    fireEvent.change(screen.getByRole("textbox", { name: /First name/ }), { target: { value: firstName } });
+    fireEvent.change(screen.getByRole("textbox", { name: /Last name/ }), { target: { value: lastName } });
     fireEvent.change(screen.getByRole("textbox", { name: /Email address/ }), { target: { value: "donor@example.com" } });
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Continue to secure checkout" })); });
     expect(screen.getByRole("heading", { name: "Payment" })).toBeVisible();
@@ -109,6 +109,28 @@ describe.each(["/akram-shake-2", "/help-mango-seller"])("card donation flow on %
     const calls = fetchMock.mock.calls.filter(([url]) => url === "/api/stripe/checkout");
     expect(calls).toHaveLength(1);
     expect(JSON.parse(String(calls[0][1]?.body))).toMatchObject({ frequency: "one_time", amountCents: 2500 });
+  });
+
+  it.each([false, true])("allows empty names but requires a valid email (monthly offer: %s)", async (monthlyOffer) => {
+    const fetchMock = mount();
+    await chooseGift(25, monthlyOffer);
+    expect(screen.getByRole("textbox", { name: "First name" })).not.toBeRequired();
+    expect(screen.getByRole("textbox", { name: "Last name" })).not.toBeRequired();
+    expect(screen.getAllByPlaceholderText("Optional")).toHaveLength(2);
+    expect(screen.getByText("First and last names are optional. Email is required.")).toBeVisible();
+    const email = screen.getByRole("textbox", { name: /Email address/ });
+    expect(email).toBeRequired();
+    const next = screen.getByRole("button", { name: "Continue to secure checkout" });
+    await act(async () => { fireEvent.click(next); });
+    expect(screen.getByRole("alert")).toHaveTextContent(/email/i);
+    expect(stripe.confirm).not.toHaveBeenCalled();
+    fireEvent.change(email, { target: { value: "invalid" } });
+    await act(async () => { fireEvent.click(next); });
+    expect(screen.getByRole("alert")).toHaveTextContent(/valid email/i);
+    expect(stripe.confirm).not.toHaveBeenCalled();
+    await pay("", "");
+    const attempt = fetchMock.mock.calls.find(([url]) => url === "/api/donation-attempt");
+    expect(JSON.parse(String(attempt?.[1]?.body))).toMatchObject({ firstName: "", lastName: "", email: "donor@example.com" });
   });
 
   it.each([
