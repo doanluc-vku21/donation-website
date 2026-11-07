@@ -810,7 +810,7 @@ export function DonationFlow({
 
     convertUsdToCurrencyMinor(
 
-      getDonationPageMinimumUsdCents(pathname),
+      getDonationPageMinimumUsdCents(pathname, frequency),
 
       exchangeRate,
 
@@ -927,7 +927,9 @@ export function DonationFlow({
 
     Math.max(
 
-      100,
+      isAkramShakeUpsellPage
+        ? convertUsdToCurrencyMinor(getDonationPageMinimumUsdCents(pathname, "monthly"), exchangeRate)
+        : 100,
 
       Math.round(
 
@@ -5057,6 +5059,8 @@ function resetCheckoutSession() {
 
         <DonationPayment
 
+          email={email}
+
           key={
 
             sessionId
@@ -6237,6 +6241,8 @@ function resetCheckoutSession() {
 
             <DonationPayment
 
+              email={email}
+
               key={
 
                 sessionId
@@ -6896,6 +6902,8 @@ function resetCheckoutSession() {
         checkoutTotalMinor != null && (
 
           <DonationPayment
+
+            email={email}
 
             key={
 

@@ -14,6 +14,7 @@ import { getStripePromise } from "@/lib/stripe/client";
 
 import {
   CheckoutElementsProvider,
+  ContactDetailsElement,
   PaymentElement,
   useCheckoutElements,
 } from "@stripe/react-stripe-js/checkout";
@@ -164,6 +165,8 @@ type DonationPaymentProps = {
   clientSecret:
     string;
 
+  email: string;
+
   locale:
     Locale;
 
@@ -180,6 +183,7 @@ type DonationPaymentProps = {
 
 export function DonationPayment({
   clientSecret,
+  email,
   locale,
   amountLabel,
   onBack,
@@ -230,6 +234,7 @@ export function DonationPayment({
       }}
     >
         <PaymentForm
+          email={email}
           locale={
             locale
           }
@@ -249,11 +254,14 @@ export function DonationPayment({
 }
 
 function PaymentForm({
+  email,
   locale,
   amountLabel,
   onBack,
   onReady,
 }: {
+  email: string;
+
   locale:
     Locale;
 
@@ -273,6 +281,8 @@ function PaymentForm({
     paymentLabels[
       locale
     ];
+
+  const normalizedEmail = email.trim();
 
   const [
     isSubmitting,
@@ -327,7 +337,7 @@ function PaymentForm({
       const result =
         await checkoutResult
           .checkout
-          .confirm();
+          .confirm(normalizedEmail ? { email: normalizedEmail } : {});
 
       if (
         result &&
@@ -481,6 +491,12 @@ function PaymentForm({
         }
         className="mt-4"
       >
+        {!normalizedEmail && (
+          <div className="mb-4">
+            <ContactDetailsElement />
+          </div>
+        )}
+
         <div
           dir="ltr"
           className="

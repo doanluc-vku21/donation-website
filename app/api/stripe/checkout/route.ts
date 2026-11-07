@@ -404,8 +404,9 @@ export async function POST(
       );
     }
 
-    if (isStandardUpsellDonationPage(campaignPath) && amountCents < pageMinimumMinor(getDonationPageMinimumUsdCents(campaignPath), exchangeRate)) {
-      return NextResponse.json({ error: "Minimum donation is $25 or its equivalent in the selected currency." }, { status: 400 });
+    const minimumUsdCents = getDonationPageMinimumUsdCents(campaignPath, frequency);
+    if (isStandardUpsellDonationPage(campaignPath) && amountCents < pageMinimumMinor(minimumUsdCents, exchangeRate)) {
+      return NextResponse.json({ error: `Minimum donation is $${minimumUsdCents / 100} or its equivalent in the selected currency.` }, { status: 400 });
     }
 
     const siteUrl =

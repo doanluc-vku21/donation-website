@@ -59,7 +59,7 @@ function response(id: string) {
 }
 
 describe("Apple Pay session loading", () => {
-  it.each(["/akram-shake-2", "/help-mango-seller"])("mirrors presets and rejects custom gifts below $25 on %s", async pathname => {
+  it.each(["/akram-shake-2", "/help-mango-seller"])("mirrors presets and applies separate monthly and one-time minimums on %s", async pathname => {
     navigation.pathname = pathname;
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response("cs_ryan")));
     mountModal(); openModal(); await advance(1);
@@ -68,6 +68,12 @@ describe("Apple Pay session loading", () => {
     fireEvent.click(screen.getByRole("radio", { name: /\$100/ }));
     expect(input).toHaveValue(100);
     expect(screen.getByRole("radio", { name: /\$100/ })).toBeChecked();
+    fireEvent.change(input, { target: { value: "9" } });
+    expect(screen.getByRole("button", { name: "Select an amount to continue" })).toBeDisabled();
+    fireEvent.change(input, { target: { value: "10" } });
+    expect(screen.getByRole("button", { name: /Pay.*Card/ })).toBeEnabled();
+    expect(screen.getByText("❤️ Every donation starts at just $10")).toBeVisible();
+    fireEvent.click(screen.getByRole("radio", { name: "Give once" }));
     fireEvent.change(input, { target: { value: "24" } });
     expect(input).toHaveValue(24);
     expect(screen.getByText("❤️ Every donation starts at just $25")).toBeVisible();

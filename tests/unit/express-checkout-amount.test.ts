@@ -33,19 +33,26 @@ const signedContext = (expiresAt = Date.now() + 3600_000) => signWalletUpdateCon
 }, "unit_secret", expiresAt);
 
 describe("in-place wallet amount updates", () => {
-  it.each([
-    [false, "/akram-shake-2"], [true, "/akram-shake-2"],
-    [false, "/help-mango-seller"], [true, "/help-mango-seller"],
-  ])("enforces the reference minimum during wallet updates (signed: %s, page: %s)", async (signed, campaignPath) => {
+  it.each(["/akram-shake-2", "/help-mango-seller"].flatMap(campaignPath =>
+    [false, true].flatMap(signed =>
+      (["monthly", "one_time"] as const).flatMap(frequency =>
+        (["USD", "GBP"] as const).map(currency => ({ campaignPath, signed, frequency, currency }))))
+  ))("enforces the $frequency minimum during $currency wallet updates on $campaignPath (signed: $signed)", async ({ signed, campaignPath, frequency, currency }) => {
+    const exchangeRate = currency === "USD" ? 1 : 0.8;
+    const minimum = Math.round((frequency === "monthly" ? 1000 : 2500) * exchangeRate);
     const updateContext = signed ? signWalletUpdateContext({
-      sessionId: "cs_unit_amount", productId: "prod_existing", currency: "USD", frequency: "monthly",
-      coverFee: false, exchangeRate: 1, campaignPath: String(campaignPath),
+      sessionId: "cs_unit_amount", productId: "prod_existing", currency, frequency,
+      coverFee: false, exchangeRate, campaignPath,
     }, "unit_secret", Date.now() + 3600_000) : undefined;
-    mocks.retrieve.mockResolvedValue({ ...session(), metadata: { ...session().metadata, campaign_path: campaignPath } });
-    expect((await POST(request({ amountCents: 2499, updateContext }))).status).toBe(400);
+    mocks.rate.mockResolvedValue(exchangeRate);
+    mocks.retrieve.mockResolvedValue({ ...session(), currency: currency.toLowerCase(), mode: frequency === "monthly" ? "subscription" : "payment",
+      metadata: { ...session().metadata, campaign_path: campaignPath, charged_currency: currency } });
+    // Client-provided frequency cannot lower a one-time Session's minimum.
+    expect((await POST(request({ amountCents: minimum - 1, updateContext, frequency: "monthly" }))).status).toBe(400);
     expect(mocks.update).not.toHaveBeenCalled();
-    expect((await POST(request({ amountCents: 2500, updateContext }))).status).toBe(200);
-    expect(mocks.update.mock.calls[0][1].line_items[0].price_data.unit_amount).toBe(2500);
+    expect((await POST(request({ amountCents: minimum, updateContext }))).status).toBe(200);
+    expect(mocks.update.mock.calls[0][1].line_items[0].price_data.unit_amount).toBe(minimum);
+    expect(mocks.update.mock.calls[0][1].line_items[0].price_data.recurring).toEqual(frequency === "monthly" ? { interval: "month" } : undefined);
   });
 
   it("creates a signed context from the expanded Stripe response", async () => {
