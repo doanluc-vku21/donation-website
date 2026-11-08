@@ -1,7 +1,10 @@
 import type { DonationFrequency } from "@/lib/sample-data";
 
 export function getDonationPageMinimumUsdCents(pathname: string | null | undefined, frequency: DonationFrequency = "one_time"): number {
-  return isStandardUpsellDonationPage(pathname) && frequency === "one_time" ? 2500 : 1000;
+  if (isStandardUpsellDonationPage(pathname)) {
+    return frequency === "monthly" ? 2000 : 2500;
+  }
+  return 1000;
 }
 
 // The new beneficiary keeps the existing /akram-shake-2 checkout behavior.

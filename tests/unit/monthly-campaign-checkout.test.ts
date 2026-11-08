@@ -38,7 +38,7 @@ function request(page: (typeof pages)[number], changes: Record<string, unknown> 
 describe.each([["card", cardCheckout], ["wallet", walletCheckout]] as const)("monthly campaign %s checkout", (_name, checkout) => {
   it.each(["monthly", "one_time"])("keeps mango seller %s payments separate with the same amount and fee behavior", async frequency => {
     const page = { campaignSlug: "help-mango-seller", campaignPath: "/help-mango-seller" };
-    expect((await checkout(request(page, { campaignId: "mango-id", frequency, amountCents: frequency === "monthly" ? 799 : 1999, currency: "GBP" }))).status).toBe(400);
+    expect((await checkout(request(page, { campaignId: "mango-id", frequency, amountCents: frequency === "monthly" ? 1599 : 1999, currency: "GBP" }))).status).toBe(400);
     expect(mocks.create).not.toHaveBeenCalled();
     const response = await checkout(request(page, { campaignId: "mango-id", frequency, amountCents: 3333, currency: "GBP", coverFee: true }));
     expect(response.status).toBe(200);
@@ -52,11 +52,11 @@ describe.each([["card", cardCheckout], ["wallet", walletCheckout]] as const)("mo
 
   it.each(["monthly", "one_time"])("enforces the Ryan minimum for %s without changing other entry pages", async (frequency) => {
     const page = { campaignSlug: "akram-shake", campaignPath: "/akram-shake-2" };
-    for (const selection of [{ currency: "USD", amountCents: frequency === "monthly" ? 999 : 2499 }, { currency: "GBP", amountCents: frequency === "monthly" ? 799 : 1999 }]) {
+    for (const selection of [{ currency: "USD", amountCents: frequency === "monthly" ? 1999 : 2499 }, { currency: "GBP", amountCents: frequency === "monthly" ? 1599 : 1999 }]) {
       expect((await checkout(request(page, { ...selection, frequency }))).status).toBe(400);
       expect(mocks.create).not.toHaveBeenCalled();
     }
-    expect((await checkout(request(page, { currency: "GBP", amountCents: frequency === "monthly" ? 800 : 2000, frequency }))).status).toBe(200);
+    expect((await checkout(request(page, { currency: "GBP", amountCents: frequency === "monthly" ? 1600 : 2000, frequency }))).status).toBe(200);
     expect((await checkout(request({ ...page, campaignPath: "/akram-shake" }, { amountCents: 1000, frequency }))).status).toBe(200);
   });
 
@@ -101,11 +101,13 @@ describe.each([["card", cardCheckout], ["wallet", walletCheckout]] as const)("mo
   it.each([
     { campaignSlug: "akram-shake", campaignPath: "/akram-shake-2" },
     { campaignSlug: "help-mango-seller", campaignPath: "/help-mango-seller" },
-  ])("allows ten-dollar monthly gifts on $campaignPath without letting fees satisfy the minimum", async (page) => {
-    for (const selection of [{ currency: "USD", amountCents: 1000 }, { currency: "GBP", amountCents: 800 }]) {
-      const rejected = await checkout(request(page, { ...selection, amountCents: selection.amountCents - 1, coverFee: true }));
-      expect(rejected.status).toBe(400);
-      expect(await rejected.json()).toEqual({ error: "Minimum donation is $10 or its equivalent in the selected currency." });
+  ])("allows twenty-dollar monthly gifts on $campaignPath without letting fees satisfy the minimum", async (page) => {
+    for (const selection of [{ currency: "USD", amountCents: 2000 }, { currency: "GBP", amountCents: 1600 }]) {
+      for (const amountCents of [selection.amountCents / 2, selection.amountCents - 1]) {
+        const rejected = await checkout(request(page, { ...selection, amountCents, coverFee: true }));
+        expect(rejected.status).toBe(400);
+        expect(await rejected.json()).toEqual({ error: "Minimum donation is $20 or its equivalent in the selected currency." });
+      }
       const result = await checkout(request(page, { ...selection, coverFee: true }));
       expect(result.status).toBe(200);
       const data = await result.json();

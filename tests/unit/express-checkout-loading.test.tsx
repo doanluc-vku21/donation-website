@@ -68,11 +68,11 @@ describe("Apple Pay session loading", () => {
     fireEvent.click(screen.getByRole("radio", { name: /\$100/ }));
     expect(input).toHaveValue(100);
     expect(screen.getByRole("radio", { name: /\$100/ })).toBeChecked();
-    fireEvent.change(input, { target: { value: "9" } });
+    fireEvent.change(input, { target: { value: "19" } });
     expect(screen.getByRole("button", { name: "Select an amount to continue" })).toBeDisabled();
-    fireEvent.change(input, { target: { value: "10" } });
+    fireEvent.change(input, { target: { value: "20" } });
     expect(screen.getByRole("button", { name: /Pay.*Card/ })).toBeEnabled();
-    expect(screen.getByText("❤️ Every donation starts at just $10")).toBeVisible();
+    expect(screen.getByText("❤️ Every donation starts at just $20")).toBeVisible();
     fireEvent.click(screen.getByRole("radio", { name: "Give once" }));
     fireEvent.change(input, { target: { value: "24" } });
     expect(input).toHaveValue(24);

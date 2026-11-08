@@ -134,9 +134,9 @@ describe.each(["/akram-shake-2", "/help-mango-seller"])("card donation flow on %
   });
 
   it.each([
-    ["USD", 1, 25, 1000],
-    ["GBP", 0.8, 20, 800],
-  ] as const)("accepts the ten-dollar monthly offer in %s", async (currency, rate, oneTimeAmount, monthlyAmount) => {
+    ["USD", 1, 25, 2000],
+    ["GBP", 0.8, 20, 1600],
+  ] as const)("accepts the twenty-dollar monthly offer in %s", async (currency, rate, oneTimeAmount, monthlyAmount) => {
     const fetchMock = mount(currency, rate);
     await chooseGift(oneTimeAmount, true);
     await pay();
