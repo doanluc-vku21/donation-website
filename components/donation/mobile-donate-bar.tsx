@@ -36,6 +36,7 @@ import {
 } from "@/components/donation/donation-modal-trigger";
 import { MonthlySupporterProgress } from "@/components/campaign/monthly-supporter-progress";
 import { RotatingDonationHint } from "@/components/campaign/recent-donation-rotation";
+import { getUiTranslations } from "@/lib/ui-translations";
 
 type MobileDonateBarProps = {
   campaign: Campaign;

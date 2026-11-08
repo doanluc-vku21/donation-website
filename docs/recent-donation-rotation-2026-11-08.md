@@ -48,3 +48,20 @@ Release target: the existing `darklife / donation-website` Vercel production
 project through `origin/main`, serving `donate.mealsupport.org`. The preceding
 production commit is `c967a50cdf09596a7d1addd896f6f9454c216f56`; reverting this
 change restores static latest-donation hints without a data migration.
+
+## Failed deployment and import repair
+
+The first Git deployment, `dpl_Atw9WSSLZTynhDT5PrgAzjtThVBY` for `5d51528`,
+failed. A clean source archive reproduced TypeScript error TS2304 in
+`components/donation/mobile-donate-bar.tsx`: `getUiTranslations` was not found.
+Removing the unused translation variable from `MobileDonateBar` had also removed
+the import still required by the file's separate `RaisedText` component. The
+earlier successful local build preceded that last cleanup, so it did not validate
+the exact source that was pushed.
+
+The repair restores only the shared translation import. A fresh isolated source
+installation and production build now pass, as do lint with zero warnings,
+type checking and all 43 relevant tests. The build uses placeholder service
+configuration and does not invoke production payments or data writes. Unrelated
+working-tree changes are excluded from this repair release. Production deployment
+status and browser behavior must be checked after pushing the repaired source.
