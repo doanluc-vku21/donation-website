@@ -9,6 +9,8 @@ export type UiTranslations = {
   raised: string;
   of: string;
   donated: string;
+  pauseRecentDonations: string;
+  resumeRecentDonations: string;
 
   donate: string;
   share: string;
@@ -140,6 +142,8 @@ export type UiTranslations = {
 };
 
 const en: UiTranslations = {
+  pauseRecentDonations: "Pause recent donations",
+  resumeRecentDonations: "Resume recent donations",
   organizationCharityStatus: "IRS-Recognized 501(c)(3) Charity",
   organizedBy:
     "Organized by",
@@ -390,6 +394,8 @@ const en: UiTranslations = {
 
 const fr: UiTranslations = {
   ...en,
+  pauseRecentDonations: "Mettre en pause les dons récents",
+  resumeRecentDonations: "Reprendre les dons récents",
 
   organizationCharityStatus: "Organisme caritatif 501(c)(3) reconnu par l’IRS",
   organizedBy:
@@ -635,6 +641,8 @@ const fr: UiTranslations = {
 
 const de: UiTranslations = {
   ...en,
+  pauseRecentDonations: "Letzte Spenden pausieren",
+  resumeRecentDonations: "Letzte Spenden fortsetzen",
 
   organizationCharityStatus: "Vom IRS anerkannte 501(c)(3)-Wohltätigkeitsorganisation",
   organizedBy:
@@ -880,6 +888,8 @@ const de: UiTranslations = {
 
 const es: UiTranslations = {
   ...en,
+  pauseRecentDonations: "Pausar las donaciones recientes",
+  resumeRecentDonations: "Reanudar las donaciones recientes",
 
   organizationCharityStatus: "Organización benéfica 501(c)(3) reconocida por el IRS",
   organizedBy:
@@ -1125,6 +1135,8 @@ const es: UiTranslations = {
 
 const ar: UiTranslations = {
   ...en,
+  pauseRecentDonations: "إيقاف عرض التبرعات الأخيرة مؤقتًا",
+  resumeRecentDonations: "استئناف عرض التبرعات الأخيرة",
 
   organizationCharityStatus: "مؤسسة خيرية معترف بها من مصلحة الضرائب الأمريكية بموجب 501(c)(3)",
   organizedBy:

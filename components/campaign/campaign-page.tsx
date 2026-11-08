@@ -8,6 +8,7 @@ import type {
   Campaign,
 } from "@/lib/sample-data";
 import { getPublicDonations } from "@/lib/public-donations";
+import { RecentDonationRotationProvider } from "@/components/campaign/recent-donation-rotation";
 
 import type {
   Locale,
@@ -168,6 +169,7 @@ export function CampaignPage({
   };
 
   return (
+    <RecentDonationRotationProvider key={campaign.id} donations={campaign.recentDonations} enabled={!campaign.supporterProgress}>
     <main
       dir="ltr"
       className={`
@@ -709,5 +711,6 @@ export function CampaignPage({
         }
       />
     </main>
+    </RecentDonationRotationProvider>
   );
 }

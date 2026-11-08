@@ -13,10 +13,6 @@ import type {
   Locale,
 } from "@/lib/i18n";
 
-import {
-  getUiTranslations,
-} from "@/lib/ui-translations";
-
 import type {
   SanityCampaign,
 } from "@/sanity/types/campaign";
@@ -39,6 +35,7 @@ import {
   DonationModalTrigger,
 } from "@/components/donation/donation-modal-trigger";
 import { MonthlySupporterProgress } from "@/components/campaign/monthly-supporter-progress";
+import { RotatingDonationHint } from "@/components/campaign/recent-donation-rotation";
 
 type MobileDonateBarProps = {
   campaign: Campaign;
@@ -55,11 +52,6 @@ export function MobileDonateBar({
   currency,
   exchangeRate,
 }: MobileDonateBarProps) {
-  const t =
-    getUiTranslations(
-      locale,
-    );
-
   const textDirection =
     locale === "ar"
       ? "rtl"
@@ -75,26 +67,6 @@ export function MobileDonateBar({
       campaign.raisedAmountUsd,
       campaign.goalAmountUsd,
     );
-
-  const latestDonation =
-    campaign
-      .recentDonations
-      ?.[0];
-
-  const latestDonationAmount =
-    latestDonation
-      ? convertUsdToCurrencyMinor(
-          latestDonation.amountUsd,
-          exchangeRate,
-        )
-      : 0;
-
-  const latestDonationIsAnonymous =
-    latestDonation
-      ?.displayName
-      .trim()
-      .toLowerCase() ===
-    "anonymous";
 
   useEffect(() => {
     const target =
@@ -192,39 +164,14 @@ export function MobileDonateBar({
               exchangeRate={exchangeRate}
             />
 
-            {latestDonation && (
-              <p className="mt-1 truncate text-[12px] text-[#697387]">
-                <span
-                  dir="ltr"
-                  className="inline-block"
-                >
-                  {latestDonation.displayName}
-                </span>
-
-                {!latestDonationIsAnonymous && (
-                  <>
-                    {" "}
-                    {t.donated}{" "}
-                    <span
-                      dir="ltr"
-                      className="inline-block"
-                    >
-                      {formatMoney(
-                        latestDonationAmount,
-                        currency,
-                        locale,
-                        {
-                          hideZeroDecimals:
-                            true,
-                        },
-                      )}
-                    </span>{" "}
-                  </>
-                )}
-
-                ›
-              </p>
-            )}
+            <RotatingDonationHint
+              donations={campaign.recentDonations}
+              locale={locale}
+              currency={currency}
+              exchangeRate={exchangeRate}
+              className="mt-1 text-[12px] text-[#697387]"
+              showArrow
+            />
           </div>
         </div>
 

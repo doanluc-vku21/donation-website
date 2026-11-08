@@ -36,6 +36,7 @@ import {
   DonationModalTrigger,
 } from "@/components/donation/donation-modal-trigger";
 import { MonthlySupporterProgress } from "@/components/campaign/monthly-supporter-progress";
+import { RotatingDonationHint } from "@/components/campaign/recent-donation-rotation";
 
 type CampaignDonateCardProps = {
   campaign: Campaign;
@@ -68,11 +69,6 @@ export function CampaignDonateCard({
       campaign.goalAmountUsd,
     );
 
-  const latestDonation =
-    campaign
-      .recentDonations
-      ?.[0];
-
   const raisedAmount =
     convertUsdToCurrencyMinor(
       campaign.raisedAmountUsd,
@@ -84,21 +80,6 @@ export function CampaignDonateCard({
       campaign.goalAmountUsd,
       exchangeRate,
     );
-
-  const latestDonationAmount =
-    latestDonation
-      ? convertUsdToCurrencyMinor(
-          latestDonation.amountUsd,
-          exchangeRate,
-        )
-      : 0;
-
-  const latestDonationIsAnonymous =
-    latestDonation
-      ?.displayName
-      .trim()
-      .toLowerCase() ===
-    "anonymous";
 
   return (
     <section
@@ -178,32 +159,13 @@ export function CampaignDonateCard({
             )}
           </p>
 
-          {latestDonation && (
-            <p className="mt-2 line-clamp-1 text-[12px] text-[#6b7687]">
-              {latestDonation.displayName}
-
-              {!latestDonationIsAnonymous && (
-                <>
-                  {" "}
-                  {t.donated}{" "}
-                  <span
-                    dir="ltr"
-                    className="inline-block"
-                  >
-                    {formatMoney(
-                      latestDonationAmount,
-                      currency,
-                      locale,
-                      {
-                        hideZeroDecimals:
-                          true,
-                      },
-                    )}
-                  </span>
-                </>
-              )}
-            </p>
-          )}
+          <RotatingDonationHint
+            donations={campaign.recentDonations}
+            locale={locale}
+            currency={currency}
+            exchangeRate={exchangeRate}
+            className="mt-2 text-[12px] text-[#6b7687]"
+          />
         </div>
       </div>
 

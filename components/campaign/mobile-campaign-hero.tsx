@@ -10,6 +10,7 @@ import {
   DonationModalTrigger,
 } from "@/components/donation/donation-modal-trigger";
 import { MonthlySupporterProgress } from "@/components/campaign/monthly-supporter-progress";
+import { RotatingDonationHint } from "@/components/campaign/recent-donation-rotation";
 
 import {
   ShareMenu,
@@ -76,11 +77,6 @@ export function MobileCampaignHero({
       campaign.goalAmountUsd,
     );
 
-  const latestDonation =
-    campaign
-      .recentDonations
-      ?.[0];
-
   const raisedAmount =
     convertUsdToCurrencyMinor(
       campaign.raisedAmountUsd,
@@ -92,21 +88,6 @@ export function MobileCampaignHero({
       campaign.goalAmountUsd,
       exchangeRate,
     );
-
-  const latestDonationAmount =
-    latestDonation
-      ? convertUsdToCurrencyMinor(
-          latestDonation.amountUsd,
-          exchangeRate,
-        )
-      : 0;
-
-  const latestDonationIsAnonymous =
-    latestDonation
-      ?.displayName
-      .trim()
-      .toLowerCase() ===
-    "anonymous";
 
   const heroUrl =
     content.heroImage
@@ -511,49 +492,14 @@ export function MobileCampaignHero({
               </span>
             </p>
 
-            {latestDonation && (
-              <p
-                className="
-                  mt-1
-                  truncate
-                  text-[12px]
-                  text-[#687489]
-                "
-              >
-                <span
-                  dir="ltr"
-                  className="inline-block"
-                >
-                  {
-                    latestDonation
-                      .displayName
-                  }
-                </span>{" "}
-
-                {!latestDonationIsAnonymous && (
-                  <>
-                    {t.donated}{" "}
-
-                    <span
-                      dir="ltr"
-                      className="inline-block"
-                    >
-                      {formatMoney(
-                        latestDonationAmount,
-                        currency,
-                        locale,
-                        {
-                          hideZeroDecimals:
-                            true,
-                        },
-                      )}
-                    </span>{" "}
-                  </>
-                )}
-
-                ›
-              </p>
-            )}
+            <RotatingDonationHint
+              donations={campaign.recentDonations}
+              locale={locale}
+              currency={currency}
+              exchangeRate={exchangeRate}
+              className="mt-1 text-[12px] text-[#687489]"
+              showArrow
+            />
           </div>
         </div>
 
