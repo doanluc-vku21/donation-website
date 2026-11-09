@@ -83,8 +83,10 @@ export function CampaignPage({
   showSummary = false,
   expandStory = false,
   mobileHeroObjectPosition,
+  compactHeadline = false,
 }: {
   mobileHeroObjectPosition?: string;
+  compactHeadline?: boolean;
   showSummary?: boolean;
   expandStory?: boolean;
   showOrganizationCharityStatus?: boolean;
@@ -231,6 +233,7 @@ export function CampaignPage({
         ====================================================== */}
 
         <MobileCampaignHero
+          compactHeadline={compactHeadline}
           imageObjectPosition={mobileHeroObjectPosition}
           showOrganizationCharityStatus={showOrganizationCharityStatus}
           showOrganizationVerification={showOrganizationVerification}
@@ -310,19 +313,17 @@ export function CampaignPage({
       ? "rtl"
       : "ltr"
   }
-  className="
+  className={`
                 max-w-[760px]
                 break-words
-                text-[34px]
                 font-bold
                 leading-[1.08]
                 tracking-[-0.035em]
                 text-[#101820]
-
-                sm:text-[42px]
-
-                lg:text-[48px]
-              "
+                ${compactHeadline
+                  ? "text-[28px] sm:text-[34px] lg:text-[40px]"
+                  : "text-[34px] sm:text-[42px] lg:text-[48px]"}
+              `}
             >
               {content.title}
             </h1>

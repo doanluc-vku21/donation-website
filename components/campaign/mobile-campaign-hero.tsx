@@ -43,6 +43,7 @@ import {
 } from "@/lib/money";
 
 type MobileCampaignHeroProps = {
+  compactHeadline?: boolean;
   imageObjectPosition?: string;
   showOrganizationCharityStatus?: boolean;
   showOrganizationVerification?: boolean;
@@ -62,6 +63,7 @@ export function MobileCampaignHero({
   showOrganizationCharityStatus = false,
   showOrganizationVerification = true,
   imageObjectPosition,
+  compactHeadline = false,
 }: MobileCampaignHeroProps) {
   const t =
     getUiTranslations(
@@ -330,7 +332,7 @@ export function MobileCampaignHero({
             }
             className={`
               max-w-[370px]
-              text-[27px]
+              ${compactHeadline ? "text-[23px] sm:text-[25px]" : "text-[27px]"}
               font-extrabold
               leading-[1.08]
               tracking-[-0.035em]

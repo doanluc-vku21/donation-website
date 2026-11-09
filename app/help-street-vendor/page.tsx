@@ -30,6 +30,7 @@ export default async function StreetVendorPage() {
     <CampaignPage
       campaign={{ ...campaign, title: content.title, summary: content.summary ?? "", organizationName: "MEAL SUPPORT INC" }}
       content={content}
+      compactHeadline
       mobileHeroObjectPosition="center 15%"
       showDonationTimes={false}
       showOneTimeLabels

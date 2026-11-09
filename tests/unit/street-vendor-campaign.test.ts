@@ -14,7 +14,7 @@ describe("street vendor campaign content", () => {
     expect(content.story).toHaveLength(5);
     expect(content.summary?.split("\n\n")).toHaveLength(5);
     expect(content.story?.[2].children[0].marks).toEqual(["strong"]);
-    expect(content.fundUsageItems).toHaveLength(2);
+    expect(content.fundUsageItems).toHaveLength(4);
     expect(content.fundUsageItems?.every(item => item.title && item.description && item.amount == null)).toBe(true);
     expect(content.heroImage?.asset).toMatchObject({ url: "/street-vendor.jpg", metadata: { dimensions: { width: 589, height: 1280 } } });
     expect(content.goalAmount).toBeUndefined();
