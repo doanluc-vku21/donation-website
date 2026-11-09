@@ -74,11 +74,12 @@ describe("Apple Pay session loading", () => {
     expect(screen.getByRole("button", { name: /Pay.*Card/ })).toBeEnabled();
     expect(screen.getByText("❤️ Every donation starts at just $20")).toBeVisible();
     fireEvent.click(screen.getByRole("radio", { name: "Give once" }));
-    fireEvent.change(input, { target: { value: "24" } });
-    expect(input).toHaveValue(24);
-    expect(screen.getByText("❤️ Every donation starts at just $25")).toBeVisible();
+    const oneTimeMinimum = pathname === "/help-mango-seller" ? 20 : 25;
+    fireEvent.change(input, { target: { value: String(oneTimeMinimum - 0.01) } });
+    expect(input).toHaveValue(oneTimeMinimum - 0.01);
+    expect(screen.getByText(`❤️ Every donation starts at just $${oneTimeMinimum}`)).toBeVisible();
     expect(screen.getByRole("button", { name: "Select an amount to continue" })).toBeDisabled();
-    fireEvent.change(input, { target: { value: "25" } });
+    fireEvent.change(input, { target: { value: String(oneTimeMinimum) } });
     expect(screen.getByRole("button", { name: /Pay.*Card/ })).toBeEnabled();
   });
 

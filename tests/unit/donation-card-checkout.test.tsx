@@ -104,11 +104,12 @@ describe.each(["/akram-shake-2", "/help-mango-seller"])("card donation flow on %
 
   it("confirms a one-time card gift with the donor email while bookkeeping is pending", async () => {
     const fetchMock = mount();
-    await chooseGift(25, false);
+    const amount = pathname === "/help-mango-seller" ? 20 : 25;
+    await chooseGift(amount, false);
     await pay();
     const calls = fetchMock.mock.calls.filter(([url]) => url === "/api/stripe/checkout");
     expect(calls).toHaveLength(1);
-    expect(JSON.parse(String(calls[0][1]?.body))).toMatchObject({ frequency: "one_time", amountCents: 2500 });
+    expect(JSON.parse(String(calls[0][1]?.body))).toMatchObject({ frequency: "one_time", amountCents: amount * 100 });
   });
 
   it.each([false, true])("allows empty names but requires a valid email (monthly offer: %s)", async (monthlyOffer) => {

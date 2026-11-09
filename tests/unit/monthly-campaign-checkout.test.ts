@@ -41,7 +41,8 @@ describe.each([["card", cardCheckout], ["wallet", walletCheckout]] as const)("mo
   ))("keeps $slug $frequency payments separate with the same amount and fee behavior", async ({ slug, frequency }) => {
     const page = { campaignSlug: slug, campaignPath: `/${slug}` };
     const campaignId = `campaign-${slug}`;
-    expect((await checkout(request(page, { campaignId, frequency, amountCents: frequency === "monthly" ? 1599 : 1999, currency: "GBP" }))).status).toBe(400);
+    const minimum = slug === "help-mango-seller" || frequency === "monthly" ? 1600 : 2000;
+    expect((await checkout(request(page, { campaignId, frequency, amountCents: minimum - 1, currency: "GBP" }))).status).toBe(400);
     expect(mocks.create).not.toHaveBeenCalled();
     const response = await checkout(request(page, { campaignId, frequency, amountCents: 3333, currency: "GBP", coverFee: true }));
     expect(response.status).toBe(200);
@@ -61,6 +62,40 @@ describe.each([["card", cardCheckout], ["wallet", walletCheckout]] as const)("mo
     }
     expect((await checkout(request(page, { currency: "GBP", amountCents: frequency === "monthly" ? 1600 : 2000, frequency }))).status).toBe(200);
     expect((await checkout(request({ ...page, campaignPath: "/akram-shake" }, { amountCents: 1000, frequency }))).status).toBe(200);
+  });
+
+  it.each([false, true])("enforces the mango seller's $20 one-time minimum before fees (cover fee: %s)", async coverFee => {
+    const page = { campaignSlug: "help-mango-seller", campaignPath: "/help-mango-seller" };
+    for (const selection of [{ currency: "USD", amountCents: 2000 }, { currency: "GBP", amountCents: 1600 }]) {
+      mocks.create.mockClear();
+      for (const amountCents of [selection.amountCents / 2, selection.amountCents - 1]) {
+        const rejected = await checkout(request(page, { ...selection, amountCents, frequency: "one_time", coverFee }));
+        expect(rejected.status).toBe(400);
+        expect(await rejected.json()).toEqual({ error: "Minimum donation is $20 or its equivalent in the selected currency." });
+        expect(mocks.create).not.toHaveBeenCalled();
+      }
+      const result = await checkout(request(page, { ...selection, frequency: "one_time", coverFee }));
+      expect(result.status).toBe(200);
+      const data = await result.json();
+      expect(mocks.create).toHaveBeenCalledOnce();
+      const options = mocks.create.mock.calls[0][0];
+      expect(options.mode).toBe("payment");
+      expect(options.line_items[0].price_data.recurring).toBeUndefined();
+      expect(data.donationAmountMinor).toBe(selection.amountCents);
+      expect(data.totalAmountMinor).toBe(selection.amountCents + data.feeAmountMinor);
+      expect(data.feeAmountMinor > 0).toBe(coverFee);
+      expect(options.line_items[0].price_data.unit_amount).toBe(data.totalAmountMinor);
+      expect(options.metadata).toMatchObject({ campaign_path: "/help-mango-seller", frequency: "one_time",
+        charged_donation_amount_cents: String(selection.amountCents), charged_currency: selection.currency });
+    }
+  });
+
+  it("does not apply the mango minimum when another campaign supplies its page URL", async () => {
+    const result = await checkout(request({ campaignSlug: "help-street-vendor", campaignPath: "/help-mango-seller" },
+      { frequency: "one_time", amountCents: 2000 }));
+    expect(result.status).toBe(400);
+    expect(await result.json()).toEqual({ error: "Minimum donation is $25 or its equivalent in the selected currency." });
+    expect(mocks.create).not.toHaveBeenCalled();
   });
 
   it.each(pages)("rejects one-time gifts for $campaignPath before creating a Stripe Session", async (page) => {
