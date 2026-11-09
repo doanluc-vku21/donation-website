@@ -1,10 +1,17 @@
 import type { PortableTextBlock } from "@portabletext/react";
 import { locales, type Locale } from "@/lib/i18n";
 import { localizeCampaign } from "@/lib/localize-campaign";
-import type { RecentDonation } from "@/lib/sample-data";
+import type { DonationOption, RecentDonation } from "@/lib/sample-data";
 import type { LocalizedString, SanityCampaign } from "@/sanity/types/campaign";
 
 export const MANGO_SELLER_SLUG = "help-mango-seller";
+
+export const MANGO_SELLER_ONE_TIME_DONATION_OPTIONS: DonationOption[] = [2000, 5000, 7500].map(amountUsd => ({
+  amountUsd,
+  frequency: "one_time",
+  featured: amountUsd === 5000,
+  impactText: "",
+}));
 
 export const MANGO_SELLER_SEED_DONATIONS: RecentDonation[] = [
   { id: "mango-seed-1", displayName: "Sarah H.", amountUsd: 5000, frequency: "monthly", relativeTime: "18 minutes ago" },

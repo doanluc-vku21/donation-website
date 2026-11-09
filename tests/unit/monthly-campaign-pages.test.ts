@@ -39,7 +39,7 @@ beforeEach(() => {
 });
 
 describe("monthly campaign entry routes", () => {
-  it("loads the mango seller's own accounting and CMS document while keeping its existing options", async () => {
+  it("loads the mango seller's own accounting and CMS document with the requested one-time gifts", async () => {
     mocks.beneficiary.mockResolvedValue({ ...original, _id: "mango-content", slug: "help-mango-seller", story: [] });
     const result = await MangoSellerPage();
     expect(mocks.campaign).toHaveBeenCalledWith("help-mango-seller");
@@ -55,8 +55,25 @@ describe("monthly campaign entry routes", () => {
     expect(result.props.campaign.raisedAmountUsd).toBe(sampleCampaign.raisedAmountUsd + MANGO_SELLER_BASE_RAISED_USD);
     expect(result.props.campaign.donorCount).toBe(sampleCampaign.donorCount + MANGO_SELLER_SEED_DONATIONS.length);
     expect(result.props.campaign.recentDonations).toEqual([...sampleCampaign.recentDonations, ...MANGO_SELLER_SEED_DONATIONS]);
-    expect(result.props.campaign.donationOptions).toEqual(sampleCampaign.donationOptions.filter(option => option.amountUsd >= 2500));
+    expect(result.props.campaign.donationOptions).toEqual([
+      { amountUsd: 2000, frequency: "one_time", featured: false, impactText: "" },
+      { amountUsd: 5000, frequency: "one_time", featured: true, impactText: "" },
+      { amountUsd: 7500, frequency: "one_time", featured: false, impactText: "" },
+    ]);
     expect(mocks.supporters).not.toHaveBeenCalled();
+  });
+
+  it("retains the mango seller's monthly gifts with $20 as the starting tier while replacing one-time presets", async () => {
+    const monthlyOptions = [2500, 5000, 10000].map(amountUsd => ({
+      amountUsd, frequency: "monthly" as const, featured: amountUsd === 5000, impactText: "Monthly support",
+    }));
+    const campaign = { ...sampleCampaign, donationOptions: [...sampleCampaign.donationOptions, ...monthlyOptions] };
+    mocks.campaign.mockResolvedValue(campaign);
+    const result = await MangoSellerPage();
+    const donationOptions: Campaign["donationOptions"] = result.props.campaign.donationOptions;
+    expect(donationOptions.filter(option => option.frequency === "monthly").map(option => option.amountUsd)).toEqual([2000, 5000, 10000]);
+    expect(donationOptions.filter(option => option.frequency === "one_time").map(option => option.amountUsd)).toEqual([2000, 5000, 7500]);
+    expect(campaign.donationOptions).toEqual([...sampleCampaign.donationOptions, ...monthlyOptions]);
   });
 
   it("gives the new page its own headline, description and canonical URL in link previews", async () => {

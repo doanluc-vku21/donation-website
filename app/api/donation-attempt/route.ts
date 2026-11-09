@@ -14,12 +14,27 @@ import {
 import { saveDonationAttempt, type DonationAttemptBody } from "@/lib/donation-attempt";
 
 type AttachAttemptBody = {
-  attemptId:
-    string;
+  attemptId?:
+    string | null;
 
   stripeCheckoutSessionId:
     string;
+
+  donor?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    displayPublicly?: boolean;
+  };
 };
+
+function buildPublicDisplayName(firstName: string, lastName: string) {
+  const first = firstName.trim();
+  const last = lastName.trim();
+  if (!first) return "";
+  if (!last) return first;
+  return `${first} ${last.charAt(0)}.`;
+}
 
 export const runtime =
   "nodejs";
@@ -49,9 +64,14 @@ export async function PATCH(
       body.stripeCheckoutSessionId
         ?.trim();
 
+    const bodyFirstName = body.donor?.firstName?.trim() ?? "";
+    const bodyLastName = body.donor?.lastName?.trim() ?? "";
+    const bodyEmail = body.donor?.email?.trim().toLowerCase() ?? "";
+    const hasBodyDonor = Boolean(bodyFirstName || bodyLastName || bodyEmail);
+
     if (
-      !attemptId ||
-      !stripeCheckoutSessionId
+      !stripeCheckoutSessionId ||
+      (!attemptId && !hasBodyDonor)
     ) {
       return NextResponse.json(
         {
@@ -64,58 +84,84 @@ export async function PATCH(
       );
     }
 
-    const {
-      data:
-        attempt,
-      error:
-        attemptError,
-    } =
-      await supabaseAdmin
-        .from(
-          "donation_attempts",
-        )
-        .select(
-          `
-            id,
-            status
-          `,
-        )
-        .eq(
-          "id",
-          attemptId,
-        )
-        .maybeSingle();
+    let attempt: {
+      id: string;
+      status: string;
+      email?: string | null;
+      first_name?: string | null;
+      last_name?: string | null;
+    } | null = null;
 
-    if (
-      attemptError
-    ) {
-      console.error(
-        "Donation attempt attach lookup error:",
-        attemptError,
-      );
+    if (attemptId) {
+      const {
+        data:
+          attemptData,
+        error:
+          attemptError,
+      } =
+        await supabaseAdmin
+          .from(
+            "donation_attempts",
+          )
+          .select(
+            `
+              id,
+              status,
+              email,
+              first_name,
+              last_name
+            `,
+          )
+          .eq(
+            "id",
+            attemptId,
+          )
+          .maybeSingle();
 
-      return NextResponse.json(
-        {
-          error:
-            "Unable to load donation attempt.",
-        },
-        {
-          status: 500,
-        },
-      );
+      if (
+        attemptError
+      ) {
+        console.error(
+          "Donation attempt attach lookup error:",
+          attemptError,
+        );
+
+        return NextResponse.json(
+          {
+            error:
+              "Unable to load donation attempt.",
+          },
+          {
+            status: 500,
+          },
+        );
+      }
+
+      if (!attemptData) {
+        return NextResponse.json(
+          {
+            error:
+              "Donation attempt was not found.",
+          },
+          {
+            status: 404,
+          },
+        );
+      }
+
+      attempt = attemptData;
     }
 
-    if (!attempt) {
-      return NextResponse.json(
-        {
-          error:
-            "Donation attempt was not found.",
-        },
-        {
-          status: 404,
-        },
-      );
-    }
+    const donorFirstName = (bodyFirstName || attempt?.first_name || "").trim();
+    const donorLastName = (bodyLastName || attempt?.last_name || "").trim();
+    const candidateEmail = (bodyEmail || attempt?.email || "").trim().toLowerCase();
+    const donorEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidateEmail) ? candidateEmail : "";
+    const isAnonymous = typeof body.donor?.displayPublicly === "boolean"
+      ? !body.donor.displayPublicly
+      : undefined;
+    const displayName = isAnonymous === true
+      ? "Anonymous"
+      : buildPublicDisplayName(donorFirstName, donorLastName);
 
     await stripe.checkout
       .sessions.update(
@@ -126,56 +172,63 @@ export async function PATCH(
             // which could erase the webhook's delivery marker during a race.
             ...captureMetaRequest(request),
 
-            donation_attempt_id:
-              attemptId,
+            ...(attemptId ? { donation_attempt_id: attemptId } : {}),
+            ...(donorFirstName ? { donor_first_name: donorFirstName } : {}),
+            ...(donorLastName ? { donor_last_name: donorLastName } : {}),
+            ...(donorEmail ? { donor_email: donorEmail } : {}),
+            ...(displayName ? { display_name: displayName } : {}),
+            ...(isAnonymous !== undefined ? { is_anonymous: isAnonymous ? "true" : "false" } : {}),
           },
         },
       );
 
-    const {
-      error:
-        updateError,
-    } =
-      await supabaseAdmin
-        .from(
-          "donation_attempts",
-        )
-        .update({
-          stripe_checkout_session_id:
-            stripeCheckoutSessionId,
+    if (attemptId) {
+      const {
+        error:
+          updateError,
+      } =
+        await supabaseAdmin
+          .from(
+            "donation_attempts",
+          )
+          .update({
+            stripe_checkout_session_id:
+              stripeCheckoutSessionId,
 
-          updated_at:
-            new Date().toISOString(),
-        })
-        .eq(
-          "id",
-          attemptId,
+            updated_at:
+              new Date().toISOString(),
+          })
+          .eq(
+            "id",
+            attemptId,
+          );
+
+      if (
+        updateError
+      ) {
+        console.error(
+          "Donation attempt Stripe attach database error:",
+          updateError,
         );
 
-    if (
-      updateError
-    ) {
-      console.error(
-        "Donation attempt Stripe attach database error:",
-        updateError,
-      );
-
-      return NextResponse.json(
-        {
-          error:
-            "Unable to attach checkout session to donation attempt.",
-        },
-        {
-          status: 500,
-        },
-      );
+        return NextResponse.json(
+          {
+            error:
+              "Unable to attach checkout session to donation attempt.",
+          },
+          {
+            status: 500,
+          },
+        );
+      }
     }
 
     return NextResponse.json({
       success:
         true,
 
-      attemptId,
+      attemptId:
+        attemptId ?? null,
 
       stripeCheckoutSessionId,
     });

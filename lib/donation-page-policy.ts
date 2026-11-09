@@ -1,7 +1,7 @@
 import type { DonationFrequency } from "@/lib/sample-data";
 
 export function getDonationPageMinimumUsdCents(pathname: string | null | undefined, frequency: DonationFrequency = "one_time"): number {
-  if (pathname === "/help-mango-seller") return 2000;
+  if (pathname === "/help-mango-seller" || pathname === "/help-street-vendor") return 2000;
   if (isStandardUpsellDonationPage(pathname)) {
     return frequency === "monthly" ? 2000 : 2500;
   }

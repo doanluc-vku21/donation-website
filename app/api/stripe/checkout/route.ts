@@ -63,6 +63,12 @@ type ExpressCheckoutBody = {
 
   displayPublicly:
     boolean;
+
+  donor?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
 };
 
 type StripeSupportedLocale =
@@ -511,16 +517,26 @@ export async function POST(
       frequency,
 
       donor_first_name:
+        body.donor?.firstName?.trim() ??
         "",
 
       donor_last_name:
+        body.donor?.lastName?.trim() ??
         "",
 
       donor_email:
-        "",
+        (() => {
+          const email = body.donor?.email?.trim().toLowerCase() ?? "";
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
+        })(),
 
       display_name:
-        "",
+        (() => {
+          const first = body.donor?.firstName?.trim() ?? "";
+          const last = body.donor?.lastName?.trim() ?? "";
+          if (!first) return "";
+          return !displayPublicly ? "Anonymous" : last ? `${first} ${last.charAt(0)}.` : first;
+        })(),
 
       is_anonymous:
         displayPublicly

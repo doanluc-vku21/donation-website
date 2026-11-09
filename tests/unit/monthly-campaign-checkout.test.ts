@@ -41,7 +41,7 @@ describe.each([["card", cardCheckout], ["wallet", walletCheckout]] as const)("mo
   ))("keeps $slug $frequency payments separate with the same amount and fee behavior", async ({ slug, frequency }) => {
     const page = { campaignSlug: slug, campaignPath: `/${slug}` };
     const campaignId = `campaign-${slug}`;
-    const minimum = slug === "help-mango-seller" || frequency === "monthly" ? 1600 : 2000;
+    const minimum = 1600;
     expect((await checkout(request(page, { campaignId, frequency, amountCents: minimum - 1, currency: "GBP" }))).status).toBe(400);
     expect(mocks.create).not.toHaveBeenCalled();
     const response = await checkout(request(page, { campaignId, frequency, amountCents: 3333, currency: "GBP", coverFee: true }));
@@ -90,11 +90,11 @@ describe.each([["card", cardCheckout], ["wallet", walletCheckout]] as const)("mo
     }
   });
 
-  it("does not apply the mango minimum when another campaign supplies its page URL", async () => {
-    const result = await checkout(request({ campaignSlug: "help-street-vendor", campaignPath: "/help-mango-seller" },
-      { frequency: "one_time", amountCents: 2000 }));
+  it.each(["help-mango-seller", "help-street-vendor"])("does not allow %s to bypass its $20 minimum by supplying another page URL", async (campaignSlug) => {
+    const result = await checkout(request({ campaignSlug, campaignPath: "/akram-shake" },
+      { frequency: "one_time", amountCents: 1000 }));
     expect(result.status).toBe(400);
-    expect(await result.json()).toEqual({ error: "Minimum donation is $25 or its equivalent in the selected currency." });
+    expect(await result.json()).toEqual({ error: "Minimum donation is $20 or its equivalent in the selected currency." });
     expect(mocks.create).not.toHaveBeenCalled();
   });
 

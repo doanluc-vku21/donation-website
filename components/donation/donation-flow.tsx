@@ -2111,6 +2111,16 @@ function resetCheckoutSession() {
 
                 !isAnonymous,
 
+              ...((firstName.trim() || lastName.trim() || email.trim())
+                ? {
+                    donor: {
+                      firstName: firstName.trim(),
+                      lastName: lastName.trim(),
+                      email: email.trim().toLowerCase(),
+                    },
+                  }
+                : {}),
+
             },
 
           ),
@@ -2591,6 +2601,10 @@ function resetCheckoutSession() {
 
         .toLowerCase(),
 
+      firstName.trim(),
+
+      lastName.trim(),
+
       amount,
 
       currency,
@@ -2777,9 +2791,16 @@ function resetCheckoutSession() {
 
   ) {
 
+    const trimmedFirstName = firstName.trim();
+    const trimmedLastName = lastName.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+
     if (
 
-      !donationAttemptId
+      !donationAttemptId &&
+      !trimmedFirstName &&
+      !trimmedLastName &&
+      !trimmedEmail
 
     ) {
 
@@ -2791,7 +2812,7 @@ function resetCheckoutSession() {
 
     const response =
 
-      await fetch(
+      await metaCheckoutFetch(
 
         "/api/donation-attempt",
 
@@ -2815,11 +2836,16 @@ function resetCheckoutSession() {
 
               {
 
-                attemptId:
-
-                  donationAttemptId,
+                ...(donationAttemptId ? { attemptId: donationAttemptId } : {}),
 
                 stripeCheckoutSessionId,
+
+                donor: {
+                  firstName: trimmedFirstName,
+                  lastName: trimmedLastName,
+                  email: trimmedEmail,
+                  displayPublicly: !isAnonymous,
+                },
 
               },
 
@@ -3376,6 +3402,18 @@ function resetCheckoutSession() {
        * Stripe metadata work no longer delays the payment UI.
        */
       void ensureDonationAttempt()
+
+        .catch(
+          (
+            attemptError,
+          ) => {
+            console.error(
+              "Unable to save donation attempt in background:",
+              attemptError,
+            );
+            return null;
+          },
+        )
 
         .then(
 

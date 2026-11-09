@@ -7,6 +7,7 @@ import { getLocale } from "@/lib/i18n-server";
 import {
   localizeMangoSellerCampaign,
   MANGO_SELLER_BASE_RAISED_USD,
+  MANGO_SELLER_ONE_TIME_DONATION_OPTIONS,
   MANGO_SELLER_SEED_DONATIONS,
   MANGO_SELLER_SLUG,
 } from "@/lib/mango-seller-campaign";
@@ -41,7 +42,12 @@ export default async function MangoSellerPage() {
         raisedAmountUsd: campaign.raisedAmountUsd + MANGO_SELLER_BASE_RAISED_USD,
         donorCount: campaign.donorCount + MANGO_SELLER_SEED_DONATIONS.length,
         recentDonations: [...campaign.recentDonations, ...MANGO_SELLER_SEED_DONATIONS],
-        donationOptions: campaign.donationOptions.filter(option => option.amountUsd >= 2500),
+        donationOptions: [
+          ...campaign.donationOptions
+            .filter(option => option.frequency === "monthly" && option.amountUsd >= 2000)
+            .map(option => option.amountUsd === 2500 ? { ...option, amountUsd: 2000 } : option),
+          ...MANGO_SELLER_ONE_TIME_DONATION_OPTIONS,
+        ],
       }}
       content={content}
       showDonationTimes={false}

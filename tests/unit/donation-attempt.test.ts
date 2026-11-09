@@ -4,12 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   from: vi.fn(), select: vi.fn(), eq: vi.fn(), ilike: vi.fn(), is: vi.fn(), gte: vi.fn(),
   order: vi.fn(), limit: vi.fn(), maybeSingle: vi.fn(), insert: vi.fn(), update: vi.fn(), single: vi.fn(),
+  stripeUpdate: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/admin", () => ({ supabaseAdmin: { from: mocks.from } }));
-vi.mock("@/lib/stripe/server", () => ({ stripe: {} }));
+vi.mock("@/lib/stripe/server", () => ({ stripe: { checkout: { sessions: { update: mocks.stripeUpdate } } } }));
 import { saveDonationAttempt } from "@/lib/donation-attempt";
-import { POST } from "@/app/api/donation-attempt/route";
+import { PATCH, POST } from "@/app/api/donation-attempt/route";
+import { buildMetaUserData } from "@/lib/meta/server";
 
 const body = { campaignId: "campaign-unit", campaignSlug: "akram-shake", campaignPath: "/akram-shake-1",
   email: " Unit@Example.com ", firstName: "", lastName: "", amountCents: 2500, currency: "USD" as const, frequency: "monthly" as const };
@@ -72,5 +74,63 @@ describe("shared donation-attempt persistence", () => {
       .mockResolvedValueOnce({ data: null, error: { code: "unit" } });
     expect((await saveDonationAttempt(body)).status).toBe(500);
     expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
+  it("writes donor first name, last name, email, and display name to Stripe Session metadata on PATCH so Meta CAPI receives em/fn/ln", async () => {
+    mocks.maybeSingle.mockReset().mockResolvedValueOnce({
+      data: {
+        id: "attempt-unit",
+        status: "pending",
+        email: "jane@example.com",
+        first_name: "Jane",
+        last_name: "Doe",
+      },
+      error: null,
+    });
+    mocks.stripeUpdate.mockResolvedValue({});
+
+    const response = await PATCH(new Request("https://example.org/api/donation-attempt", {
+      method: "PATCH",
+      headers: {
+        cookie: "_fbp=fb.1.1700000000000.12345",
+        "user-agent": "unit-browser",
+      },
+      body: JSON.stringify({
+        attemptId: "attempt-unit",
+        stripeCheckoutSessionId: "cs_card_embedded",
+        donor: { firstName: "Jane", lastName: "Doe", email: "jane@example.com", displayPublicly: true },
+      }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(mocks.stripeUpdate).toHaveBeenCalledWith("cs_card_embedded", {
+      metadata: expect.objectContaining({
+        donation_attempt_id: "attempt-unit",
+        donor_first_name: "Jane",
+        donor_last_name: "Doe",
+        donor_email: "jane@example.com",
+        display_name: "Jane D.",
+        is_anonymous: "false",
+        meta_fbp: "fb.1.1700000000000.12345",
+        meta_user_agent: "unit-browser",
+      }),
+    });
+
+    const updatedMetadata = mocks.stripeUpdate.mock.calls[0][1].metadata;
+    const metaUserData = buildMetaUserData({
+      id: "cs_card_embedded",
+      payment_status: "paid",
+      amount_total: 2000,
+      currency: "usd",
+      livemode: true,
+      metadata: updatedMetadata,
+    } as never);
+    expect(metaUserData).toMatchObject({
+      em: [expect.stringMatching(/^[a-f0-9]{64}$/)],
+      fn: [expect.stringMatching(/^[a-f0-9]{64}$/)],
+      ln: [expect.stringMatching(/^[a-f0-9]{64}$/)],
+      fbp: "fb.1.1700000000000.12345",
+      client_user_agent: "unit-browser",
+    });
   });
 });

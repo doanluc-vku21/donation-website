@@ -10,8 +10,10 @@ import { getCampaignBySlug } from "@/lib/queries/campaigns";
 import {
   localizeStreetVendorCampaign,
   STREET_VENDOR_BASE_RAISED_USD,
+  STREET_VENDOR_HISTORICAL_DONOR_COUNT,
   STREET_VENDOR_SEED_DONATIONS,
   STREET_VENDOR_SLUG,
+  withStreetVendorDonationOptions,
 } from "@/lib/street-vendor-campaign";
 
 export const dynamic = "force-dynamic";
@@ -32,9 +34,9 @@ export default async function StreetVendorPage() {
   ]);
   if (!campaign) notFound();
 
-  // The owner confirmed roughly 700–800 historical/offline donors. Show a
-  // conservative lower bound separately from displayed records and totals.
-  const donorSummary = <HistoricalDonorSummary minimumDonorCount={700} locale={locale} />;
+  const totalDonorCount =
+    campaign.donorCount + STREET_VENDOR_HISTORICAL_DONOR_COUNT + STREET_VENDOR_SEED_DONATIONS.length;
+  const donorSummary = <HistoricalDonorSummary donorCount={totalDonorCount} locale={locale} />;
 
   return (
     <CampaignPage
@@ -44,14 +46,15 @@ export default async function StreetVendorPage() {
         summary: content.summary ?? "",
         organizationName: "MEAL SUPPORT INC",
         raisedAmountUsd: campaign.raisedAmountUsd + STREET_VENDOR_BASE_RAISED_USD,
-        donorCount: campaign.donorCount + STREET_VENDOR_SEED_DONATIONS.length,
+        donorCount: totalDonorCount,
         recentDonations: [...campaign.recentDonations, ...STREET_VENDOR_SEED_DONATIONS],
+        donationOptions: withStreetVendorDonationOptions(campaign.donationOptions),
       }}
       content={content}
       donorSummary={donorSummary}
       compactHeadline
       mobileHeroObjectPosition="center 15%"
-      showDonationTimes={false}
+      showDonationTimes
       showOneTimeLabels
       showOrganizationCharityStatus
       showOrganizationVerification

@@ -1,11 +1,16 @@
 import type { PortableTextBlock } from "@portabletext/react";
 import { locales, type Locale } from "@/lib/i18n";
 import { localizeCampaign } from "@/lib/localize-campaign";
-import type { RecentDonation } from "@/lib/sample-data";
+import type { DonationOption, RecentDonation } from "@/lib/sample-data";
 import type { SanityCampaign } from "@/sanity/types/campaign";
 
 export const STREET_VENDOR_SLUG = "help-street-vendor";
 export const STREET_VENDOR_GOAL_USD_CENTS = 250_000;
+export const STREET_VENDOR_HISTORICAL_DONOR_COUNT = 724;
+
+export function withStreetVendorDonationOptions(options: DonationOption[]): DonationOption[] {
+  return options.map(option => option.amountUsd === 2500 ? { ...option, amountUsd: 2000 } : option);
+}
 
 export const STREET_VENDOR_SEED_DONATIONS: RecentDonation[] = [
   { id: "street-vendor-seed-1", displayName: "Marcus T.", amountUsd: 5000, frequency: "monthly", relativeTime: "14 minutes ago" },
