@@ -8,7 +8,7 @@ export const STREET_VENDOR_GOAL_USD_CENTS = 250_000;
 
 type StreetVendorCopy = {
   title: string;
-  paragraphs: [string, string, string];
+  paragraphs: [string, string, string, string, string];
   storyEyebrow: string;
   storyHeading: string;
   fundTitle: string;
@@ -16,18 +16,20 @@ type StreetVendorCopy = {
   fundItems: [string, string][];
 };
 
-// Initial draft uses only the supplied headline's facts. A verified biography,
-// medical needs and a monthly support target have not been supplied.
+// Story and monthly support target supplied by the campaign owner. The monthly
+// support message is separate from the campaign's fundraising progress goal.
 const copy: Record<Locale, StreetVendorCopy> = {
   en: {
     title: "❤️ He Works Hard Every Day to Support His Family. Now It’s Our Turn to Help Him.",
     paragraphs: [
-      "He works hard every day to support his family. Now, we have an opportunity to stand beside him and offer our support.",
-      "Meal Support Inc is bringing people together to help him and his family. Your kindness can make a difference.",
-      "❤️ Give once or become a monthly supporter to help him and his family look toward the future with hope.",
+      "Despite living with a physical disability, he continues working hard on the streets to earn a living and provide for his family. Every day brings new challenges, but his determination to keep going is inspiring.",
+      "Supporting his family is not easy. From putting food on the table to covering household expenses and essential daily needs, he faces financial struggles that no family should have to endure alone.",
+      "❤️ Our Goal: $3,000 in Monthly Support",
+      "Meal Support Inc is raising funds with the goal of providing him with $3,000 every month to help cover food, housing, medical care, and essential family expenses.",
+      "❤️ Your monthly donation can help ease his financial burden, provide greater stability for his family, and give them hope for a brighter future.",
     ],
     storyEyebrow: "THE STORY BEHIND OUR MISSION",
-    storyHeading: "Why He Deserves Our Support ❤️",
+    storyHeading: "Why He Needs Our Support ❤️",
     fundTitle: "How Your Donation Will Help",
     fundSubtitle: "Your kindness can support him and his family.",
     fundItems: [
@@ -38,12 +40,14 @@ const copy: Record<Locale, StreetVendorCopy> = {
   fr: {
     title: "❤️ Il travaille dur chaque jour pour faire vivre sa famille. À notre tour de l’aider.",
     paragraphs: [
-      "Il travaille dur chaque jour pour faire vivre sa famille. Aujourd’hui, nous pouvons être à ses côtés et lui apporter notre soutien.",
-      "Meal Support Inc rassemble des personnes pour l’aider, lui et sa famille. Votre générosité peut faire la différence.",
-      "❤️ Faites un don ponctuel ou devenez un soutien mensuel pour l’aider, lui et sa famille, à envisager l’avenir avec espoir.",
+      "Malgré son handicap physique, il continue de travailler dur dans la rue pour gagner sa vie et subvenir aux besoins de sa famille. Chaque jour apporte de nouveaux défis, mais sa détermination à aller de l’avant est inspirante.",
+      "Subvenir aux besoins de sa famille n’est pas facile. Qu’il s’agisse de mettre de la nourriture sur la table, de payer les dépenses du foyer ou de répondre aux besoins essentiels du quotidien, il fait face à des difficultés financières qu’aucune famille ne devrait avoir à affronter seule.",
+      "❤️ Notre objectif : 3 000 $ US de soutien mensuel",
+      "Meal Support Inc collecte des fonds dans le but de lui apporter 3 000 $ US chaque mois pour contribuer à couvrir la nourriture, le logement, les soins médicaux et les dépenses essentielles de sa famille.",
+      "❤️ Votre don mensuel peut alléger sa charge financière, offrir davantage de stabilité à sa famille et lui donner l’espoir d’un avenir meilleur.",
     ],
     storyEyebrow: "L’HISTOIRE DERRIÈRE NOTRE MISSION",
-    storyHeading: "Pourquoi il mérite notre soutien ❤️",
+    storyHeading: "Pourquoi il a besoin de notre soutien ❤️",
     fundTitle: "Comment votre don aidera",
     fundSubtitle: "Votre générosité peut le soutenir, lui et sa famille.",
     fundItems: [
@@ -54,12 +58,14 @@ const copy: Record<Locale, StreetVendorCopy> = {
   de: {
     title: "❤️ Er arbeitet jeden Tag hart, um seine Familie zu versorgen. Jetzt sind wir an der Reihe, ihm zu helfen.",
     paragraphs: [
-      "Er arbeitet jeden Tag hart, um seine Familie zu versorgen. Jetzt haben wir die Gelegenheit, ihm zur Seite zu stehen und ihn zu unterstützen.",
-      "Meal Support Inc bringt Menschen zusammen, um ihm und seiner Familie zu helfen. Ihre Großzügigkeit kann etwas bewirken.",
-      "❤️ Spenden Sie einmalig oder unterstützen Sie ihn monatlich, damit er und seine Familie hoffnungsvoll in die Zukunft blicken können.",
+      "Trotz einer körperlichen Behinderung arbeitet er weiterhin hart auf der Straße, um seinen Lebensunterhalt zu verdienen und seine Familie zu versorgen. Jeder Tag bringt neue Herausforderungen mit sich, doch seine Entschlossenheit, weiterzumachen, ist inspirierend.",
+      "Seine Familie zu versorgen, ist nicht einfach. Ob es darum geht, Essen auf den Tisch zu bringen, Haushaltskosten zu decken oder den täglichen Grundbedarf zu sichern: Er steht vor finanziellen Schwierigkeiten, die keine Familie allein bewältigen sollte.",
+      "❤️ Unser Ziel: 3.000 US-Dollar monatliche Unterstützung",
+      "Meal Support Inc sammelt Spenden mit dem Ziel, ihn jeden Monat mit 3.000 US-Dollar zu unterstützen, um Lebensmittel, Wohnraum, medizinische Versorgung und grundlegende Ausgaben seiner Familie mitzufinanzieren.",
+      "❤️ Ihre monatliche Spende kann seine finanzielle Belastung lindern, seiner Familie mehr Stabilität geben und ihr Hoffnung auf eine bessere Zukunft schenken.",
     ],
     storyEyebrow: "DIE GESCHICHTE HINTER UNSERER MISSION",
-    storyHeading: "Warum er unsere Unterstützung verdient ❤️",
+    storyHeading: "Warum er unsere Unterstützung braucht ❤️",
     fundTitle: "So hilft Ihre Spende",
     fundSubtitle: "Ihre Großzügigkeit kann ihn und seine Familie unterstützen.",
     fundItems: [
@@ -70,12 +76,14 @@ const copy: Record<Locale, StreetVendorCopy> = {
   es: {
     title: "❤️ Trabaja duro cada día para mantener a su familia. Ahora nos toca ayudarlo a él.",
     paragraphs: [
-      "Trabaja duro cada día para mantener a su familia. Ahora tenemos la oportunidad de acompañarlo y ofrecerle nuestro apoyo.",
-      "Meal Support Inc reúne a personas para ayudarlo a él y a su familia. Tu generosidad puede marcar la diferencia.",
-      "❤️ Haz una donación única o conviértete en colaborador mensual para ayudarlo a él y a su familia a mirar al futuro con esperanza.",
+      "A pesar de vivir con una discapacidad física, sigue trabajando duro en la calle para ganarse la vida y mantener a su familia. Cada día trae nuevos desafíos, pero su determinación para seguir adelante es inspiradora.",
+      "Mantener a su familia no es fácil. Desde poner comida en la mesa hasta cubrir los gastos del hogar y las necesidades básicas del día a día, se enfrenta a dificultades económicas que ninguna familia debería tener que afrontar sola.",
+      "❤️ Nuestro objetivo: 3.000 USD de apoyo mensual",
+      "Meal Support Inc está recaudando fondos con el objetivo de proporcionarle 3.000 USD cada mes para ayudar a cubrir alimentos, vivienda, atención médica y gastos esenciales de su familia.",
+      "❤️ Tu donación mensual puede aliviar su carga económica, brindar mayor estabilidad a su familia y darles esperanza de un futuro mejor.",
     ],
     storyEyebrow: "LA HISTORIA DETRÁS DE NUESTRA MISIÓN",
-    storyHeading: "Por qué merece nuestro apoyo ❤️",
+    storyHeading: "Por qué necesita nuestro apoyo ❤️",
     fundTitle: "Cómo ayudará tu donación",
     fundSubtitle: "Tu generosidad puede apoyarlo a él y a su familia.",
     fundItems: [
@@ -86,12 +94,14 @@ const copy: Record<Locale, StreetVendorCopy> = {
   ar: {
     title: "❤️ يعمل بجد كل يوم لإعالة أسرته. والآن حان دورنا لمساعدته.",
     paragraphs: [
-      "يعمل بجد كل يوم لإعالة أسرته. واليوم، لدينا فرصة للوقوف إلى جانبه وتقديم دعمنا له.",
-      "تجمع Meal Support Inc الناس لمساعدته هو وأسرته. يمكن لكرمك أن يُحدث فرقًا.",
-      "❤️ تبرع لمرة واحدة أو كن داعمًا شهريًا لمساعدته هو وأسرته على التطلع إلى المستقبل بأمل.",
+      "رغم إعاقته الجسدية، يواصل العمل بجد في الشوارع لكسب رزقه وإعالة أسرته. يحمل كل يوم تحديات جديدة، لكن إصراره على الاستمرار مصدر إلهام.",
+      "إعالة أسرته ليست سهلة. فمن توفير الطعام إلى تغطية نفقات المنزل والاحتياجات اليومية الأساسية، يواجه صعوبات مالية لا ينبغي لأي أسرة أن تواجهها وحدها.",
+      "❤️ هدفنا: 3,000 دولار أمريكي من الدعم الشهري",
+      "تجمع Meal Support Inc التبرعات بهدف تقديم 3,000 دولار أمريكي له كل شهر للمساعدة في تغطية الطعام والسكن والرعاية الطبية ونفقات الأسرة الأساسية.",
+      "❤️ يمكن لتبرعك الشهري أن يخفف أعباءه المالية، ويوفر مزيدًا من الاستقرار لأسرته، ويمنحهم الأمل في مستقبل أفضل.",
     ],
     storyEyebrow: "القصة وراء رسالتنا",
-    storyHeading: "لماذا يستحق دعمنا ❤️",
+    storyHeading: "لماذا يحتاج إلى دعمنا ❤️",
     fundTitle: "كيف سيساعد تبرعك",
     fundSubtitle: "يمكن لكرمك أن يدعمه هو وأسرته.",
     fundItems: [
@@ -104,7 +114,7 @@ const copy: Record<Locale, StreetVendorCopy> = {
 function storyBlocks(paragraphs: string[]): PortableTextBlock[] {
   return paragraphs.map((text, index) => ({
     _type: "block", _key: `street-vendor-story-${index}`, style: "normal", markDefs: [],
-    children: [{ _type: "span", _key: `street-vendor-text-${index}`, text, marks: [] }],
+    children: [{ _type: "span", _key: `street-vendor-text-${index}`, text, marks: index === 2 ? ["strong"] : [] }],
   }));
 }
 

@@ -100,3 +100,20 @@ is needed, restore that deployment in the same project and verify formal-domain
 readback. Deactivate only the new campaign if appropriate, retaining payment
 records. Follow Vercel's documented promotion behavior after rollback before
 resuming automatic domain assignment.
+
+## Owner-supplied story update
+
+After publication, the owner supplied replacement text for the circled story
+section. The heading is now “Why He Needs Our Support ❤️”, followed by the
+provided disability/family background, the bold “❤️ Our Goal: $3,000 in Monthly
+Support” line, the support allocation paragraph and the monthly donation appeal.
+The English body matches the supplied copy, with equivalent French, German,
+Spanish and Arabic translations. The existing Portable Text strong mark renders
+the monthly goal in bold; no shared story component or CMS schema change is
+needed.
+
+This is a story-only update. The separate campaign progress goal remains
+250,000 USD minor units ($2,500); payment presets, campaign identity and payment
+processing are unchanged. No database or CMS write is required. Lint with zero
+warnings, type checking and all 25 tests across the four relevant content,
+entry-page, provisioning and content-query files passed before publication.

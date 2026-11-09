@@ -7,12 +7,13 @@ import type { SanityCampaign } from "@/sanity/types/campaign";
 const original: SanityCampaign = { _id: "street-vendor-content", slug: STREET_VENDOR_SLUG, title: "Draft" };
 
 describe("street vendor campaign content", () => {
-  it.each(locales)("provides localized draft content and the supplied portrait in %s", locale => {
+  it.each(locales)("provides localized approved content and the supplied portrait in %s", locale => {
     const content = localizeStreetVendorCampaign(original, locale);
     expect(content.slug).toBe(STREET_VENDOR_SLUG);
     expect(content.title).not.toBe("Draft");
-    expect(content.story).toHaveLength(3);
-    expect(content.summary?.split("\n\n")).toHaveLength(3);
+    expect(content.story).toHaveLength(5);
+    expect(content.summary?.split("\n\n")).toHaveLength(5);
+    expect(content.story?.[2].children[0].marks).toEqual(["strong"]);
     expect(content.fundUsageItems).toHaveLength(2);
     expect(content.fundUsageItems?.every(item => item.title && item.description && item.amount == null)).toBe(true);
     expect(content.heroImage?.asset).toMatchObject({ url: "/street-vendor.jpg", metadata: { dimensions: { width: 589, height: 1280 } } });
@@ -21,10 +22,18 @@ describe("street vendor campaign content", () => {
     expect(original).toEqual({ _id: "street-vendor-content", slug: STREET_VENDOR_SLUG, title: "Draft" });
   });
 
-  it("keeps unverified disability, medical needs and old support promises out of the new English story", () => {
+  it("uses the supplied English story and monthly support goal without another beneficiary's background", () => {
     const content = localizeStreetVendorCampaign(original, "en");
     expect(content.title).toBe("❤️ He Works Hard Every Day to Support His Family. Now It’s Our Turn to Help Him.");
-    expect(JSON.stringify(content)).not.toMatch(/mango|disabil|medical|2,500|2500|Akram|Ryan/i);
+    expect(content.storyHeading).toBe("Why He Needs Our Support ❤️");
+    expect(content.story?.map(block => block.children.map(span => span.text).join(""))).toEqual([
+      "Despite living with a physical disability, he continues working hard on the streets to earn a living and provide for his family. Every day brings new challenges, but his determination to keep going is inspiring.",
+      "Supporting his family is not easy. From putting food on the table to covering household expenses and essential daily needs, he faces financial struggles that no family should have to endure alone.",
+      "❤️ Our Goal: $3,000 in Monthly Support",
+      "Meal Support Inc is raising funds with the goal of providing him with $3,000 every month to help cover food, housing, medical care, and essential family expenses.",
+      "❤️ Your monthly donation can help ease his financial burden, provide greater stability for his family, and give them hope for a brighter future.",
+    ]);
+    expect(JSON.stringify(content)).not.toMatch(/mango|2,500|2500|Akram|Ryan/i);
   });
 
   it("keeps separately authored CMS story, allocations, goal and media", () => {
