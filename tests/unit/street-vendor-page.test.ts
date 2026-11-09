@@ -10,6 +10,7 @@ vi.mock("@/lib/i18n-server", () => ({ getLocale: mocks.locale }));
 vi.mock("@/lib/currency-server", () => ({ getCurrencyContext: mocks.currency }));
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("not-found"); } }));
 import StreetVendorPage from "@/app/help-street-vendor/page";
+import { STREET_VENDOR_BASE_RAISED_USD, STREET_VENDOR_SEED_DONATIONS } from "@/lib/street-vendor-campaign";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -20,11 +21,19 @@ beforeEach(() => {
 });
 
 describe("street vendor entry page", () => {
-  it("uses independent accounting, database presets and the supplied photo without seed donations", async () => {
+  it("uses independent accounting, seed donations totaling $775, database presets and the supplied photo", async () => {
     const result = await StreetVendorPage();
     expect(mocks.campaign).toHaveBeenCalledExactlyOnceWith("help-street-vendor");
     expect(mocks.content).toHaveBeenCalledExactlyOnceWith("help-street-vendor");
-    expect(result.props.campaign).toMatchObject({ id: "street-vendor-id", slug: "help-street-vendor", raisedAmountUsd: 0, donorCount: 0, recentDonations: [], donationOptions: sampleCampaign.donationOptions });
+    expect(STREET_VENDOR_BASE_RAISED_USD).toBe(77_500);
+    expect(result.props.campaign).toMatchObject({
+      id: "street-vendor-id",
+      slug: "help-street-vendor",
+      raisedAmountUsd: STREET_VENDOR_BASE_RAISED_USD,
+      donorCount: STREET_VENDOR_SEED_DONATIONS.length,
+      recentDonations: STREET_VENDOR_SEED_DONATIONS,
+      donationOptions: sampleCampaign.donationOptions,
+    });
     expect(result.props.content.heroImage?.asset?.url).toBe("/street-vendor.jpg");
     expect(result.props).toMatchObject({ expandStory: true, showSummary: false, showOneTimeLabels: true, mobileHeroObjectPosition: "center 15%" });
   });

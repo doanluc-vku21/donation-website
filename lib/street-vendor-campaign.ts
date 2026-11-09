@@ -1,10 +1,37 @@
 import type { PortableTextBlock } from "@portabletext/react";
 import { locales, type Locale } from "@/lib/i18n";
 import { localizeCampaign } from "@/lib/localize-campaign";
+import type { RecentDonation } from "@/lib/sample-data";
 import type { SanityCampaign } from "@/sanity/types/campaign";
 
 export const STREET_VENDOR_SLUG = "help-street-vendor";
 export const STREET_VENDOR_GOAL_USD_CENTS = 250_000;
+
+export const STREET_VENDOR_SEED_DONATIONS: RecentDonation[] = [
+  { id: "street-vendor-seed-1", displayName: "Marcus T.", amountUsd: 5000, frequency: "monthly", relativeTime: "14 minutes ago" },
+  { id: "street-vendor-seed-2", displayName: "Elena R.", amountUsd: 7500, frequency: "one_time", relativeTime: "36 minutes ago" },
+  { id: "street-vendor-seed-3", displayName: "Omar A.", amountUsd: 2500, frequency: "monthly", relativeTime: "1 hour ago" },
+  { id: "street-vendor-seed-4", displayName: "Sophia C.", amountUsd: 5000, frequency: "one_time", relativeTime: "2 hours ago" },
+  { id: "street-vendor-seed-5", displayName: "David K.", amountUsd: 2500, frequency: "monthly", relativeTime: "3 hours ago" },
+  { id: "street-vendor-seed-6", displayName: "Grace W.", amountUsd: 5000, frequency: "one_time", relativeTime: "4 hours ago" },
+  { id: "street-vendor-seed-7", displayName: "Hassan M.", amountUsd: 2500, frequency: "monthly", relativeTime: "5 hours ago" },
+  { id: "street-vendor-seed-8", displayName: "Julia B.", amountUsd: 10000, frequency: "one_time", relativeTime: "6 hours ago" },
+  { id: "street-vendor-seed-9", displayName: "Kevin L.", amountUsd: 2500, frequency: "one_time", relativeTime: "8 hours ago" },
+  { id: "street-vendor-seed-10", displayName: "Amina N.", amountUsd: 5000, frequency: "monthly", relativeTime: "9 hours ago" },
+  { id: "street-vendor-seed-11", displayName: "Paul S.", amountUsd: 2500, frequency: "one_time", relativeTime: "11 hours ago" },
+  { id: "street-vendor-seed-12", displayName: "Chloe D.", amountUsd: 5000, frequency: "monthly", relativeTime: "13 hours ago" },
+  { id: "street-vendor-seed-13", displayName: "Tariq Z.", amountUsd: 2500, frequency: "one_time", relativeTime: "15 hours ago" },
+  { id: "street-vendor-seed-14", displayName: "Natalie F.", amountUsd: 5000, frequency: "one_time", relativeTime: "18 hours ago" },
+  { id: "street-vendor-seed-15", displayName: "Victor H.", amountUsd: 2500, frequency: "monthly", relativeTime: "20 hours ago" },
+  { id: "street-vendor-seed-16", displayName: "Leila K.", amountUsd: 5000, frequency: "monthly", relativeTime: "1 day ago" },
+  { id: "street-vendor-seed-17", displayName: "Brian G.", amountUsd: 5000, frequency: "one_time", relativeTime: "1 day ago" },
+  { id: "street-vendor-seed-18", displayName: "Yasmine P.", amountUsd: 2500, frequency: "monthly", relativeTime: "2 days ago" },
+];
+
+export const STREET_VENDOR_BASE_RAISED_USD = STREET_VENDOR_SEED_DONATIONS.reduce(
+  (sum, donation) => sum + donation.amountUsd,
+  0,
+);
 
 type StreetVendorCopy = {
   title: string;

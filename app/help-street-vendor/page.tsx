@@ -6,7 +6,12 @@ import { getCurrencyContext } from "@/lib/currency-server";
 import { getLocale } from "@/lib/i18n-server";
 import { getBeneficiaryContent } from "@/lib/queries/beneficiary-content";
 import { getCampaignBySlug } from "@/lib/queries/campaigns";
-import { localizeStreetVendorCampaign, STREET_VENDOR_SLUG } from "@/lib/street-vendor-campaign";
+import {
+  localizeStreetVendorCampaign,
+  STREET_VENDOR_BASE_RAISED_USD,
+  STREET_VENDOR_SEED_DONATIONS,
+  STREET_VENDOR_SLUG,
+} from "@/lib/street-vendor-campaign";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -28,7 +33,15 @@ export default async function StreetVendorPage() {
 
   return (
     <CampaignPage
-      campaign={{ ...campaign, title: content.title, summary: content.summary ?? "", organizationName: "MEAL SUPPORT INC" }}
+      campaign={{
+        ...campaign,
+        title: content.title,
+        summary: content.summary ?? "",
+        organizationName: "MEAL SUPPORT INC",
+        raisedAmountUsd: campaign.raisedAmountUsd + STREET_VENDOR_BASE_RAISED_USD,
+        donorCount: campaign.donorCount + STREET_VENDOR_SEED_DONATIONS.length,
+        recentDonations: [...campaign.recentDonations, ...STREET_VENDOR_SEED_DONATIONS],
+      }}
       content={content}
       compactHeadline
       mobileHeroObjectPosition="center 15%"
