@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import {
   LockKeyhole,
 } from "lucide-react";
@@ -39,6 +41,7 @@ import { MonthlySupporterProgress } from "@/components/campaign/monthly-supporte
 import { RotatingDonationHint } from "@/components/campaign/recent-donation-rotation";
 
 type CampaignDonateCardProps = {
+  donorSummary?: ReactNode;
   campaign: Campaign;
   content: SanityCampaign;
   locale: Locale;
@@ -52,6 +55,7 @@ export function CampaignDonateCard({
   locale,
   currency,
   exchangeRate,
+  donorSummary,
 }: CampaignDonateCardProps) {
   const t =
     getUiTranslations(
@@ -170,6 +174,8 @@ export function CampaignDonateCard({
       </div>
 
       )}
+
+      {donorSummary ? <div className="mt-3">{donorSummary}</div> : null}
 
       <div className="mt-6">
         <DonationModalTrigger

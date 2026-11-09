@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { CampaignPage } from "@/components/campaign/campaign-page";
+import { HistoricalDonorSummary } from "@/components/campaign/historical-donor-summary";
 import { getCampaignMetadata } from "@/lib/campaign-metadata";
 import { getCurrencyContext } from "@/lib/currency-server";
 import { getLocale } from "@/lib/i18n-server";
@@ -31,6 +32,10 @@ export default async function StreetVendorPage() {
   ]);
   if (!campaign) notFound();
 
+  // The owner confirmed roughly 700–800 historical/offline donors. Show a
+  // conservative lower bound separately from recorded online accounting.
+  const donorSummary = <HistoricalDonorSummary minimumDonorCount={700} locale={locale} />;
+
   return (
     <CampaignPage
       campaign={{
@@ -43,6 +48,7 @@ export default async function StreetVendorPage() {
         recentDonations: [...campaign.recentDonations, ...STREET_VENDOR_SEED_DONATIONS],
       }}
       content={content}
+      donorSummary={donorSummary}
       compactHeadline
       mobileHeroObjectPosition="center 15%"
       showDonationTimes={false}

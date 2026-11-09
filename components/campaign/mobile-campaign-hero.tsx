@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import type { ReactNode } from "react";
 
 import {
   BadgeCheck,
@@ -43,6 +44,7 @@ import {
 } from "@/lib/money";
 
 type MobileCampaignHeroProps = {
+  donorSummary?: ReactNode;
   compactHeadline?: boolean;
   imageObjectPosition?: string;
   showOrganizationCharityStatus?: boolean;
@@ -64,6 +66,7 @@ export function MobileCampaignHero({
   showOrganizationVerification = true,
   imageObjectPosition,
   compactHeadline = false,
+  donorSummary,
 }: MobileCampaignHeroProps) {
   const t =
     getUiTranslations(
@@ -509,6 +512,8 @@ export function MobileCampaignHero({
         </div>
 
         )}
+
+        {donorSummary ? <div className="mt-3">{donorSummary}</div> : null}
 
         <div className="mt-3">
           <DonationModalTrigger

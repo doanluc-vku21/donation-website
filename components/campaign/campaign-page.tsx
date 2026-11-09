@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { ReactNode } from "react";
 
 import {
   Sparkles,
@@ -84,7 +85,9 @@ export function CampaignPage({
   expandStory = false,
   mobileHeroObjectPosition,
   compactHeadline = false,
+  donorSummary,
 }: {
+  donorSummary?: ReactNode;
   mobileHeroObjectPosition?: string;
   compactHeadline?: boolean;
   showSummary?: boolean;
@@ -233,6 +236,7 @@ export function CampaignPage({
         ====================================================== */}
 
         <MobileCampaignHero
+          donorSummary={donorSummary}
           compactHeadline={compactHeadline}
           imageObjectPosition={mobileHeroObjectPosition}
           showOrganizationCharityStatus={showOrganizationCharityStatus}
@@ -651,6 +655,7 @@ export function CampaignPage({
             "
           >
             <CampaignDonateCard
+              donorSummary={donorSummary}
               campaign={
                 campaignWithGoal
               }
