@@ -33,7 +33,7 @@ export default async function StreetVendorPage() {
   if (!campaign) notFound();
 
   // The owner confirmed roughly 700–800 historical/offline donors. Show a
-  // conservative lower bound separately from recorded online accounting.
+  // conservative lower bound separately from displayed records and totals.
   const donorSummary = <HistoricalDonorSummary minimumDonorCount={700} locale={locale} />;
 
   return (

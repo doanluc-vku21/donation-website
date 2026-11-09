@@ -4,23 +4,23 @@ import { getDirection, type Locale } from "@/lib/i18n";
 const copy: Record<Locale, { donors: string; note: string }> = {
   en: {
     donors: "donors",
-    note: "Includes organizer-reported historical and offline donations. The amount raised above counts online donations only.",
+    note: "Includes historical and offline donations reported by the organizer.",
   },
   fr: {
     donors: "donateurs",
-    note: "Inclut les dons historiques et hors ligne déclarés par l’organisateur. Le montant collecté ci-dessus concerne uniquement les dons en ligne.",
+    note: "Inclut les dons historiques et hors ligne déclarés par l’organisateur.",
   },
   de: {
     donors: "Spenderinnen und Spender",
-    note: "Enthält frühere und außerhalb dieser Website erfolgte Spenden laut Veranstalter. Der oben angezeigte Betrag umfasst nur Online-Spenden.",
+    note: "Enthält frühere und außerhalb dieser Website erfolgte Spenden laut Veranstalter.",
   },
   es: {
     donors: "donantes",
-    note: "Incluye donaciones anteriores y fuera de línea declaradas por el organizador. El importe recaudado arriba corresponde únicamente a donaciones en línea.",
+    note: "Incluye donaciones anteriores y fuera de línea declaradas por el organizador.",
   },
   ar: {
     donors: "متبرع",
-    note: "يشمل التبرعات السابقة وغير الإلكترونية بحسب إفادة المنظّم. المبلغ المحصّل أعلاه يشمل التبرعات الإلكترونية فقط.",
+    note: "يشمل التبرعات السابقة وغير الإلكترونية بحسب إفادة المنظّم.",
   },
 };
 
