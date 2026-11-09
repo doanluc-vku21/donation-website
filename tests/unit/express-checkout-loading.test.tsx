@@ -59,7 +59,7 @@ function response(id: string) {
 }
 
 describe("Apple Pay session loading", () => {
-  it.each(["/akram-shake-2", "/help-mango-seller"])("mirrors presets and applies separate monthly and one-time minimums on %s", async pathname => {
+  it.each(["/akram-shake-2", "/help-mango-seller", "/help-street-vendor"])("mirrors presets and applies separate monthly and one-time minimums on %s", async pathname => {
     navigation.pathname = pathname;
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response("cs_ryan")));
     mountModal(); openModal(); await advance(1);

@@ -3,10 +3,11 @@ import { isValidElement } from "react";
 import { sampleCampaign, type Campaign } from "@/lib/sample-data";
 import type { SanityCampaign } from "@/sanity/types/campaign";
 
-const mocks = vi.hoisted(() => ({ campaign: vi.fn(), content: vi.fn(), supporters: vi.fn() }));
+const mocks = vi.hoisted(() => ({ campaign: vi.fn(), content: vi.fn(), supporters: vi.fn(), beneficiary: vi.fn() }));
 vi.mock("@/components/campaign/campaign-page", () => ({ CampaignPage: () => null }));
 vi.mock("@/components/donation/donate-page", () => ({ DonatePage: () => null }));
 vi.mock("@/lib/queries/campaigns", () => ({ getCampaignBySlug: mocks.campaign }));
+vi.mock("@/lib/queries/beneficiary-content", () => ({ getBeneficiaryContent: mocks.beneficiary }));
 vi.mock("@/lib/queries/monthly-supporters", () => ({ getMonthlySupporters: mocks.supporters }));
 vi.mock("@/sanity/lib/client", () => ({ sanityClient: { fetch: mocks.content } }));
 vi.mock("@/lib/i18n-server", () => ({ getLocale: () => Promise.resolve("en") }));
@@ -33,15 +34,16 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.campaign.mockImplementation(async (slug: string) => ({ ...sampleCampaign, slug, id: `campaign-${slug}` }));
   mocks.content.mockResolvedValue(original);
+  mocks.beneficiary.mockResolvedValue(original);
   mocks.supporters.mockResolvedValue(Array.from({ length: 12 }, (_, index) => ({ ...sampleCampaign.recentDonations[1], id: String(index) })));
 });
 
 describe("monthly campaign entry routes", () => {
-  it("loads the mango seller's own accounting and CMS document while keeping the reference page's options", async () => {
-    mocks.content.mockResolvedValue({ ...original, _id: "mango-content", slug: "help-mango-seller", story: [] });
+  it("loads the mango seller's own accounting and CMS document while keeping its existing options", async () => {
+    mocks.beneficiary.mockResolvedValue({ ...original, _id: "mango-content", slug: "help-mango-seller", story: [] });
     const result = await MangoSellerPage();
     expect(mocks.campaign).toHaveBeenCalledWith("help-mango-seller");
-    expect(mocks.content).toHaveBeenCalledWith(expect.any(String), { slug: "help-mango-seller" }, { cache: "no-store" });
+    expect(mocks.beneficiary).toHaveBeenCalledWith("help-mango-seller");
     expect(result.props.campaign.id).toBe("campaign-help-mango-seller");
     expect(result.props.campaign.slug).toBe("help-mango-seller");
     expect(result.props.content.title).toBe("❤️ He Had So Little, Yet He Chose to Help Us. Now It’s Our Turn to Help Him.");
@@ -67,17 +69,17 @@ describe("monthly campaign entry routes", () => {
   it("does not fall back to the old accounting when the new campaign is absent", async () => {
     mocks.campaign.mockResolvedValue(null);
     await expect(MangoSellerPage()).rejects.toThrow("not-found");
-    expect(mocks.content).not.toHaveBeenCalled();
+    expect(mocks.beneficiary).toHaveBeenCalledWith("help-mango-seller");
   });
 
   it("serves the supplied portrait and approved copy without requiring CMS write access", async () => {
     mocks.campaign.mockResolvedValue({ ...sampleCampaign, slug: "help-mango-seller" });
-    mocks.content.mockResolvedValue(null);
+    mocks.beneficiary.mockResolvedValue({ _id: "help-mango-seller-page-content", slug: "help-mango-seller", title: "" });
     const result = await MangoSellerPage();
     expect(result.props.content.heroImage?.asset?.url).toBe("/mango-seller.jpg");
     expect(result.props.content.story?.[0].children[0].text).toMatch(/^Despite living with a disability/);
     expect(result.props.content.story?.[0].children[0].text).not.toContain("Akram");
-    expect(mocks.content).toHaveBeenCalledWith(expect.stringContaining("footerAbout"), { slug: "akram-shake" }, { cache: "no-store" });
+    expect(mocks.beneficiary).toHaveBeenCalledWith("help-mango-seller");
     const metadata = await generateMangoMetadata();
     expect(metadata.openGraph).toMatchObject({ images: [{ url: "https://donate.mealsupport.org/mango-seller.jpg" }] });
   });

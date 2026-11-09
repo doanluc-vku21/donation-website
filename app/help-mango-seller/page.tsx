@@ -11,26 +11,14 @@ import {
   MANGO_SELLER_SLUG,
 } from "@/lib/mango-seller-campaign";
 import { getCampaignBySlug } from "@/lib/queries/campaigns";
-import { sanityClient } from "@/sanity/lib/client";
-import { CAMPAIGN_BRANDING_QUERY, CAMPAIGN_QUERY } from "@/sanity/lib/queries";
-import type { SanityCampaign } from "@/sanity/types/campaign";
+import { getBeneficiaryContent } from "@/lib/queries/beneficiary-content";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const getContent = cache(async () => {
-  const content = await sanityClient.fetch<SanityCampaign | null>(
-    CAMPAIGN_QUERY, { slug: MANGO_SELLER_SLUG }, { cache: "no-store" },
-  );
-  const branding = content ? null : await sanityClient.fetch<Partial<SanityCampaign> | null>(
-    CAMPAIGN_BRANDING_QUERY, { slug: "akram-shake" }, { cache: "no-store" },
-  );
-  return localizeMangoSellerCampaign(content ?? {
-    ...branding,
-    _id: "mango-seller-page-content",
-    slug: MANGO_SELLER_SLUG,
-    title: "",
-  }, await getLocale());
+  const [content, locale] = await Promise.all([getBeneficiaryContent(MANGO_SELLER_SLUG), getLocale()]);
+  return localizeMangoSellerCampaign(content, locale);
 });
 
 export async function generateMetadata() {
@@ -40,12 +28,10 @@ export async function generateMetadata() {
 export default async function MangoSellerPage() {
   // Use this beneficiary's own campaign ID and totals, plus the supplied photo.
   // Shared organization branding cannot replace beneficiary content/accounting.
-  const campaign = await getCampaignBySlug(MANGO_SELLER_SLUG);
-  if (!campaign) notFound();
-
-  const [content, locale, { currency, exchangeRate }] = await Promise.all([
-    getContent(), getLocale(), getCurrencyContext(),
+  const [campaign, content, locale, { currency, exchangeRate }] = await Promise.all([
+    getCampaignBySlug(MANGO_SELLER_SLUG), getContent(), getLocale(), getCurrencyContext(),
   ]);
+  if (!campaign) notFound();
 
   return (
     <CampaignPage

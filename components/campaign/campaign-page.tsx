@@ -82,7 +82,9 @@ export function CampaignPage({
   showOrganizationVerification = true,
   showSummary = false,
   expandStory = false,
+  mobileHeroObjectPosition,
 }: {
+  mobileHeroObjectPosition?: string;
   showSummary?: boolean;
   expandStory?: boolean;
   showOrganizationCharityStatus?: boolean;
@@ -229,6 +231,7 @@ export function CampaignPage({
         ====================================================== */}
 
         <MobileCampaignHero
+          imageObjectPosition={mobileHeroObjectPosition}
           showOrganizationCharityStatus={showOrganizationCharityStatus}
           showOrganizationVerification={showOrganizationVerification}
           campaign={

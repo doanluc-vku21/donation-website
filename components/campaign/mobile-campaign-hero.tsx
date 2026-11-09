@@ -43,6 +43,7 @@ import {
 } from "@/lib/money";
 
 type MobileCampaignHeroProps = {
+  imageObjectPosition?: string;
   showOrganizationCharityStatus?: boolean;
   showOrganizationVerification?: boolean;
   campaign: Campaign;
@@ -60,6 +61,7 @@ export function MobileCampaignHero({
   exchangeRate,
   showOrganizationCharityStatus = false,
   showOrganizationVerification = true,
+  imageObjectPosition,
 }: MobileCampaignHeroProps) {
   const t =
     getUiTranslations(
@@ -270,6 +272,7 @@ export function MobileCampaignHero({
             priority
             fetchPriority="high"
             sizes="(min-width: 1024px) 686px, 100vw"
+            style={imageObjectPosition ? { objectPosition: imageObjectPosition } : undefined}
             className="
               absolute
               inset-0

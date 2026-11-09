@@ -10,7 +10,7 @@ vi.mock("@/components/analytics/meta-attribution", () => ({ MetaAttribution: () 
 
 afterEach(() => { vi.unstubAllEnvs(); vi.resetModules(); });
 
-async function bootstrap(primary = "2187720428848027") {
+async function bootstrap(primary?: string) {
   vi.stubEnv("NEXT_PUBLIC_META_PIXEL_ID", primary);
   const { default: RootLayout } = await import("@/app/layout");
   const markup = renderToStaticMarkup(RootLayout({ children: null }));
@@ -28,19 +28,19 @@ async function bootstrap(primary = "2187720428848027") {
   return { markup, queue, insert };
 }
 
-describe("multiple Meta Pixels", () => {
-  it("initializes both before one PageView and loads one SDK", async () => {
+describe("primary Meta Pixel", () => {
+  it("defaults to the deployed CAPI dataset before one PageView and loads one SDK", async () => {
     const { markup, queue, insert } = await bootstrap();
-    expect(queue).toEqual([["init", "2187720428848027"], ["init", "1116237120993773"], ["track", "PageView"]]);
-    expect(insert).toHaveBeenCalledOnce();
-    for (const id of ["2187720428848027", "1116237120993773"]) {
-      expect(markup).toContain(`https://www.facebook.com/tr?id=${id}&amp;ev=PageView&amp;noscript=1`);
-    }
-    const { metaPixelId } = await import("@/lib/meta/config");
-    expect(metaPixelId).toBe("2187720428848027");
-  });
-  it("deduplicates initialization if the configured primary already equals the additional Pixel", async () => {
-    const { queue } = await bootstrap("1116237120993773");
     expect(queue).toEqual([["init", "1116237120993773"], ["track", "PageView"]]);
+    expect(insert).toHaveBeenCalledOnce();
+    expect(markup).toContain("https://www.facebook.com/tr?id=1116237120993773&amp;ev=PageView&amp;noscript=1");
+    expect(markup).not.toContain("2187720428848027");
+    const { metaPixelId } = await import("@/lib/meta/config");
+    expect(metaPixelId).toBe("1116237120993773");
+  });
+  it("uses an explicitly configured dataset without initializing another Pixel", async () => {
+    const { queue, markup } = await bootstrap("2187720428848027");
+    expect(queue).toEqual([["init", "2187720428848027"], ["track", "PageView"]]);
+    expect(markup).not.toContain("1116237120993773");
   });
 });

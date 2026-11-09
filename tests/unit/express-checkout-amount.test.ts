@@ -33,7 +33,7 @@ const signedContext = (expiresAt = Date.now() + 3600_000) => signWalletUpdateCon
 }, "unit_secret", expiresAt);
 
 describe("in-place wallet amount updates", () => {
-  it.each(["/akram-shake-2", "/help-mango-seller"].flatMap(campaignPath =>
+  it.each(["/akram-shake-2", "/help-mango-seller", "/help-street-vendor"].flatMap(campaignPath =>
     [false, true].flatMap(signed =>
       (["monthly", "one_time"] as const).flatMap(frequency =>
         (["USD", "GBP"] as const).map(currency => ({ campaignPath, signed, frequency, currency }))))

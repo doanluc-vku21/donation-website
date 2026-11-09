@@ -9,7 +9,7 @@ export function getDonationPageMinimumUsdCents(pathname: string | null | undefin
 
 // The new beneficiary keeps the existing /akram-shake-2 checkout behavior.
 export function isStandardUpsellDonationPage(pathname: string | null | undefined): boolean {
-  return pathname === "/akram-shake-2" || pathname === "/help-mango-seller";
+  return pathname === "/akram-shake-2" || pathname === "/help-mango-seller" || pathname === "/help-street-vendor";
 }
 
 // Keep this policy scoped to public entry pages; campaigns can share their data
