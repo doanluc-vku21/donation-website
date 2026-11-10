@@ -1,4 +1,5 @@
 import { withRyanCampaignName } from "@/lib/ryan-campaign";
+import { withTwentyFiveDollarPresets } from "@/lib/donation-presets";
 import {
   notFound,
 } from "next/navigation";
@@ -95,7 +96,7 @@ export default async function AkramShakeUpsellPage() {
 
   return (
     <CampaignPage
-      campaign={{ ...campaign, title: ryanContent.title, donationOptions: campaign.donationOptions.filter(option => option.amountUsd >= 2500) }}
+      campaign={{ ...campaign, title: ryanContent.title, donationOptions: withTwentyFiveDollarPresets(campaign.donationOptions) }}
       content={{ ...ryanContent, organizationName: "MEAL SUPPORT INC" }}
       showDonationTimes={false}
       showOrganizationCharityStatus

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { useEffect, useEffectEvent, type ImgHTMLAttributes } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { sampleCampaign } from "@/lib/sample-data";
@@ -6,6 +6,7 @@ import { DONATION_MODAL_OPEN_EVENT } from "@/components/donation/donation-modal-
 import type { Currency } from "@/lib/currency";
 import { MANGO_SELLER_ONE_TIME_DONATION_OPTIONS } from "@/lib/mango-seller-campaign";
 import type { Campaign } from "@/lib/sample-data";
+import { withStreetVendorDonationOptions } from "@/lib/street-vendor-campaign";
 
 const navigation = vi.hoisted(() => ({ pathname: "/gaza-food" }));
 const walletReadiness = vi.hoisted(() => ({ available: true, update: undefined as undefined | ((amount: number) => Promise<void>) }));
@@ -61,6 +62,38 @@ function response(id: string) {
 }
 
 describe("Apple Pay session loading", () => {
+  it("warms the recommended $100 wallet and shows all six descending street-vendor amounts for both frequencies", async () => {
+    navigation.pathname = "/help-street-vendor";
+    let sessionIndex = 0;
+    const fetch = vi.fn().mockImplementation(() => Promise.resolve(response(`cs_street_six_${++sessionIndex}`)));
+    vi.stubGlobal("fetch", fetch);
+    mountModal({ ...sampleCampaign, slug: "help-street-vendor", donationOptions: withStreetVendorDonationOptions(sampleCampaign.donationOptions) });
+    await advance(121);
+    expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toMatchObject({ amountCents: 10000, frequency: "monthly" });
+    openModal(); await advance(1);
+    const checkOptions = () => {
+      const radios = within(screen.getByRole("group", { name: "Donation amount" })).getAllByRole("radio");
+      expect(radios).toHaveLength(6);
+      for (const [index, amount] of [200, 150, 100, 75, 50, 25].entries()) {
+        expect(radios[index]).toHaveAccessibleName(amount === 100 ? /^\$100\s*Recommended$/ : `$${amount}`);
+      }
+      expect(screen.getByRole("radio", { name: /^\$100\s*Recommended$/ })).toBeChecked();
+      expect(screen.getByPlaceholderText("Enter amount")).toHaveValue(100);
+      expect(screen.getByRole("button", { name: "Pay $100 by Card" })).toBeEnabled();
+    };
+    checkOptions();
+    fireEvent.click(screen.getByRole("radio", { name: "Give once" }));
+    await advance(1000);
+    checkOptions();
+    expect(screen.queryByRole("radio", { name: "$125" })).not.toBeInTheDocument();
+    for (const amount of [200, 150]) {
+      fireEvent.click(screen.getByRole("radio", { name: `$${amount}` }));
+      await advance(1000);
+      expect(screen.getByPlaceholderText("Enter amount")).toHaveValue(amount);
+      const request = fetch.mock.calls.filter(([url]) => url === "/api/stripe/express-checkout").at(-1);
+      expect(JSON.parse(String(request?.[1]?.body))).toMatchObject({ amountCents: amount * 100, frequency: "one_time" });
+    }
+  });
   it("selects the mango seller's recommended $50 gift and sends the new one-time presets to wallet checkout", async () => {
     navigation.pathname = "/help-mango-seller";
     let sessionIndex = 0;
@@ -81,7 +114,8 @@ describe("Apple Pay session loading", () => {
     expect(screen.getByPlaceholderText("Enter amount")).toHaveValue(50);
     expect(screen.getByRole("button", { name: "Pay $50 by Card" })).toBeEnabled();
     expect(screen.queryByRole("radio", { name: /\$100|\$150/ })).not.toBeInTheDocument();
-    for (const amount of [20, 75]) {
+    expect(screen.queryByRole("radio", { name: "$20" })).not.toBeInTheDocument();
+    for (const amount of [25, 75]) {
       fireEvent.click(screen.getByRole("radio", { name: `$${amount}` }));
       await advance(1000);
       expect(screen.getByPlaceholderText("Enter amount")).toHaveValue(amount);
@@ -535,6 +569,29 @@ describe("Apple Pay session loading", () => {
     mountModal();
     await advance(1000);
     expect(fetch.mock.calls.map(([url]) => url)).toEqual(["/api/stripe/express-checkout"]);
+  });
+
+  it("keeps the selected amount and existing wallet when refreshed campaign statistics arrive", async () => {
+    navigation.pathname = "/help-street-vendor";
+    const fetch = vi.fn().mockResolvedValue(response("cs_live_statistics"));
+    vi.stubGlobal("fetch", fetch);
+    const campaign = { ...sampleCampaign, id: `loading-campaign-${++campaignIndex}`, slug: "help-street-vendor" };
+    const content = { _id: "test-content", title: "Test campaign", slug: campaign.slug };
+    const modal = (fresh: Campaign) => <DonationModal campaign={fresh} content={content} locale="en" currency="USD" exchangeRate={1} />;
+    const view = render(modal(campaign));
+    await advance(121);
+    openModal(); await advance(1);
+    fireEvent.change(screen.getByPlaceholderText("Enter amount"), { target: { value: "35" } });
+    await advance(1000);
+    const wallet = screen.getByTestId("wallet-session");
+    const requestCount = fetch.mock.calls.length;
+    view.rerender(modal({ ...campaign, raisedAmountUsd: campaign.raisedAmountUsd + 2000,
+      donorCount: campaign.donorCount + 1, donationOptions: campaign.donationOptions.map(option => ({ ...option })),
+      recentDonations: [...campaign.recentDonations] }));
+    await advance(1000);
+    expect(screen.getByPlaceholderText("Enter amount")).toHaveValue(35);
+    expect(screen.getByTestId("wallet-session")).toBe(wallet);
+    expect(fetch).toHaveBeenCalledTimes(requestCount);
   });
 
   it("keeps wallet warm-up disabled on the hosted-checkout entry pages", async () => {

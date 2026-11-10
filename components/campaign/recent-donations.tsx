@@ -53,6 +53,7 @@ type RecentDonationsProps = {
 
   previewLimit?: number;
   monthlySupporterCount?: number | null;
+  contributionCount?: number;
 };
 
 type SortMode =
@@ -79,6 +80,7 @@ export function RecentDonations({
   className = "mt-12",
   previewLimit = 4,
   monthlySupporterCount,
+  contributionCount,
   showDonationTimes = true,
   showOneTimeLabels = false,
 }: RecentDonationsProps) {
@@ -95,7 +97,7 @@ export function RecentDonations({
       : "ltr";
 
   const isMonthlySupporters = monthlySupporterCount !== undefined;
-  const count = isMonthlySupporters ? monthlySupporterCount : donations.length;
+  const count = isMonthlySupporters ? monthlySupporterCount : contributionCount ?? donations.length;
   const title = isMonthlySupporters ? t.monthlySupporters : t.contributions;
   const countLabel = isMonthlySupporters
     ? count === 1 ? t.monthlySupporter : t.monthlySupporters
@@ -191,7 +193,7 @@ export function RecentDonations({
 
   if (
     donations.length ===
-    0 && !isMonthlySupporters
+    0 && !isMonthlySupporters && contributionCount === undefined
   ) {
     return null;
   }

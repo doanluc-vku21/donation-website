@@ -10,6 +10,7 @@ import type {
 } from "@/lib/sample-data";
 import { getPublicDonations } from "@/lib/public-donations";
 import { RecentDonationRotationProvider } from "@/components/campaign/recent-donation-rotation";
+import { CampaignAutoRefresh } from "@/components/campaign/campaign-auto-refresh";
 
 import type {
   Locale,
@@ -86,7 +87,13 @@ export function CampaignPage({
   mobileHeroObjectPosition,
   compactHeadline = false,
   donorSummary,
+  contributionCount,
+  liveContributionCount,
+  autoRefresh = false,
 }: {
+  contributionCount?: number;
+  liveContributionCount?: number;
+  autoRefresh?: boolean;
   donorSummary?: ReactNode;
   mobileHeroObjectPosition?: string;
   compactHeadline?: boolean;
@@ -177,6 +184,7 @@ export function CampaignPage({
 
   return (
     <RecentDonationRotationProvider key={campaign.id} donations={campaign.recentDonations} enabled={!campaign.supporterProgress}>
+    {autoRefresh ? <CampaignAutoRefresh campaignId={campaign.id} contributionCount={liveContributionCount ?? contributionCount ?? 0} /> : null}
     <main
       dir="ltr"
       className={`
@@ -560,6 +568,7 @@ export function CampaignPage({
             />
 
             <RecentDonations
+              contributionCount={contributionCount}
               showDonationTimes={showDonationTimes}
               showOneTimeLabels={showOneTimeLabels}
               monthlySupporterCount={campaign.supporterProgress?.count}
@@ -596,6 +605,7 @@ export function CampaignPage({
             "
           >
             <RecentDonations
+              contributionCount={contributionCount}
               showDonationTimes={showDonationTimes}
               showOneTimeLabels={showOneTimeLabels}
               monthlySupporterCount={campaign.supporterProgress?.count}

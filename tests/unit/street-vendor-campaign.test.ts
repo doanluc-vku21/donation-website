@@ -1,12 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { getCampaignMetadata } from "@/lib/campaign-metadata";
 import { locales } from "@/lib/i18n";
-import { localizeStreetVendorCampaign, STREET_VENDOR_SLUG } from "@/lib/street-vendor-campaign";
+import { localizeStreetVendorCampaign, STREET_VENDOR_SLUG, withStreetVendorDonationOptions } from "@/lib/street-vendor-campaign";
 import type { SanityCampaign } from "@/sanity/types/campaign";
 
 const original: SanityCampaign = { _id: "street-vendor-content", slug: STREET_VENDOR_SLUG, title: "Draft" };
 
 describe("street vendor campaign content", () => {
+  it("offers all six descending amounts for both donation types with exactly $100 recommended", () => {
+    const input = [{ amountUsd: 5000, frequency: "monthly" as const, featured: true, impactText: "Existing impact" }];
+    const options = withStreetVendorDonationOptions(input);
+    for (const frequency of ["monthly", "one_time"]) {
+      const gifts = options.filter(option => option.frequency === frequency);
+      expect(gifts.map(option => option.amountUsd)).toEqual([20000, 15000, 10000, 7500, 5000, 2500]);
+      expect(gifts.filter(option => option.featured).map(option => option.amountUsd)).toEqual([10000]);
+    }
+    expect(options.find(option => option.frequency === "monthly" && option.amountUsd === 5000)?.impactText).toBe("Existing impact");
+    expect(input).toEqual([{ amountUsd: 5000, frequency: "monthly", featured: true, impactText: "Existing impact" }]);
+  });
   it.each(locales)("provides localized approved content and the supplied portrait in %s", locale => {
     const content = localizeStreetVendorCampaign(original, locale);
     expect(content.slug).toBe(STREET_VENDOR_SLUG);

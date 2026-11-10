@@ -4,6 +4,7 @@ import { CampaignPage } from "@/components/campaign/campaign-page";
 import { getCampaignMetadata } from "@/lib/campaign-metadata";
 import { getCurrencyContext } from "@/lib/currency-server";
 import { getLocale } from "@/lib/i18n-server";
+import { withTwentyFiveDollarPresets } from "@/lib/donation-presets";
 import {
   localizeMangoSellerCampaign,
   MANGO_SELLER_BASE_RAISED_USD,
@@ -43,9 +44,7 @@ export default async function MangoSellerPage() {
         donorCount: campaign.donorCount + MANGO_SELLER_SEED_DONATIONS.length,
         recentDonations: [...campaign.recentDonations, ...MANGO_SELLER_SEED_DONATIONS],
         donationOptions: [
-          ...campaign.donationOptions
-            .filter(option => option.frequency === "monthly" && option.amountUsd >= 2000)
-            .map(option => option.amountUsd === 2500 ? { ...option, amountUsd: 2000 } : option),
+          ...withTwentyFiveDollarPresets(campaign.donationOptions.filter(option => option.frequency === "monthly")),
           ...MANGO_SELLER_ONE_TIME_DONATION_OPTIONS,
         ],
       }}

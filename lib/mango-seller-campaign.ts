@@ -6,7 +6,7 @@ import type { LocalizedString, SanityCampaign } from "@/sanity/types/campaign";
 
 export const MANGO_SELLER_SLUG = "help-mango-seller";
 
-export const MANGO_SELLER_ONE_TIME_DONATION_OPTIONS: DonationOption[] = [2000, 5000, 7500].map(amountUsd => ({
+export const MANGO_SELLER_ONE_TIME_DONATION_OPTIONS: DonationOption[] = [2500, 5000, 7500].map(amountUsd => ({
   amountUsd,
   frequency: "one_time",
   featured: amountUsd === 5000,

@@ -12,6 +12,20 @@ const supporters: RecentDonation[] = Array.from({ length: 20 }, (_, index) => ({
 const props = { donations: supporters, locale: "en" as const, currency: "USD" as const, exchangeRate: 1 };
 
 describe("community supporter list", () => {
+  it("uses the full confirmed contribution count even when the recent list is capped", () => {
+    render(<RecentDonations {...props} contributionCount={168} />);
+    expect(screen.getByText("168 Contributions")).toBeVisible();
+    expect(screen.queryByText("20 Contributions")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "See all contributions" }));
+    expect(within(screen.getByRole("dialog")).getAllByRole("listitem")).toHaveLength(20);
+  });
+
+  it("retains the total when a recent-list response has no visible rows", () => {
+    render(<RecentDonations {...props} donations={[]} contributionCount={18} />);
+    expect(screen.getByText("18 Contributions")).toBeVisible();
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  });
+
   it("hides only the identified test contribution from the preview and sorted dialog", () => {
     const donations: RecentDonation[] = [
       { id: "838ce591-f138-439c-9258-0f421dff2d4d", displayName: "Hidden test payment", amountUsd: 1000, frequency: "monthly", relativeTime: "just now" },

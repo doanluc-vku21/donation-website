@@ -6,10 +6,16 @@ import type { SanityCampaign } from "@/sanity/types/campaign";
 
 export const STREET_VENDOR_SLUG = "help-street-vendor";
 export const STREET_VENDOR_GOAL_USD_CENTS = 250_000;
-export const STREET_VENDOR_HISTORICAL_DONOR_COUNT = 724;
 
 export function withStreetVendorDonationOptions(options: DonationOption[]): DonationOption[] {
-  return options.map(option => option.amountUsd === 2500 ? { ...option, amountUsd: 2000 } : option);
+  return (["monthly", "one_time"] as const).flatMap(frequency =>
+    [20000, 15000, 10000, 7500, 5000, 2500].map(amountUsd => ({
+      amountUsd,
+      frequency,
+      featured: amountUsd === 10000,
+      impactText: options.find(option => option.frequency === frequency && option.amountUsd === amountUsd)?.impactText ?? "",
+    })),
+  );
 }
 
 export const STREET_VENDOR_SEED_DONATIONS: RecentDonation[] = [

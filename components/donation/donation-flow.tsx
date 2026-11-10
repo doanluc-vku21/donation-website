@@ -1047,9 +1047,9 @@ export function DonationFlow({
 
         ) =>
 
-          a.amountUsd -
-
-          b.amountUsd,
+          campaign.slug === "help-street-vendor"
+            ? b.amountUsd - a.amountUsd
+            : a.amountUsd - b.amountUsd,
 
       );
 
@@ -1058,6 +1058,8 @@ export function DonationFlow({
       campaign
 
         .donationOptions,
+
+      campaign.slug,
 
       frequency,
 

@@ -7,10 +7,10 @@ import { getCurrencyContext } from "@/lib/currency-server";
 import { getLocale } from "@/lib/i18n-server";
 import { getBeneficiaryContent } from "@/lib/queries/beneficiary-content";
 import { getCampaignBySlug } from "@/lib/queries/campaigns";
+import { getCampaignContributionCount } from "@/lib/queries/campaign-contributions";
 import {
   localizeStreetVendorCampaign,
   STREET_VENDOR_BASE_RAISED_USD,
-  STREET_VENDOR_HISTORICAL_DONOR_COUNT,
   STREET_VENDOR_SEED_DONATIONS,
   STREET_VENDOR_SLUG,
   withStreetVendorDonationOptions,
@@ -34,9 +34,9 @@ export default async function StreetVendorPage() {
   ]);
   if (!campaign) notFound();
 
-  const totalDonorCount =
-    campaign.donorCount + STREET_VENDOR_HISTORICAL_DONOR_COUNT + STREET_VENDOR_SEED_DONATIONS.length;
-  const donorSummary = <HistoricalDonorSummary donorCount={totalDonorCount} locale={locale} />;
+  const liveContributionCount = await getCampaignContributionCount(campaign.id);
+  const contributionCount = liveContributionCount + STREET_VENDOR_SEED_DONATIONS.length;
+  const donorSummary = <HistoricalDonorSummary contributionCount={contributionCount} locale={locale} />;
 
   return (
     <CampaignPage
@@ -46,12 +46,14 @@ export default async function StreetVendorPage() {
         summary: content.summary ?? "",
         organizationName: "MEAL SUPPORT INC",
         raisedAmountUsd: campaign.raisedAmountUsd + STREET_VENDOR_BASE_RAISED_USD,
-        donorCount: totalDonorCount,
         recentDonations: [...campaign.recentDonations, ...STREET_VENDOR_SEED_DONATIONS],
         donationOptions: withStreetVendorDonationOptions(campaign.donationOptions),
       }}
       content={content}
       donorSummary={donorSummary}
+      contributionCount={contributionCount}
+      liveContributionCount={liveContributionCount}
+      autoRefresh
       compactHeadline
       mobileHeroObjectPosition="center 15%"
       showDonationTimes

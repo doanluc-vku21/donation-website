@@ -56,14 +56,14 @@ describe("monthly campaign entry routes", () => {
     expect(result.props.campaign.donorCount).toBe(sampleCampaign.donorCount + MANGO_SELLER_SEED_DONATIONS.length);
     expect(result.props.campaign.recentDonations).toEqual([...sampleCampaign.recentDonations, ...MANGO_SELLER_SEED_DONATIONS]);
     expect(result.props.campaign.donationOptions).toEqual([
-      { amountUsd: 2000, frequency: "one_time", featured: false, impactText: "" },
+      { amountUsd: 2500, frequency: "one_time", featured: false, impactText: "" },
       { amountUsd: 5000, frequency: "one_time", featured: true, impactText: "" },
       { amountUsd: 7500, frequency: "one_time", featured: false, impactText: "" },
     ]);
     expect(mocks.supporters).not.toHaveBeenCalled();
   });
 
-  it("retains the mango seller's monthly gifts with $20 as the starting tier while replacing one-time presets", async () => {
+  it("starts mango-seller monthly and one-time presets at $25 without changing the source options", async () => {
     const monthlyOptions = [2500, 5000, 10000].map(amountUsd => ({
       amountUsd, frequency: "monthly" as const, featured: amountUsd === 5000, impactText: "Monthly support",
     }));
@@ -71,8 +71,8 @@ describe("monthly campaign entry routes", () => {
     mocks.campaign.mockResolvedValue(campaign);
     const result = await MangoSellerPage();
     const donationOptions: Campaign["donationOptions"] = result.props.campaign.donationOptions;
-    expect(donationOptions.filter(option => option.frequency === "monthly").map(option => option.amountUsd)).toEqual([2000, 5000, 10000]);
-    expect(donationOptions.filter(option => option.frequency === "one_time").map(option => option.amountUsd)).toEqual([2000, 5000, 7500]);
+    expect(donationOptions.filter(option => option.frequency === "monthly").map(option => option.amountUsd)).toEqual([2500, 5000, 10000]);
+    expect(donationOptions.filter(option => option.frequency === "one_time").map(option => option.amountUsd)).toEqual([2500, 5000, 7500]);
     expect(campaign.donationOptions).toEqual([...sampleCampaign.donationOptions, ...monthlyOptions]);
   });
 
@@ -156,6 +156,20 @@ describe("monthly campaign entry routes", () => {
     const result = await AkramShakeUpsellPage();
     expect(result.props.content.title).toBe("Existing campaign headline");
     expect(original.titleI18n?.en).toBe("Existing campaign headline");
+  });
+
+  it("shows $25 instead of $20 in both Akram upsell preset frequencies without duplicate buttons", async () => {
+    const options: Campaign["donationOptions"] = [
+      { amountUsd: 2000, frequency: "monthly", impactText: "Monthly" },
+      { amountUsd: 2500, frequency: "monthly", impactText: "Existing $25" },
+      { amountUsd: 2000, frequency: "one_time", impactText: "Single" },
+      { amountUsd: 5000, frequency: "monthly", featured: true, impactText: "Recommended" },
+    ];
+    mocks.campaign.mockResolvedValue({ ...sampleCampaign, donationOptions: options });
+    const result = await AkramShakeUpsellPage();
+    expect(result.props.campaign.donationOptions.map((option: Campaign["donationOptions"][number]) => [option.frequency, option.amountUsd]))
+      .toEqual([["monthly", 2500], ["one_time", 2500], ["monthly", 5000]]);
+    expect(options[0].amountUsd).toBe(2000);
   });
 
   it("returns not-found when the underlying campaign does not exist", async () => {
