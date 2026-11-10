@@ -54,7 +54,7 @@ type MangoSellerCopy = {
 
 const copy: Record<Locale, MangoSellerCopy> = {
   en: {
-    title: "❤️ He Had So Little, Yet He Chose to Help Us. Now It’s Our Turn to Help Him.",
+    title: "❤️ A Simple Act of Kindness Inspired Us",
     description: [
       "Despite living with a disability and working tirelessly to sell mangoes, he showed incredible kindness by helping strangers when he had so little himself. His honesty and generosity touched our hearts.",
       "Now, Meal Support Inc is raising funds with the goal of providing him with $2,500 in monthly support for food, medical care, and essential living expenses.",
@@ -72,7 +72,7 @@ const copy: Record<Locale, MangoSellerCopy> = {
     ],
   },
   fr: {
-    title: "❤️ Il avait si peu, mais il a choisi de nous aider. À notre tour de l’aider.",
+    title: "❤️ Un simple geste de bonté nous a inspirés",
     description: [
       "Bien qu’il vive avec un handicap et travaille sans relâche pour vendre des mangues, il a fait preuve d’une incroyable bonté en aidant des inconnus alors qu’il avait lui-même si peu. Son honnêteté et sa générosité nous ont touchés.",
       "Aujourd’hui, Meal Support Inc collecte des fonds dans le but de lui apporter 2 500 dollars américains de soutien mensuel pour l’alimentation, les soins médicaux et les dépenses essentielles.",
@@ -90,7 +90,7 @@ const copy: Record<Locale, MangoSellerCopy> = {
     ],
   },
   de: {
-    title: "❤️ Er hatte so wenig und entschied sich trotzdem, uns zu helfen. Jetzt sind wir an der Reihe, ihm zu helfen.",
+    title: "❤️ Eine einfache Geste der Güte hat uns inspiriert",
     description: [
       "Obwohl er mit einer Behinderung lebt und unermüdlich Mangos verkauft, zeigte er außergewöhnliche Güte: Er half Fremden, obwohl er selbst so wenig hatte. Seine Ehrlichkeit und Großzügigkeit haben uns berührt.",
       "Meal Support Inc sammelt nun Spenden mit dem Ziel, ihn monatlich mit 2.500 US-Dollar für Lebensmittel, medizinische Versorgung und grundlegende Lebenshaltungskosten zu unterstützen.",
@@ -108,7 +108,7 @@ const copy: Record<Locale, MangoSellerCopy> = {
     ],
   },
   es: {
-    title: "❤️ Tenía tan poco y aun así eligió ayudarnos. Ahora nos toca ayudarlo a él.",
+    title: "❤️ Un simple acto de bondad nos inspiró",
     description: [
       "A pesar de vivir con una discapacidad y trabajar incansablemente vendiendo mangos, mostró una bondad increíble al ayudar a desconocidos cuando él mismo tenía tan poco. Su honestidad y generosidad nos conmovieron.",
       "Ahora, Meal Support Inc está recaudando fondos con el objetivo de brindarle 2.500 dólares estadounidenses de apoyo mensual para alimentos, atención médica y gastos básicos de subsistencia.",
@@ -126,7 +126,7 @@ const copy: Record<Locale, MangoSellerCopy> = {
     ],
   },
   ar: {
-    title: "❤️ لم يكن يملك إلا القليل، ومع ذلك اختار مساعدتنا. والآن حان دورنا لمساعدته.",
+    title: "❤️ موقف بسيط من اللطف ألهمنا",
     description: [
       "رغم أنه يعيش مع إعاقة ويعمل بلا كلل في بيع المانجو، أظهر طيبة استثنائية بمساعدة الغرباء رغم قلة ما يملكه. لقد لامس صدقه وكرمه قلوبنا.",
       "تجمع Meal Support Inc الآن التبرعات بهدف تقديم دعم شهري له بقيمة 2,500 دولار أمريكي لتغطية الغذاء والرعاية الطبية ونفقات المعيشة الأساسية.",

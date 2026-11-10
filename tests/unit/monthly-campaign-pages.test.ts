@@ -47,7 +47,7 @@ describe("monthly campaign entry routes", () => {
     expect(mocks.beneficiary).toHaveBeenCalledWith("help-mango-seller");
     expect(result.props.campaign.id).toBe("campaign-help-mango-seller");
     expect(result.props.campaign.slug).toBe("help-mango-seller");
-    expect(result.props.content.title).toBe("❤️ He Had So Little, Yet He Chose to Help Us. Now It’s Our Turn to Help Him.");
+    expect(result.props.content.title).toBe("❤️ A Simple Act of Kindness Inspired Us");
     expect(result.props.content.summary).toContain("$2,500 in monthly support");
     expect(result.props.expandStory).toBe(true);
     expect(result.props.showSummary).toBe(false);
@@ -93,6 +93,7 @@ describe("monthly campaign entry routes", () => {
     expect(mocks.beneficiary).toHaveBeenCalledWith("help-mango-seller");
     expect(result.props.campaign.id).toBe("campaign-help-mango-seller");
     expect(result.props.campaign.slug).toBe("help-mango-seller");
+    expect(result.props.content.title).toBe("❤️ A Simple Act of Kindness Inspired Us");
     expect(result.props.showSummary).toBe(false);
     expect(result.props.showStory).toBe(false);
     expect(result.props.showFundUsage).toBe(false);
