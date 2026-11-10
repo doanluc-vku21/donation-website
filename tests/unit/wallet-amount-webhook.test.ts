@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   event: vi.fn(), subscription: vi.fn(), sync: vi.fn(), list: vi.fn(), from: vi.fn(), insert: vi.fn(), existing: false,
+  donorRace: false, donorLookups: 0,
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/stripe/server", () => ({ stripe: {
@@ -37,7 +38,7 @@ function request() {
 }
 
 beforeEach(() => {
-  vi.clearAllMocks(); mocks.existing = false;
+  vi.clearAllMocks(); mocks.existing = false; mocks.donorRace = false; mocks.donorLookups = 0;
   vi.stubEnv("STRIPE_WEBHOOK_SECRET", "fake_unit_secret");
   vi.spyOn(console, "error").mockImplementation(() => {}); vi.spyOn(console, "log").mockImplementation(() => {});
   mocks.event.mockReturnValue({ type: "invoice.payment_succeeded", data: { object: invoice } });
@@ -47,16 +48,36 @@ beforeEach(() => {
     const query: Record<string, unknown> = {};
     for (const method of ["select", "eq", "is", "or", "update", "ilike"]) query[method] = () => query;
     query.insert = (data: unknown) => { mocks.insert(table, data); return query; };
-    query.single = () => Promise.resolve({ data: { id: "donation_unit" }, error: null });
+    query.single = () => Promise.resolve(table === "donors" && mocks.donorRace
+      ? { data: null, error: { code: "23505", details: "private donor email detail" } }
+      : { data: { id: "donation_unit" }, error: null });
     let updating = false;
     query.update = () => { updating = true; return query; };
-    query.maybeSingle = () => Promise.resolve({ data: table === "donors" ? { id: "donor_unit" } : !updating && mocks.existing ? { id: "donation_existing" } : null, error: null });
+    query.maybeSingle = () => {
+      if (table === "donors") {
+        mocks.donorLookups++;
+        return Promise.resolve({ data: mocks.donorRace && mocks.donorLookups === 1 ? null : { id: "donor_unit" }, error: null });
+      }
+      return Promise.resolve({ data: !updating && mocks.existing ? { id: "donation_existing" } : null, error: null });
+    };
     return query;
   });
 });
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 describe("monthly accounting after a wallet amount update", () => {
+  it.each(["checkout.session.completed", "invoice.payment_succeeded"])("recovers an email creation race in %s and keeps duplicate deliveries idempotent", async type => {
+    mocks.donorRace = true;
+    mocks.event.mockReturnValue({ type, data: { object: type.startsWith("checkout") ? completedSession : invoice } });
+    expect((await POST(request())).status).toBe(200);
+    expect(mocks.donorLookups).toBe(2);
+    expect(mocks.insert).toHaveBeenCalledWith("donations", expect.objectContaining({ donor_id: "donor_unit", amount_cents: 10000 }));
+    const inserts = mocks.insert.mock.calls.length;
+    mocks.existing = true;
+    expect((await POST(request())).status).toBe(200);
+    expect(mocks.insert).toHaveBeenCalledTimes(inserts);
+    expect(console.error).not.toHaveBeenCalled();
+  });
   it("uses the final Session amounts if the initial invoice arrives before checkout completion", async () => {
     expect((await POST(request())).status).toBe(200);
     expect(mocks.insert).toHaveBeenCalledWith("donations", expect.objectContaining({

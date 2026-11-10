@@ -143,6 +143,27 @@ export function metaCapiEnabled() {
   return process.env.META_CAPI_ENABLED === "true";
 }
 
+function metaDeliveryFailure(status: number, result: unknown, accessToken: string): Error {
+  const response = result && typeof result === "object" ? result as Record<string, unknown> : {};
+  const details = response.error && typeof response.error === "object"
+    ? response.error as Record<string, unknown> : {};
+  const diagnostic = [`HTTP ${status}`];
+  for (const [field, label] of [["code", "code"], ["error_subcode", "subcode"]] as const) {
+    const value = details[field];
+    if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 2_147_483_647) {
+      diagnostic.push(`${label} ${value}`);
+    }
+  }
+  const trace = details.fbtrace_id;
+  if (typeof trace === "string" && /^[A-Za-z0-9_-]{8,64}$/.test(trace)
+    && !trace.includes(accessToken)
+    && !/(?:sk_(?:live|test)_|pk_(?:live|test)_|whsec_|cs_(?:live|test)_|eyJ|EAA)/.test(trace)
+    && !/^[a-f0-9]{32,}$/i.test(trace)) {
+    diagnostic.push(`trace ${trace}`);
+  }
+  return new Error(`Meta CAPI did not accept Purchase (${diagnostic.join("; ")}); webhook retry is required.`);
+}
+
 export async function sendMetaPurchase(session: Stripe.Checkout.Session, paidAt: number) {
   if (!metaCapiEnabled()) return false;
   // Never mix sandbox donations into the production dataset.
@@ -168,10 +189,10 @@ export async function sendMetaPurchase(session: Stripe.Checkout.Session, paidAt:
   } catch {
     throw new Error("Meta CAPI request failed or timed out; webhook retry is required.");
   }
-  // Do not log payloads, tokens, PII, or untrusted error messages from Meta.
+  // Never retain payloads, tokens, PII or Meta's free-form error messages.
   const result = await response.json().catch(() => null);
   if (!response.ok || result?.events_received !== 1) {
-    throw new Error(`Meta CAPI did not accept Purchase (HTTP ${response.status}).`);
+    throw metaDeliveryFailure(response.status, result, accessToken);
   }
   return true;
 }

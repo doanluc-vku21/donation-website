@@ -111,4 +111,36 @@ describe("Meta delivery", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("sensitive-network-detail")));
     await expect(sendMetaPurchase(session(), 1700000000)).rejects.toThrow("webhook retry is required");
   });
+
+  it("includes only bounded Meta codes and a validated trace ID in a delivery error", async () => {
+    enable();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: {
+      code: 100, error_subcode: 2804008, fbtrace_id: "AbC_1234Trace", message: "person@example.com fake-unit-test-token",
+      error_user_msg: "private donor payload", error_data: { secret: "private-response-data" },
+    } }), { status: 400 })));
+    let failure: unknown;
+    try { await sendMetaPurchase(session(), 1700000000); } catch (error) { failure = error; }
+    expect(String(failure)).toBe("Error: Meta CAPI did not accept Purchase (HTTP 400; code 100; subcode 2804008; trace AbC_1234Trace); webhook retry is required.");
+    expect(JSON.stringify(failure)).not.toMatch(/person@example|fake-unit-test-token|private/);
+  });
+
+  it.each(["fake-unit-test-token", "person@example.com", "Trace\nprivate-message", "a".repeat(100), "f".repeat(64), "sk_live_private_credential"])("omits unsafe trace data rather than logging it (%s)", async trace => {
+    enable();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: {
+      code: "190 private-message", error_subcode: -1, fbtrace_id: trace, message: "private-response-message",
+    } }), { status: 400 })));
+    await expect(sendMetaPurchase(session(), 1700000000)).rejects.toThrow(/^Meta CAPI did not accept Purchase \(HTTP 400\); webhook retry is required\.$/);
+  });
+
+  it("keeps the event ID and original payment time stable when a failed delivery is retried", async () => {
+    enable();
+    const fetch = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: 190 } }), { status: 400 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ events_received: 1 }), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    await expect(sendMetaPurchase(session(), 1700000010)).rejects.toThrow("code 190");
+    expect(await sendMetaPurchase(session(), 1700000010)).toBe(true);
+    const events = fetch.mock.calls.map(([, options]) => JSON.parse(String(options.body)).data[0]);
+    expect(events.map(event => event.event_id)).toEqual(["purchase_cs_test_emq", "purchase_cs_test_emq"]);
+    expect(events.map(event => event.event_time)).toEqual([1700000010, 1700000010]);
+  });
 });
