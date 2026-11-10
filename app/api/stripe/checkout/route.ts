@@ -401,7 +401,12 @@ export async function POST(
               requestedCampaignPath === "/akram-shake-2" ||
               requestedCampaignPath === "/akram-shake-3")
           ? requestedCampaignPath
-          : defaultCampaignPath;
+          : campaignSlug ===
+                "help-mango-seller" &&
+              requestedCampaignPath ===
+                "/help-mango-seller-1"
+            ? "/help-mango-seller-1"
+            : defaultCampaignPath;
 
     if (isMonthlyOnlyDonationPage(campaignPath) && frequency !== "monthly") {
       return NextResponse.json(

@@ -33,13 +33,13 @@ const signedContext = (expiresAt = Date.now() + 3600_000) => signWalletUpdateCon
 }, "unit_secret", expiresAt);
 
 describe("in-place wallet amount updates", () => {
-  it.each(["/akram-shake-2", "/help-mango-seller", "/help-street-vendor"].flatMap(campaignPath =>
+  it.each(["/akram-shake-2", "/help-mango-seller", "/help-mango-seller-1", "/help-street-vendor"].flatMap(campaignPath =>
     [false, true].flatMap(signed =>
       (["monthly", "one_time"] as const).flatMap(frequency =>
         (["USD", "GBP"] as const).map(currency => ({ campaignPath, signed, frequency, currency }))))
   ))("enforces the $frequency minimum during $currency wallet updates on $campaignPath (signed: $signed)", async ({ signed, campaignPath, frequency, currency }) => {
     const exchangeRate = currency === "USD" ? 1 : 0.8;
-    const minimum = Math.round((campaignPath === "/help-mango-seller" || campaignPath === "/help-street-vendor" || frequency === "monthly" ? 2000 : 2500) * exchangeRate);
+    const minimum = Math.round((campaignPath === "/help-mango-seller" || campaignPath === "/help-mango-seller-1" || campaignPath === "/help-street-vendor" || frequency === "monthly" ? 2000 : 2500) * exchangeRate);
     const updateContext = signed ? signWalletUpdateContext({
       sessionId: "cs_unit_amount", productId: "prod_existing", currency, frequency,
       coverFee: false, exchangeRate, campaignPath,

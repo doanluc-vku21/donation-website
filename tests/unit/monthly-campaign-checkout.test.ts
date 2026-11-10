@@ -64,8 +64,12 @@ describe.each([["card", cardCheckout], ["wallet", walletCheckout]] as const)("mo
     expect((await checkout(request({ ...page, campaignPath: "/akram-shake" }, { amountCents: 1000, frequency }))).status).toBe(200);
   });
 
-  it.each([false, true])("enforces the mango seller's $20 one-time minimum before fees (cover fee: %s)", async coverFee => {
-    const page = { campaignSlug: "help-mango-seller", campaignPath: "/help-mango-seller" };
+  it.each(
+    ["/help-mango-seller", "/help-mango-seller-1"].flatMap(campaignPath =>
+      ([false, true] as const).map(coverFee => ({ campaignPath, coverFee })),
+    ),
+  )("enforces the mango seller's $20 one-time minimum before fees on $campaignPath (cover fee: $coverFee)", async ({ campaignPath, coverFee }) => {
+    const page = { campaignSlug: "help-mango-seller", campaignPath };
     for (const selection of [{ currency: "USD", amountCents: 2000 }, { currency: "GBP", amountCents: 1600 }]) {
       mocks.create.mockClear();
       for (const amountCents of [selection.amountCents / 2, selection.amountCents - 1]) {
@@ -85,7 +89,7 @@ describe.each([["card", cardCheckout], ["wallet", walletCheckout]] as const)("mo
       expect(data.totalAmountMinor).toBe(selection.amountCents + data.feeAmountMinor);
       expect(data.feeAmountMinor > 0).toBe(coverFee);
       expect(options.line_items[0].price_data.unit_amount).toBe(data.totalAmountMinor);
-      expect(options.metadata).toMatchObject({ campaign_path: "/help-mango-seller", frequency: "one_time",
+      expect(options.metadata).toMatchObject({ campaign_path: campaignPath, frequency: "one_time",
         charged_donation_amount_cents: String(selection.amountCents), charged_currency: selection.currency });
     }
   });
@@ -139,6 +143,7 @@ describe.each([["card", cardCheckout], ["wallet", walletCheckout]] as const)("mo
   it.each([
     { campaignSlug: "akram-shake", campaignPath: "/akram-shake-2" },
     { campaignSlug: "help-mango-seller", campaignPath: "/help-mango-seller" },
+    { campaignSlug: "help-mango-seller", campaignPath: "/help-mango-seller-1" },
     { campaignSlug: "help-street-vendor", campaignPath: "/help-street-vendor" },
   ])("allows twenty-dollar monthly gifts on $campaignPath without letting fees satisfy the minimum", async (page) => {
     for (const selection of [{ currency: "USD", amountCents: 2000 }, { currency: "GBP", amountCents: 1600 }]) {

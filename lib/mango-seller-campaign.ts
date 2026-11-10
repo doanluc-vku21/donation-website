@@ -5,6 +5,7 @@ import type { DonationOption, RecentDonation } from "@/lib/sample-data";
 import type { LocalizedString, SanityCampaign } from "@/sanity/types/campaign";
 
 export const MANGO_SELLER_SLUG = "help-mango-seller";
+export const MANGO_SELLER_ALT_SLUG = "help-mango-seller-1";
 
 export const MANGO_SELLER_ONE_TIME_DONATION_OPTIONS: DonationOption[] = [2500, 5000, 7500].map(amountUsd => ({
   amountUsd,

@@ -66,6 +66,12 @@ describe("mango seller landing content", () => {
     rerender(<CampaignPage {...props} />);
     expect(screen.getByTestId("collapsed-story")).toBeInTheDocument();
     expect(summaryParagraphs()).toHaveLength(0);
+
+    rerender(<CampaignPage {...props} showSummary={false} showStory={false} showFundUsage={false} />);
+    expect(screen.queryByText("THE STORY BEHIND OUR MISSION")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Why He Deserves Our Support ❤️" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "How Your Donation Will Help" })).not.toBeInTheDocument();
+    expect(screen.queryByText("🍚 Food & Daily Essentials")).not.toBeInTheDocument();
   });
 
   it("keeps an independently authored CMS story instead of discarding its full text", () => {

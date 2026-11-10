@@ -66,7 +66,7 @@ describe("card payment email confirmation", () => {
   });
 });
 
-describe.each(["/akram-shake-2", "/help-mango-seller", "/help-street-vendor"])("card donation flow on %s", (pathname) => {
+describe.each(["/akram-shake-2", "/help-mango-seller", "/help-mango-seller-1", "/help-street-vendor"])("card donation flow on %s", (pathname) => {
   function mount(currency: Currency = "USD", exchangeRate = 1) {
     navigation.pathname = pathname;
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
@@ -104,7 +104,7 @@ describe.each(["/akram-shake-2", "/help-mango-seller", "/help-street-vendor"])("
 
   it("confirms a one-time card gift with the donor email while bookkeeping is pending", async () => {
     const fetchMock = mount();
-    const amount = pathname === "/help-mango-seller" || pathname === "/help-street-vendor" ? 20 : 25;
+    const amount = pathname === "/help-mango-seller" || pathname === "/help-mango-seller-1" || pathname === "/help-street-vendor" ? 20 : 25;
     await chooseGift(amount, false);
     await pay();
     const calls = fetchMock.mock.calls.filter(([url]) => url === "/api/stripe/checkout");

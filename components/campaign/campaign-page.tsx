@@ -83,6 +83,8 @@ export function CampaignPage({
   showOrganizationCharityStatus = false,
   showOrganizationVerification = true,
   showSummary = false,
+  showStory = true,
+  showFundUsage = true,
   expandStory = false,
   mobileHeroObjectPosition,
   compactHeadline = false,
@@ -98,6 +100,8 @@ export function CampaignPage({
   mobileHeroObjectPosition?: string;
   compactHeadline?: boolean;
   showSummary?: boolean;
+  showStory?: boolean;
+  showFundUsage?: boolean;
   expandStory?: boolean;
   showOrganizationCharityStatus?: boolean;
   showOrganizationVerification?: boolean;
@@ -485,50 +489,56 @@ export function CampaignPage({
               MOBILE STORY
           ================================================== */}
 
-          <div
-            className="
-              mt-7
-              lg:hidden
-            "
-          >
-            {showSummary && content.summary && (
-              <p dir={locale === "ar" ? "rtl" : "ltr"} className="mb-7 whitespace-pre-line text-[17px] leading-8 text-[var(--muted)]">
-                {content.summary}
-              </p>
-            )}
-            {expandStory ? (
-              <CampaignStory locale={locale} campaign={campaign} content={content} />
-            ) : (
-              <MobileStoryToggle locale={locale}>
-                <CampaignStory locale={locale} campaign={campaign} content={content} />
-              </MobileStoryToggle>
-            )}
-          </div>
+          {(showStory || (showSummary && Boolean(content.summary))) && (
+            <div
+              className="
+                mt-7
+                lg:hidden
+              "
+            >
+              {showSummary && content.summary && (
+                <p dir={locale === "ar" ? "rtl" : "ltr"} className="mb-7 whitespace-pre-line text-[17px] leading-8 text-[var(--muted)]">
+                  {content.summary}
+                </p>
+              )}
+              {showStory ? (
+                expandStory ? (
+                  <CampaignStory locale={locale} campaign={campaign} content={content} />
+                ) : (
+                  <MobileStoryToggle locale={locale}>
+                    <CampaignStory locale={locale} campaign={campaign} content={content} />
+                  </MobileStoryToggle>
+                )
+              ) : null}
+            </div>
+          )}
 
           {/* =================================================
               MOBILE FUND USAGE
           ================================================== */}
 
-          <div
-            className="
-              lg:hidden
-            "
-          >
-            <FundUsage
-              content={
-                content
-              }
-              locale={
-                locale
-              }
-              currency={
-                currency
-              }
-              exchangeRate={
-                exchangeRate
-              }
-            />
-          </div>
+          {showFundUsage && (
+            <div
+              className="
+                lg:hidden
+              "
+            >
+              <FundUsage
+                content={
+                  content
+                }
+                locale={
+                  locale
+                }
+                currency={
+                  currency
+                }
+                exchangeRate={
+                  exchangeRate
+                }
+              />
+            </div>
+          )}
 
           {/* =================================================
               DESKTOP CONTENT
@@ -542,30 +552,34 @@ export function CampaignPage({
               lg:block
             "
           >
-            <CampaignStory
-              locale={locale}
-              campaign={
-                campaign
-              }
-              content={
-                content
-              }
-            />
+            {showStory && (
+              <CampaignStory
+                locale={locale}
+                campaign={
+                  campaign
+                }
+                content={
+                  content
+                }
+              />
+            )}
 
-            <FundUsage
-              content={
-                content
-              }
-              locale={
-                locale
-              }
-              currency={
-                currency
-              }
-              exchangeRate={
-                exchangeRate
-              }
-            />
+            {showFundUsage && (
+              <FundUsage
+                content={
+                  content
+                }
+                locale={
+                  locale
+                }
+                currency={
+                  currency
+                }
+                exchangeRate={
+                  exchangeRate
+                }
+              />
+            )}
 
             <RecentDonations
               contributionCount={contributionCount}

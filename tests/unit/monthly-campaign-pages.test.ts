@@ -19,6 +19,7 @@ import GazaFoodDonatePage from "@/app/gaza-food/donate/page";
 import AkramShakeMonthlyPage from "@/app/akram-shake-3/page";
 import AkramShakeUpsellPage from "@/app/akram-shake-2/page";
 import MangoSellerPage, { generateMetadata as generateMangoMetadata } from "@/app/help-mango-seller/page";
+import MangoSellerAltPage, { generateMetadata as generateMangoAltMetadata } from "@/app/help-mango-seller-1/page";
 import AkramShakeDirectPage, { generateMetadata as generateDirectMetadata } from "@/app/akram-shake-1/page";
 import { MANGO_SELLER_BASE_RAISED_USD, MANGO_SELLER_SEED_DONATIONS } from "@/lib/mango-seller-campaign";
 
@@ -50,6 +51,8 @@ describe("monthly campaign entry routes", () => {
     expect(result.props.content.summary).toContain("$2,500 in monthly support");
     expect(result.props.expandStory).toBe(true);
     expect(result.props.showSummary).toBe(false);
+    expect(result.props.showStory).toBe(false);
+    expect(result.props.showFundUsage).toBe(false);
     expect(result.props.showOneTimeLabels).toBe(true);
     expect(MANGO_SELLER_BASE_RAISED_USD).toBe(102_500);
     expect(result.props.campaign.raisedAmountUsd).toBe(sampleCampaign.raisedAmountUsd + MANGO_SELLER_BASE_RAISED_USD);
@@ -81,6 +84,23 @@ describe("monthly campaign entry routes", () => {
     expect(String(metadata.alternates?.canonical)).toContain("/help-mango-seller");
     expect(metadata.description).toContain("$2,500 in monthly support");
     expect(metadata.openGraph).toMatchObject({ title: metadata.title, description: metadata.description });
+  });
+
+  it("renders /help-mango-seller-1 with the same campaign accounting, hidden story/fund sections, and its own canonical URL", async () => {
+    mocks.beneficiary.mockResolvedValue({ ...original, _id: "mango-content", slug: "help-mango-seller", story: [] });
+    const result = await MangoSellerAltPage();
+    expect(mocks.campaign).toHaveBeenCalledWith("help-mango-seller");
+    expect(mocks.beneficiary).toHaveBeenCalledWith("help-mango-seller");
+    expect(result.props.campaign.id).toBe("campaign-help-mango-seller");
+    expect(result.props.campaign.slug).toBe("help-mango-seller");
+    expect(result.props.showSummary).toBe(false);
+    expect(result.props.showStory).toBe(false);
+    expect(result.props.showFundUsage).toBe(false);
+    expect(result.props.showOneTimeLabels).toBe(true);
+    expect(result.props.campaign.raisedAmountUsd).toBe(sampleCampaign.raisedAmountUsd + MANGO_SELLER_BASE_RAISED_USD);
+    expect(result.props.campaign.donorCount).toBe(sampleCampaign.donorCount + MANGO_SELLER_SEED_DONATIONS.length);
+    const metadata = await generateMangoAltMetadata();
+    expect(String(metadata.alternates?.canonical)).toMatch(/\/help-mango-seller-1$/);
   });
 
   it("does not fall back to the old accounting when the new campaign is absent", async () => {

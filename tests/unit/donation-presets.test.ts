@@ -18,6 +18,8 @@ describe("requested $25 preset buttons", () => {
   });
   it("keeps the existing custom-amount minimum policy separate from preset choices", () => {
     expect(getDonationPageMinimumUsdCents("/help-mango-seller", "one_time")).toBe(2000);
+    expect(getDonationPageMinimumUsdCents("/help-mango-seller-1", "one_time")).toBe(2000);
+    expect(getDonationPageMinimumUsdCents("/help-mango-seller-1", "monthly")).toBe(2000);
     expect(getDonationPageMinimumUsdCents("/akram-shake-2", "monthly")).toBe(2000);
     expect(getDonationPageMinimumUsdCents("/akram-shake-2", "one_time")).toBe(2500);
     expect(getDonationPageMinimumUsdCents("/help-street-vendor", "one_time")).toBe(2000);

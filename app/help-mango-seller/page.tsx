@@ -54,6 +54,8 @@ export default async function MangoSellerPage() {
       showOrganizationCharityStatus
       showOrganizationVerification
       showSummary={false}
+      showStory={false}
+      showFundUsage={false}
       expandStory
       locale={locale}
       currency={currency}

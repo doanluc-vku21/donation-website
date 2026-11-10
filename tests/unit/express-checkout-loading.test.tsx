@@ -126,7 +126,7 @@ describe("Apple Pay session loading", () => {
     }
   });
 
-  it.each(["/akram-shake-2", "/help-mango-seller", "/help-street-vendor"])("mirrors presets and applies separate monthly and one-time minimums on %s", async pathname => {
+  it.each(["/akram-shake-2", "/help-mango-seller", "/help-mango-seller-1", "/help-street-vendor"])("mirrors presets and applies separate monthly and one-time minimums on %s", async pathname => {
     navigation.pathname = pathname;
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response("cs_ryan")));
     mountModal(); openModal(); await advance(1);
@@ -141,7 +141,7 @@ describe("Apple Pay session loading", () => {
     expect(screen.getByRole("button", { name: /Pay.*Card/ })).toBeEnabled();
     expect(screen.getByText("❤️ Every donation starts at just $20")).toBeVisible();
     fireEvent.click(screen.getByRole("radio", { name: "Give once" }));
-    const oneTimeMinimum = pathname === "/help-mango-seller" || pathname === "/help-street-vendor" ? 20 : 25;
+    const oneTimeMinimum = pathname === "/help-mango-seller" || pathname === "/help-mango-seller-1" || pathname === "/help-street-vendor" ? 20 : 25;
     fireEvent.change(input, { target: { value: String(oneTimeMinimum - 0.01) } });
     expect(input).toHaveValue(oneTimeMinimum - 0.01);
     expect(screen.getByText(`❤️ Every donation starts at just $${oneTimeMinimum}`)).toBeVisible();
