@@ -24,7 +24,7 @@ export function CampaignAutoRefresh({ campaignId, contributionCount }: { campaig
 
   useEffect(() => {
     let source: EventSource | undefined;
-    const connect = () => {
+    const syncStream = () => {
       if (document.visibilityState !== "visible" || !navigator.onLine) {
         source?.close();
         source = undefined;
@@ -35,22 +35,18 @@ export function CampaignAutoRefresh({ campaignId, contributionCount }: { campaig
         source.onmessage = event => onCount(event);
       }
     };
-    connect();
-    // Recovery for clients/proxies that do not support streaming.
-    const timer = window.setInterval(() => refresh(), 15_000);
-    const onResume = () => { connect(); refresh(); };
-    window.addEventListener("focus", onResume);
-    window.addEventListener("online", onResume);
-    window.addEventListener("offline", onResume);
-    document.addEventListener("visibilitychange", onResume);
+    syncStream();
+    window.addEventListener("focus", syncStream);
+    window.addEventListener("online", syncStream);
+    window.addEventListener("offline", syncStream);
+    document.addEventListener("visibilitychange", syncStream);
 
     return () => {
-      window.clearInterval(timer);
       source?.close();
-      window.removeEventListener("focus", onResume);
-      window.removeEventListener("online", onResume);
-      window.removeEventListener("offline", onResume);
-      document.removeEventListener("visibilitychange", onResume);
+      window.removeEventListener("focus", syncStream);
+      window.removeEventListener("online", syncStream);
+      window.removeEventListener("offline", syncStream);
+      document.removeEventListener("visibilitychange", syncStream);
     };
   }, [campaignId]);
 
