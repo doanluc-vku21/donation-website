@@ -46,6 +46,7 @@ type MobileCampaignHeroProps = {
   compactHeadline?: boolean;
   showHeadline?: boolean;
   showProgress?: boolean;
+  fitImage?: boolean;
   imageObjectPosition?: string;
   showOrganizationCharityStatus?: boolean;
   showOrganizationVerification?: boolean;
@@ -68,6 +69,7 @@ export function MobileCampaignHero({
   compactHeadline = false,
   showHeadline = true,
   showProgress = true,
+  fitImage = false,
   donorSummary,
 }: MobileCampaignHeroProps) {
   const t =
@@ -258,6 +260,51 @@ export function MobileCampaignHero({
         lg:hidden
       "
     >
+      {fitImage ? (
+        <section className="overflow-hidden bg-[#1e281d]">
+          <div className="px-4 pb-3 pt-4">
+            <div
+              dir="ltr"
+              className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/15 bg-black/30 py-1 pl-1 pr-2.5 text-white shadow-[0_4px_18px_rgba(0,0,0,.18)] backdrop-blur-md"
+            >
+              <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full border border-white/70 bg-white shadow-sm">
+                <Image
+                  src={logoUrl || "/sample-logo.svg"}
+                  alt={organizationName}
+                  width={logoWidth}
+                  height={logoHeight}
+                  sizes="28px"
+                  className="h-full w-full object-contain p-[2px]"
+                />
+              </span>
+              <span className="min-w-0">
+                <span dir="ltr" className="flex items-center gap-1">
+                  <span className="block whitespace-normal break-words text-[11px] font-semibold leading-[14px] tracking-[-0.01em] text-white">
+                    {organizationName}
+                  </span>
+                  {verificationBadge}
+                </span>
+                {showOrganizationCharityStatus && (
+                  <span dir={textDirection} className="mt-0.5 block text-[9px] font-normal leading-[11px] text-white/85">
+                    {t.organizationCharityStatus}
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
+
+          <Image
+            src={heroUrl || "/sample-campaign-hero.svg"}
+            alt={content.heroImage?.alt || content.title}
+            width={heroWidth}
+            height={heroHeight}
+            priority
+            fetchPriority="high"
+            sizes="(min-width: 1024px) 686px, 100vw"
+            className="block h-auto w-full"
+          />
+        </section>
+      ) : (
       <section
         className="
           relative
@@ -375,6 +422,7 @@ export function MobileCampaignHero({
           "
         />
       </section>
+      )}
 
       <section
         id="mobile-inline-donate"

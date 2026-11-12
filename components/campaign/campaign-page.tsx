@@ -91,6 +91,7 @@ export function CampaignPage({
   showMobileHeroHeadline = true,
   showDesktopHeadline = true,
   showProgress = true,
+  fitMobileHeroImage = false,
   donorSummary,
   contributionCount,
   liveContributionCount,
@@ -105,6 +106,7 @@ export function CampaignPage({
   showMobileHeroHeadline?: boolean;
   showDesktopHeadline?: boolean;
   showProgress?: boolean;
+  fitMobileHeroImage?: boolean;
   showSummary?: boolean;
   showStory?: boolean;
   showFundUsage?: boolean;
@@ -282,6 +284,7 @@ export function CampaignPage({
           compactHeadline={compactHeadline}
           showHeadline={showMobileHeroHeadline}
           showProgress={showProgress}
+          fitImage={fitMobileHeroImage}
           imageObjectPosition={mobileHeroObjectPosition}
           showOrganizationCharityStatus={showOrganizationCharityStatus}
           showOrganizationVerification={showOrganizationVerification}

@@ -79,6 +79,7 @@ describe("/help-gaza landing page and content", () => {
       showMobileHeroHeadline: false,
       showDesktopHeadline: false,
       showProgress: false,
+      fitMobileHeroImage: true,
       showStory: true,
       showFundUsage: false,
       showSummary: false,
