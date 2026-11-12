@@ -249,6 +249,77 @@ async function markCompletedFromStripe(
   }
 }
 
+function isCrossModeCheckoutSession(
+  checkoutSessionId:
+    string,
+) {
+  const secretKey =
+    process.env
+      .STRIPE_SECRET_KEY ??
+    "";
+
+  if (
+    secretKey.startsWith(
+      "sk_live_",
+    ) ||
+    secretKey.startsWith(
+      "rk_live_",
+    )
+  ) {
+    return checkoutSessionId.startsWith(
+      "cs_test_",
+    );
+  }
+
+  if (
+    secretKey.startsWith(
+      "sk_test_",
+    ) ||
+    secretKey.startsWith(
+      "rk_test_",
+    )
+  ) {
+    return checkoutSessionId.startsWith(
+      "cs_live_",
+    );
+  }
+
+  return false;
+}
+
+function isMissingStripeCheckoutSessionError(
+  error:
+    unknown,
+) {
+  if (
+    typeof error !==
+      "object" ||
+    error ===
+      null
+  ) {
+    return false;
+  }
+
+  const candidate =
+    error as {
+      code?: unknown;
+      statusCode?: unknown;
+      raw?: {
+        code?: unknown;
+      };
+    };
+
+  return (
+    candidate.code ===
+      "resource_missing" ||
+    candidate.raw
+      ?.code ===
+      "resource_missing" ||
+    candidate.statusCode ===
+      404
+  );
+}
+
 async function processAttempt(
   attempt:
     DonationAttemptRow,
@@ -330,6 +401,21 @@ async function processAttempt(
     claimed
       .stripe_checkout_session_id
   ) {
+    if (
+      isCrossModeCheckoutSession(
+        claimed
+          .stripe_checkout_session_id,
+      )
+    ) {
+      return {
+        id:
+          claimed.id,
+
+        result:
+          "skipped_cross_mode_session" as const,
+      };
+    }
+
     try {
       const session =
         await stripe.checkout
@@ -360,6 +446,27 @@ async function processAttempt(
     } catch (
       stripeError
     ) {
+      if (
+        isMissingStripeCheckoutSessionError(
+          stripeError,
+        )
+      ) {
+        console.warn(
+          "Skipping abandoned reminder for missing Stripe session:",
+          claimed.id,
+          claimed
+            .stripe_checkout_session_id,
+        );
+
+        return {
+          id:
+            claimed.id,
+
+          result:
+            "skipped_missing_stripe_session" as const,
+        };
+      }
+
       console.error(
         "Unable to verify abandoned Stripe session:",
         claimed.id,
