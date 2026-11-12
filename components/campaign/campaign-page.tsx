@@ -89,6 +89,7 @@ export function CampaignPage({
   mobileHeroObjectPosition,
   compactHeadline = false,
   showMobileHeroHeadline = true,
+  showDesktopHeadline = true,
   donorSummary,
   contributionCount,
   liveContributionCount,
@@ -101,6 +102,7 @@ export function CampaignPage({
   mobileHeroObjectPosition?: string;
   compactHeadline?: boolean;
   showMobileHeroHeadline?: boolean;
+  showDesktopHeadline?: boolean;
   showSummary?: boolean;
   showStory?: boolean;
   showFundUsage?: boolean;
@@ -350,34 +352,36 @@ export function CampaignPage({
               </p>
             )}
 
-            <h1
-  dir={
-    locale === "ar"
-      ? "rtl"
-      : "ltr"
-  }
-  className={`
-                max-w-[760px]
-                break-words
-                font-bold
-                leading-[1.08]
-                tracking-[-0.035em]
-                text-[#101820]
-                ${compactHeadline
-                  ? "text-[28px] sm:text-[34px] lg:text-[40px]"
-                  : "text-[34px] sm:text-[42px] lg:text-[48px]"}
-              `}
-            >
-              {content.title}
-            </h1>
+            {showDesktopHeadline && (
+              <h1
+                dir={
+                  locale === "ar"
+                    ? "rtl"
+                    : "ltr"
+                }
+                className={`
+                  max-w-[760px]
+                  break-words
+                  font-bold
+                  leading-[1.08]
+                  tracking-[-0.035em]
+                  text-[#101820]
+                  ${compactHeadline
+                    ? "text-[28px] sm:text-[34px] lg:text-[40px]"
+                    : "text-[34px] sm:text-[42px] lg:text-[48px]"}
+                `}
+              >
+                {content.title}
+              </h1>
+            )}
 
             <div
-              className="
-                mt-5
+              className={`
+                ${showDesktopHeadline ? "mt-5" : ""}
                 flex
                 items-center
                 gap-3
-              "
+              `}
             >
               {logoUrl ? (
                 <Image

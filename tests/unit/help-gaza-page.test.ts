@@ -77,6 +77,7 @@ describe("/help-gaza landing page and content", () => {
     expect(mocks.campaign).toHaveBeenCalledExactlyOnceWith(HELP_GAZA_CAMPAIGN_SLUG);
     expect(result.props).toMatchObject({
       showMobileHeroHeadline: false,
+      showDesktopHeadline: false,
       showStory: true,
       showFundUsage: false,
       showSummary: false,

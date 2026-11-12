@@ -61,6 +61,7 @@ export default async function HelpGazaPage() {
       }}
       content={content}
       showMobileHeroHeadline={false}
+      showDesktopHeadline={false}
       showDonationTimes={false}
       showOneTimeLabels
       showOrganizationCharityStatus
