@@ -40,26 +40,33 @@ function localizedFooterPopup(
     return undefined;
   }
 
+  const {
+    labelI18n,
+    titleI18n,
+    contentI18n,
+    ...restPopup
+  } = popup;
+
   return {
-    ...popup,
+    ...restPopup,
 
     label:
       localizedText(
-        popup.labelI18n,
+        labelI18n,
         locale,
         popup.label,
       ),
 
     title:
       localizedText(
-        popup.titleI18n,
+        titleI18n,
         locale,
         popup.title,
       ),
 
     content:
       localizedPortableText(
-        popup.contentI18n,
+        contentI18n,
         locale,
         popup.content,
       ),
@@ -106,63 +113,77 @@ export function localizeCampaign(
   content: SanityCampaign,
   locale: Locale,
 ): SanityCampaign {
+  const {
+    titleI18n,
+    eyebrowI18n,
+    summaryI18n,
+    storyEyebrowI18n,
+    storyHeadingI18n,
+    storyI18n,
+    fundUsageTitleI18n,
+    fundUsageSubtitleI18n,
+    seoTitleI18n,
+    seoDescriptionI18n,
+    footerSubtitleI18n,
+    footerSecureTextI18n,
+    ...restContent
+  } = content;
+
   return {
-    ...content,
+    ...restContent,
 
     title:
       localizedText(
-        content.titleI18n,
+        titleI18n,
         locale,
         content.title,
       ),
 
     eyebrow:
       localizedText(
-        content.eyebrowI18n,
+        eyebrowI18n,
         locale,
         content.eyebrow,
       ),
 
     summary:
       localizedText(
-        content.summaryI18n,
+        summaryI18n,
         locale,
         content.summary,
       ),
 
     storyEyebrow:
       localizedText(
-        content.storyEyebrowI18n,
+        storyEyebrowI18n,
         locale,
         content.storyEyebrow,
       ),
 
     storyHeading:
       localizedText(
-        content.storyHeadingI18n,
+        storyHeadingI18n,
         locale,
         content.storyHeading,
       ),
 
     story:
       localizedPortableText(
-        content.storyI18n,
+        storyI18n,
         locale,
         content.story,
       ),
 
     fundUsageTitle:
       localizedText(
-        content
-          .fundUsageTitleI18n,
+        fundUsageTitleI18n,
         locale,
         content.fundUsageTitle,
       ),
 
     fundUsageSubtitle:
       localizedText(
-        content
-          .fundUsageSubtitleI18n,
+        fundUsageSubtitleI18n,
         locale,
         content.fundUsageSubtitle,
       ),
@@ -170,58 +191,60 @@ export function localizeCampaign(
   content
     .fundUsageItems
     ?.map(
-      (item) => ({
-        ...item,
+      ({
+        titleI18n: itemTitleI18n,
+        descriptionI18n: itemDescriptionI18n,
+        contentI18n: itemContentI18n,
+        ...restItem
+      }) => ({
+        ...restItem,
 
         title:
           localizedText(
-            item.titleI18n,
+            itemTitleI18n,
             locale,
-            item.title,
+            restItem.title,
           ),
 
         description:
           localizedText(
-            item.descriptionI18n,
+            itemDescriptionI18n,
             locale,
-            item.description,
+            restItem.description,
           ),
 
         content:
           localizedText(
-            item.contentI18n,
+            itemContentI18n,
             locale,
-            item.content,
+            restItem.content,
           ),
       }),
     ) ?? [],
 
     seoTitle:
       localizedText(
-        content.seoTitleI18n,
+        seoTitleI18n,
         locale,
         content.seoTitle,
       ),
 
     seoDescription:
       localizedText(
-        content
-          .seoDescriptionI18n,
+        seoDescriptionI18n,
         locale,
         content.seoDescription,
       ),
     footerSubtitle:
   localizedText(
-    content
-      .footerSubtitleI18n,
+    footerSubtitleI18n,
     locale,
     content.footerSubtitle,
   ),
 
 footerSecureText:
   localizedText(
-    content
-      .footerSecureTextI18n,
+    footerSecureTextI18n,
     locale,
     content.footerSecureText,
   ),

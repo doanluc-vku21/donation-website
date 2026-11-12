@@ -17,6 +17,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useEffectEvent,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -480,11 +481,11 @@ export function DonationModal({
     );
   }
 
-  useEffect(() => {
-    function handleOpenDonationModal() {
-      openModal();
-    }
+  const handleOpenDonationModal = useEffectEvent(() => {
+    openModal();
+  });
 
+  useEffect(() => {
     window.addEventListener(
       DONATION_MODAL_OPEN_EVENT,
       handleOpenDonationModal,
@@ -496,7 +497,7 @@ export function DonationModal({
         handleOpenDonationModal,
       );
     };
-  });
+  }, []);
 
   useEffect(() => {
     if (!open) {

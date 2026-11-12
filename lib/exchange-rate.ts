@@ -14,6 +14,9 @@ type FrankfurterRateResponse = {
 const BASE_CURRENCY:
   Currency = "USD";
 
+const RATE_CACHE_TTL_MS = 60 * 60 * 1000;
+const rateCache = new Map<Currency, { rate: number; expiresAt: number }>();
+
 /**
  * Lấy tỷ giá:
  *
@@ -33,6 +36,12 @@ export async function getUsdToCurrencyRate(
     BASE_CURRENCY
   ) {
     return 1;
+  }
+
+  const now = Date.now();
+  const cached = rateCache.get(currency);
+  if (cached && cached.expiresAt > now) {
+    return cached.rate;
   }
 
   const response =
@@ -67,6 +76,11 @@ export async function getUsdToCurrencyRate(
       `Invalid exchange rate USD/${currency}`,
     );
   }
+
+  rateCache.set(currency, {
+    rate: data.rate,
+    expiresAt: now + RATE_CACHE_TTL_MS,
+  });
 
   return data.rate;
 }

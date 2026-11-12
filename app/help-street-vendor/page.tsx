@@ -29,12 +29,19 @@ export async function generateMetadata() {
 }
 
 export default async function StreetVendorPage() {
-  const [campaign, content, locale, { currency, exchangeRate }] = await Promise.all([
-    getCampaignBySlug(STREET_VENDOR_SLUG), getContent(), getLocale(), getCurrencyContext(),
+  const [[campaign, liveContributionCount], content, locale, { currency, exchangeRate }] = await Promise.all([
+    getCampaignBySlug(STREET_VENDOR_SLUG).then(async (resolvedCampaign) => {
+      if (!resolvedCampaign) {
+        return [null, 0] as const;
+      }
+      return [resolvedCampaign, await getCampaignContributionCount(resolvedCampaign.id)] as const;
+    }),
+    getContent(),
+    getLocale(),
+    getCurrencyContext(),
   ]);
   if (!campaign) notFound();
 
-  const liveContributionCount = await getCampaignContributionCount(campaign.id);
   const contributionCount = liveContributionCount + STREET_VENDOR_SEED_DONATIONS.length;
   const donorSummary = <HistoricalDonorSummary contributionCount={contributionCount} locale={locale} />;
 

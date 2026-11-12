@@ -186,6 +186,30 @@ export function CampaignPage({
         : campaign.goalAmountUsd,
   };
 
+  const footerContent: SanityCampaign = {
+    _id: content._id,
+    title: content.title,
+    slug: content.slug,
+    organizationName: content.organizationName,
+    footerOrganizationName: content.footerOrganizationName,
+    footerSubtitle: content.footerSubtitle,
+    footerSecureText: content.footerSecureText,
+    footerAbout: content.footerAbout,
+    footerContact: content.footerContact,
+    footerPrivacy: content.footerPrivacy,
+    footerTerms: content.footerTerms,
+    footerRefund: content.footerRefund,
+  };
+
+  const modalContent: SanityCampaign = {
+    _id: content._id,
+    title: content.title,
+    slug: content.slug,
+    organizationName: content.organizationName,
+    heroImage: content.heroImage,
+    goalAmount: content.goalAmount,
+  };
+
   return (
     <RecentDonationRotationProvider key={campaign.id} donations={campaign.recentDonations} enabled={!campaign.supporterProgress}>
     {autoRefresh ? <CampaignAutoRefresh campaignId={campaign.id} contributionCount={liveContributionCount ?? contributionCount ?? 0} /> : null}
@@ -603,7 +627,7 @@ export function CampaignPage({
 
             <SiteFooter
               content={
-                content
+                footerContent
               }
             />
           </div>
@@ -651,7 +675,7 @@ export function CampaignPage({
           >
             <SiteFooter
               content={
-                content
+                footerContent
               }
             />
           </div>
@@ -709,7 +733,7 @@ export function CampaignPage({
           campaignWithGoal
         }
         content={
-          content
+          modalContent
         }
         locale={
           locale
@@ -731,7 +755,7 @@ export function CampaignPage({
           campaignWithGoal
         }
         content={
-          content
+          modalContent
         }
         locale={
           locale

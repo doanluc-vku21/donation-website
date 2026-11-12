@@ -66,9 +66,11 @@ export const revalidate =
   0;
 
 export async function generateMetadata(): Promise<Metadata> {
-  const content = await getCampaignContent();
+  const [content, locale] = await Promise.all([
+    getCampaignContent(),
+    getLocale(),
+  ]);
   if (!content) notFound();
-  const locale = await getLocale();
   return getCampaignMetadata(localizeDirectCampaign(content, locale), "/akram-shake-1");
 }
 
@@ -78,30 +80,27 @@ export default async function AkramShakeDirectPage() {
    * It intentionally loads the SAME Supabase campaign and
    * SAME Sanity document as /akram-shake.
    */
-  const campaign =
-    await getCampaignBySlug(
-      CAMPAIGN_SLUG,
-    );
+  const [
+    campaign,
+    content,
+    locale,
+    {
+      currency,
+      exchangeRate,
+    },
+  ] =
+    await Promise.all([
+      getCampaignBySlug(
+        CAMPAIGN_SLUG,
+      ),
+      getCampaignContent(),
+      getLocale(),
+      getCurrencyContext(),
+    ]);
 
-  if (!campaign) {
+  if (!campaign || !content) {
     notFound();
   }
-
-  const content =
-    await getCampaignContent();
-
-  if (!content) {
-    notFound();
-  }
-
-  const locale =
-    await getLocale();
-
-  const {
-    currency,
-    exchangeRate,
-  } =
-    await getCurrencyContext();
 
   const localizedContent =
     localizeDirectCampaign(

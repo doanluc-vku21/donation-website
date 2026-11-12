@@ -124,24 +124,24 @@ export function RecentDonations({
 
   const sortedDonations =
     useMemo(() => {
-      const result = [
-        ...donations,
-      ];
-
       if (
-        sortMode ===
-        "highest"
+        !modalOpen ||
+        sortMode !==
+          "highest"
       ) {
-        result.sort(
-          (a, b) =>
-            b.amountUsd -
-            a.amountUsd,
-        );
+        return donations;
       }
 
-      return result;
+      return [
+        ...donations,
+      ].sort(
+        (a, b) =>
+          b.amountUsd -
+          a.amountUsd,
+      );
     }, [
       donations,
+      modalOpen,
       sortMode,
     ]);
 

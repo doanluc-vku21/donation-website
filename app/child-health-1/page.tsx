@@ -44,40 +44,37 @@ export const revalidate =
   0;
 
 export default async function ChildHealthEmbeddedPage() {
-  const campaign =
-    await getCampaignBySlug(
-      CAMPAIGN_SLUG,
-    );
+  const [
+    campaign,
+    content,
+    locale,
+    {
+      currency,
+      exchangeRate,
+    },
+  ] =
+    await Promise.all([
+      getCampaignBySlug(
+        CAMPAIGN_SLUG,
+      ),
+      sanityClient.fetch<SanityCampaign>(
+        CAMPAIGN_QUERY,
+        {
+          slug:
+            CAMPAIGN_SLUG,
+        },
+        {
+          cache:
+            "no-store",
+        },
+      ),
+      getLocale(),
+      getCurrencyContext(),
+    ]);
 
-  if (!campaign) {
+  if (!campaign || !content) {
     notFound();
   }
-
-  const content =
-    await sanityClient.fetch<SanityCampaign>(
-      CAMPAIGN_QUERY,
-      {
-        slug:
-          CAMPAIGN_SLUG,
-      },
-      {
-        cache:
-          "no-store",
-      },
-    );
-
-  if (!content) {
-    notFound();
-  }
-
-  const locale =
-    await getLocale();
-
-  const {
-    currency,
-    exchangeRate,
-  } =
-    await getCurrencyContext();
 
   const localizedContent =
     localizeCampaign(

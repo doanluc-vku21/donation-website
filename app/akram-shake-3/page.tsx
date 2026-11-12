@@ -16,17 +16,21 @@ export const revalidate = 0;
 
 export default async function AkramShakeMonthlyPage() {
   // Preserve the original campaign's accounting and media for this new entry.
-  const campaign = await getCampaignBySlug(CAMPAIGN_SLUG);
+  const [campaign, locale, { currency, exchangeRate }] = await Promise.all([
+    getCampaignBySlug(CAMPAIGN_SLUG),
+    getLocale(),
+    getCurrencyContext(),
+  ]);
   if (!campaign) notFound();
 
-  const content = await sanityClient.fetch<SanityCampaign>(
-    CAMPAIGN_QUERY, { slug: CAMPAIGN_SLUG }, { cache: "no-store" },
-  );
+  const [content, supporters] = await Promise.all([
+    sanityClient.fetch<SanityCampaign>(
+      CAMPAIGN_QUERY, { slug: CAMPAIGN_SLUG }, { cache: "no-store" },
+    ),
+    getMonthlySupporters(campaign.id),
+  ]);
   if (!content) notFound();
 
-  const locale = await getLocale();
-  const { currency, exchangeRate } = await getCurrencyContext();
-  const supporters = await getMonthlySupporters(campaign.id);
   const monthlyCampaign = {
     ...campaign,
     recentDonations: supporters ?? [],
