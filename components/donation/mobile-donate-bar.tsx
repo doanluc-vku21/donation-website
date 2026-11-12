@@ -39,6 +39,7 @@ import { RotatingDonationHint } from "@/components/campaign/recent-donation-rota
 import { getUiTranslations } from "@/lib/ui-translations";
 
 type MobileDonateBarProps = {
+  showProgress?: boolean;
   campaign: Campaign;
   content: SanityCampaign;
   locale: Locale;
@@ -52,6 +53,7 @@ export function MobileDonateBar({
   locale,
   currency,
   exchangeRate,
+  showProgress = true,
 }: MobileDonateBarProps) {
   const textDirection =
     locale === "ar"
@@ -146,41 +148,43 @@ export function MobileDonateBar({
           shadow-[0_-8px_28px_rgba(15,30,40,0.14)]
         "
       >
-        {campaign.supporterProgress ? (
-          <MonthlySupporterProgress progress={campaign.supporterProgress} locale={locale} />
-        ) : (
-        <div className="flex items-center gap-3">
-          <ProgressCircle
-            progress={progress}
-          />
-
-          <div
-            dir={textDirection}
-            className="min-w-0 flex-1"
-          >
-            <RaisedText
-              campaign={campaign}
-              locale={locale}
-              currency={currency}
-              exchangeRate={exchangeRate}
+        {showProgress && (
+          campaign.supporterProgress ? (
+            <MonthlySupporterProgress progress={campaign.supporterProgress} locale={locale} />
+          ) : (
+          <div className="flex items-center gap-3">
+            <ProgressCircle
+              progress={progress}
             />
 
-            <RotatingDonationHint
-              donations={campaign.recentDonations}
-              locale={locale}
-              currency={currency}
-              exchangeRate={exchangeRate}
-              className="mt-1 text-[12px] text-[#697387]"
-              showArrow
-            />
+            <div
+              dir={textDirection}
+              className="min-w-0 flex-1"
+            >
+              <RaisedText
+                campaign={campaign}
+                locale={locale}
+                currency={currency}
+                exchangeRate={exchangeRate}
+              />
+
+              <RotatingDonationHint
+                donations={campaign.recentDonations}
+                locale={locale}
+                currency={currency}
+                exchangeRate={exchangeRate}
+                className="mt-1 text-[12px] text-[#697387]"
+                showArrow
+              />
+            </div>
           </div>
-        </div>
 
+          )
         )}
 
         <div
           dir="ltr"
-          className="mt-4 grid grid-cols-2 gap-3"
+          className={`${showProgress ? "mt-4 " : ""}grid grid-cols-2 gap-3`}
         >
           <DonationModalTrigger
             locale={locale}

@@ -90,6 +90,7 @@ export function CampaignPage({
   compactHeadline = false,
   showMobileHeroHeadline = true,
   showDesktopHeadline = true,
+  showProgress = true,
   donorSummary,
   contributionCount,
   liveContributionCount,
@@ -103,6 +104,7 @@ export function CampaignPage({
   compactHeadline?: boolean;
   showMobileHeroHeadline?: boolean;
   showDesktopHeadline?: boolean;
+  showProgress?: boolean;
   showSummary?: boolean;
   showStory?: boolean;
   showFundUsage?: boolean;
@@ -279,6 +281,7 @@ export function CampaignPage({
           donorSummary={donorSummary}
           compactHeadline={compactHeadline}
           showHeadline={showMobileHeroHeadline}
+          showProgress={showProgress}
           imageObjectPosition={mobileHeroObjectPosition}
           showOrganizationCharityStatus={showOrganizationCharityStatus}
           showOrganizationVerification={showOrganizationVerification}
@@ -711,6 +714,7 @@ export function CampaignPage({
           >
             <CampaignDonateCard
               donorSummary={donorSummary}
+              showProgress={showProgress}
               campaign={
                 campaignWithGoal
               }
@@ -736,6 +740,7 @@ export function CampaignPage({
       ====================================================== */}
 
       <MobileDonateBar
+        showProgress={showProgress}
         campaign={
           campaignWithGoal
         }

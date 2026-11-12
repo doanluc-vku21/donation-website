@@ -78,6 +78,7 @@ describe("/help-gaza landing page and content", () => {
     expect(result.props).toMatchObject({
       showMobileHeroHeadline: false,
       showDesktopHeadline: false,
+      showProgress: false,
       showStory: true,
       showFundUsage: false,
       showSummary: false,

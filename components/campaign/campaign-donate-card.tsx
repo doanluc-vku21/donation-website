@@ -42,6 +42,7 @@ import { RotatingDonationHint } from "@/components/campaign/recent-donation-rota
 
 type CampaignDonateCardProps = {
   donorSummary?: ReactNode;
+  showProgress?: boolean;
   campaign: Campaign;
   content: SanityCampaign;
   locale: Locale;
@@ -56,6 +57,7 @@ export function CampaignDonateCard({
   currency,
   exchangeRate,
   donorSummary,
+  showProgress = true,
 }: CampaignDonateCardProps) {
   const t =
     getUiTranslations(
@@ -98,86 +100,88 @@ export function CampaignDonateCard({
         shadow-[0_18px_50px_rgba(15,35,60,0.08)]
       "
     >
-      {campaign.supporterProgress ? (
-        <MonthlySupporterProgress progress={campaign.supporterProgress} locale={locale} />
-      ) : (
-      <div className="flex items-start gap-4">
-        <div
-          className="
-            grid
-            size-[64px]
-            shrink-0
-            place-items-center
-            rounded-full
-          "
-          style={{
-            background: `conic-gradient(
-              #b8f06a ${Math.min(
-                progress,
-                100,
-              )}%,
-              #edf1e9 0
-            )`,
-          }}
-        >
-          <div className="grid size-[50px] place-items-center rounded-full bg-white">
-            <strong
+      {showProgress && (
+        campaign.supporterProgress ? (
+          <MonthlySupporterProgress progress={campaign.supporterProgress} locale={locale} />
+        ) : (
+        <div className="flex items-start gap-4">
+          <div
+            className="
+              grid
+              size-[64px]
+              shrink-0
+              place-items-center
+              rounded-full
+            "
+            style={{
+              background: `conic-gradient(
+                #b8f06a ${Math.min(
+                  progress,
+                  100,
+                )}%,
+                #edf1e9 0
+              )`,
+            }}
+          >
+            <div className="grid size-[50px] place-items-center rounded-full bg-white">
+              <strong
+                dir="ltr"
+                className="text-[15px] font-bold text-[#18263b]"
+              >
+                {progress}%
+              </strong>
+            </div>
+          </div>
+
+          <div
+            dir={textDirection}
+            className="min-w-0 flex-1 pt-1"
+          >
+            <p className="text-[18px] font-bold leading-[1.25] tracking-[-0.02em] text-[#162338]">
+              <span dir="ltr" className="inline-block">
+                {formatMoney(
+                  raisedAmount,
+                  currency,
+                  locale,
+                )}
+              </span>{" "}
+              {t.raised}{" "}
+              <span className="font-normal text-[#6e7a8b]">
+                {t.of}
+              </span>
+            </p>
+
+            <p
               dir="ltr"
-              className="text-[15px] font-bold text-[#18263b]"
+              className="mt-1 inline-block text-[16px] text-[#647187] underline decoration-[#aab3bf] underline-offset-2"
             >
-              {progress}%
-            </strong>
+              {formatMoney(
+                goalAmount,
+                currency,
+                locale,
+                {
+                  hideZeroDecimals:
+                    true,
+                },
+              )}
+            </p>
+
+            <RotatingDonationHint
+              donations={campaign.recentDonations}
+              locale={locale}
+              currency={currency}
+              exchangeRate={exchangeRate}
+              className="mt-2 text-[12px] text-[#6b7687]"
+            />
           </div>
         </div>
 
-        <div
-          dir={textDirection}
-          className="min-w-0 flex-1 pt-1"
-        >
-          <p className="text-[18px] font-bold leading-[1.25] tracking-[-0.02em] text-[#162338]">
-            <span dir="ltr" className="inline-block">
-              {formatMoney(
-                raisedAmount,
-                currency,
-                locale,
-              )}
-            </span>{" "}
-            {t.raised}{" "}
-            <span className="font-normal text-[#6e7a8b]">
-              {t.of}
-            </span>
-          </p>
-
-          <p
-            dir="ltr"
-            className="mt-1 inline-block text-[16px] text-[#647187] underline decoration-[#aab3bf] underline-offset-2"
-          >
-            {formatMoney(
-              goalAmount,
-              currency,
-              locale,
-              {
-                hideZeroDecimals:
-                  true,
-              },
-            )}
-          </p>
-
-          <RotatingDonationHint
-            donations={campaign.recentDonations}
-            locale={locale}
-            currency={currency}
-            exchangeRate={exchangeRate}
-            className="mt-2 text-[12px] text-[#6b7687]"
-          />
-        </div>
-      </div>
-
+        )
       )}
 
       {donorSummary ? <div className="mt-3">{donorSummary}</div> : null}
 
-      <div className="mt-6">
+      <div className={showProgress || donorSummary ? "mt-6" : ""}>
         <DonationModalTrigger
           locale={locale}
           className="
