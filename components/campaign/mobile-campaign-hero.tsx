@@ -44,6 +44,7 @@ import {
 type MobileCampaignHeroProps = {
   donorSummary?: ReactNode;
   compactHeadline?: boolean;
+  showHeadline?: boolean;
   imageObjectPosition?: string;
   showOrganizationCharityStatus?: boolean;
   showOrganizationVerification?: boolean;
@@ -64,6 +65,7 @@ export function MobileCampaignHero({
   showOrganizationVerification = true,
   imageObjectPosition,
   compactHeadline = false,
+  showHeadline = true,
   donorSummary,
 }: MobileCampaignHeroProps) {
   const t =
@@ -318,40 +320,42 @@ export function MobileCampaignHero({
 
         {organizationBadge}
 
-        <div
-          className="
-            absolute
-            bottom-12
-            left-5
-            right-5
-            z-10
-          "
-        >
-          <h1
-            dir={
-              textDirection
-            }
-            className={`
-              max-w-[370px]
-              ${compactHeadline ? "text-[23px] sm:text-[25px]" : "text-[27px]"}
-              font-extrabold
-              leading-[1.08]
-              tracking-[-0.035em]
-              text-white
-              drop-shadow-[0_2px_4px_rgba(0,0,0,.45)]
-
-              ${
-                locale === "ar"
-                  ? "ml-auto text-right"
-                  : "text-left"
-              }
-            `}
+        {showHeadline && (
+          <div
+            className="
+              absolute
+              bottom-12
+              left-5
+              right-5
+              z-10
+            "
           >
-            {
-              content.title
-            }
-          </h1>
-        </div>
+            <h1
+              dir={
+                textDirection
+              }
+              className={`
+                max-w-[370px]
+                ${compactHeadline ? "text-[23px] sm:text-[25px]" : "text-[27px]"}
+                font-extrabold
+                leading-[1.08]
+                tracking-[-0.035em]
+                text-white
+                drop-shadow-[0_2px_4px_rgba(0,0,0,.45)]
+
+                ${
+                  locale === "ar"
+                    ? "ml-auto text-right"
+                    : "text-left"
+                }
+              `}
+            >
+              {
+                content.title
+              }
+            </h1>
+          </div>
+        )}
 
         <div
           aria-hidden="true"

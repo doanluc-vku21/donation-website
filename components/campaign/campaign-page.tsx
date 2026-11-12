@@ -88,6 +88,7 @@ export function CampaignPage({
   expandStory = false,
   mobileHeroObjectPosition,
   compactHeadline = false,
+  showMobileHeroHeadline = true,
   donorSummary,
   contributionCount,
   liveContributionCount,
@@ -99,6 +100,7 @@ export function CampaignPage({
   donorSummary?: ReactNode;
   mobileHeroObjectPosition?: string;
   compactHeadline?: boolean;
+  showMobileHeroHeadline?: boolean;
   showSummary?: boolean;
   showStory?: boolean;
   showFundUsage?: boolean;
@@ -274,6 +276,7 @@ export function CampaignPage({
         <MobileCampaignHero
           donorSummary={donorSummary}
           compactHeadline={compactHeadline}
+          showHeadline={showMobileHeroHeadline}
           imageObjectPosition={mobileHeroObjectPosition}
           showOrganizationCharityStatus={showOrganizationCharityStatus}
           showOrganizationVerification={showOrganizationVerification}

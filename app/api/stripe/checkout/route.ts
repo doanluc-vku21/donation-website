@@ -406,7 +406,12 @@ export async function POST(
               requestedCampaignPath ===
                 "/help-mango-seller-1"
             ? "/help-mango-seller-1"
-            : defaultCampaignPath;
+            : campaignSlug ===
+                  "give-a-child-a-brighter-tomorrow" &&
+                requestedCampaignPath ===
+                  "/help-gaza"
+              ? "/help-gaza"
+              : defaultCampaignPath;
 
     if (isMonthlyOnlyDonationPage(campaignPath) && frequency !== "monthly") {
       return NextResponse.json(
