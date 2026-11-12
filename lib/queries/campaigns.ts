@@ -1,4 +1,5 @@
 import "server-only";
+import { isCurrency } from "@/lib/currency";
 import { formatRelativeTime } from "@/lib/relative-time";
 
 import type {
@@ -8,6 +9,7 @@ import type {
   RecentDonation,
 } from "@/lib/sample-data";
 
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import {
   createSupabaseServerClient,
 } from "@/lib/supabase/server";
@@ -73,11 +75,23 @@ type RecentDonationRow = {
   amount_cents:
     number;
 
+  charged_amount_cents?:
+    number | null;
+
+  charged_currency?:
+    string | null;
+
   frequency:
     DonationFrequency;
 
   created_at:
     string;
+};
+
+type ChargedDonationRow = {
+  id: string;
+  charged_amount_cents: number | null;
+  charged_currency: string | null;
 };
 
 export async function getCampaignBySlug(
@@ -147,6 +161,7 @@ export async function getCampaignBySlug(
     donationOptionsResult,
     statsResult,
     recentResult,
+    chargedDonationsResult,
   ] =
     await Promise.all([
       supabase
@@ -193,6 +208,16 @@ export async function getCampaignBySlug(
             100,
         },
       ),
+
+      Promise.resolve(
+        supabaseAdmin
+          .from("donations")
+          .select("id, charged_amount_cents, charged_currency")
+          .eq("campaign_id", campaign.id)
+          .eq("status", "succeeded")
+          .order("created_at", { ascending: false })
+          .limit(100),
+      ).catch(() => ({ data: null, error: null })),
     ]);
 
   if (
@@ -247,6 +272,13 @@ export async function getCampaignBySlug(
       | CampaignStatsRow
       | undefined;
 
+  const chargedByDonationId = new Map(
+    ((chargedDonationsResult?.data ?? []) as ChargedDonationRow[]).map(row => [
+      row.id,
+      row,
+    ]),
+  );
+
   const recentDonations:
     RecentDonation[] =
     (
@@ -256,26 +288,53 @@ export async function getCampaignBySlug(
       (
         row:
           RecentDonationRow,
-      ) => ({
-        id:
-          row.id,
+      ) => {
+        const chargedRow = chargedByDonationId.get(row.id);
+        const rawChargedAmount = Number(
+          chargedRow?.charged_amount_cents ?? row.charged_amount_cents,
+        );
+        const rawChargedCurrency = (
+          chargedRow?.charged_currency ??
+          row.charged_currency ??
+          ""
+        )
+          .trim()
+          .toUpperCase();
+        const chargedCurrency = isCurrency(rawChargedCurrency)
+          ? rawChargedCurrency
+          : undefined;
+        const chargedAmount =
+          chargedCurrency &&
+          Number.isFinite(rawChargedAmount) &&
+          rawChargedAmount > 0
+            ? Math.round(rawChargedAmount)
+            : undefined;
 
-        displayName:
-          row.display_name,
+        return {
+          id:
+            row.id,
 
-        amountUsd:
-          Number(
-            row.amount_cents,
-          ),
+          displayName:
+            row.display_name,
 
-        frequency:
-          row.frequency,
+          amountUsd:
+            Number(
+              row.amount_cents,
+            ),
 
-        relativeTime:
-          formatRelativeTime(
-            row.created_at,
-          ),
-      }),
+          ...(chargedAmount !== undefined && chargedCurrency
+            ? { chargedAmount, chargedCurrency }
+            : {}),
+
+          frequency:
+            row.frequency,
+
+          relativeTime:
+            formatRelativeTime(
+              row.created_at,
+            ),
+        };
+      },
     );
 
   const baseRaisedAmount =

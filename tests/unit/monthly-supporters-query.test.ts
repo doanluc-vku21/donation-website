@@ -8,7 +8,8 @@ import { getMonthlySupporters } from "@/lib/queries/monthly-supporters";
 
 function payment(overrides: Partial<{
   id: string; donor_id: string | null; stripe_subscription_id: string | null;
-  display_name: string | null; is_anonymous: boolean | null; amount_cents: number; created_at: string;
+  display_name: string | null; is_anonymous: boolean | null; amount_cents: number;
+  charged_amount_cents: number | null; charged_currency: string | null; created_at: string;
 }> = {}) {
   return {
     id: "1", donor_id: "donor-a", stripe_subscription_id: "sub-a", display_name: "Alex P.",
@@ -100,5 +101,30 @@ describe("monthly supporter list and counts", () => {
     mocks.range.mockRejectedValue(new Error("private diagnostic"));
     expect(await getMonthlySupporters("campaign-akram")).toBeNull();
     expect(console.error).toHaveBeenCalledWith("Unable to load monthly supporters.");
+  });
+
+  it("includes charged currency and amount when stored on the donation row", async () => {
+    mocks.range.mockResolvedValue({
+      data: [
+        payment({
+          id: "cad-gift",
+          amount_cents: 3600,
+          charged_amount_cents: 5000,
+          charged_currency: "cad",
+        }),
+      ],
+      error: null,
+    });
+    expect(await getMonthlySupporters("campaign-akram")).toEqual([
+      {
+        id: "cad-gift",
+        displayName: "Alex P.",
+        amountUsd: 3600,
+        chargedAmount: 5000,
+        chargedCurrency: "CAD",
+        frequency: "monthly",
+        relativeTime: "30 minutes ago",
+      },
+    ]);
   });
 });

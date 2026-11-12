@@ -1,3 +1,5 @@
+import type { Currency } from "@/lib/currency";
+
 export type DonationFrequency =
   | "one_time"
   | "monthly";
@@ -13,6 +15,8 @@ export type RecentDonation = {
   id: string;
   displayName: string;
   amountUsd: number;
+  chargedAmount?: number;
+  chargedCurrency?: Currency;
   frequency: DonationFrequency;
   relativeTime: string;
 };

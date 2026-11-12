@@ -130,4 +130,27 @@ describe("community supporter list", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(3);
     expect(screen.queryByText("One time")).not.toBeInTheDocument();
   });
+
+  it("displays the real donated currency and amount for named and anonymous contributions without converting to viewer currency", () => {
+    const multiCurrencyDonations: RecentDonation[] = [
+      { id: "cad-anon", displayName: "Anonymous", amountUsd: 3600, chargedAmount: 5000, chargedCurrency: "CAD", frequency: "one_time", relativeTime: "5 minutes ago" },
+      { id: "eur-donor", displayName: "Elena R.", amountUsd: 2700, chargedAmount: 2500, chargedCurrency: "EUR", frequency: "monthly", relativeTime: "10 minutes ago" },
+      { id: "usd-fallback", displayName: "Anonymous", amountUsd: 10000, frequency: "one_time", relativeTime: "20 minutes ago" },
+    ];
+    render(
+      <RecentDonations
+        {...props}
+        currency="GBP"
+        exchangeRate={0.78}
+        donations={multiCurrencyDonations}
+      />,
+    );
+    const items = screen.getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("Anonymous");
+    expect(items[0]).toHaveTextContent("CA$50");
+    expect(items[1]).toHaveTextContent("Elena R.");
+    expect(items[1]).toHaveTextContent("€25");
+    expect(items[2]).toHaveTextContent("Anonymous");
+    expect(items[2]).toHaveTextContent("$100");
+  });
 });

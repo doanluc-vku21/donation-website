@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 
 import {
-  convertUsdToCurrencyMinor,
   formatMoney,
 } from "@/lib/money";
 
@@ -765,6 +764,9 @@ function ContributionRow({
   showDonationTimes?: boolean;
   showOneTimeLabels?: boolean;
 }) {
+  void currency;
+  void exchangeRate;
+
   const t =
     getUiTranslations(
       locale,
@@ -786,11 +788,13 @@ function ContributionRow({
       locale,
     );
 
-  const isAnonymous =
-    donation.displayName
-      .trim()
-      .toLowerCase() ===
-    "anonymous";
+  const donationCurrency =
+    donation.chargedCurrency ??
+    "USD";
+
+  const donationAmount =
+    donation.chargedAmount ??
+    donation.amountUsd;
 
   return (
     <li
@@ -913,44 +917,39 @@ function ContributionRow({
           AMOUNT
       ====================================== */}
 
-      {!isAnonymous && (
-        <div
+      <div
+        dir="ltr"
+        className="
+          shrink-0
+        "
+      >
+        <strong
           dir="ltr"
           className="
-            shrink-0
+            inline-flex
+            min-w-[48px]
+            items-center
+            justify-center
+            rounded-full
+            bg-[#eef6e8]
+            px-3
+            py-2
+            text-[14px]
+            font-bold
+            text-[#14623f]
           "
         >
-          <strong
-            dir="ltr"
-            className="
-              inline-flex
-              min-w-[48px]
-              items-center
-              justify-center
-              rounded-full
-              bg-[#eef6e8]
-              px-3
-              py-2
-              text-[14px]
-              font-bold
-              text-[#14623f]
-            "
-          >
-            {formatMoney(
-              convertUsdToCurrencyMinor(
-                donation.amountUsd,
-                exchangeRate,
-              ),
-              currency,
-              locale,
-              {
-                hideZeroDecimals:
-                  true,
-              },
-            )}
-          </strong>
-        </div>
-      )}
+          {formatMoney(
+            donationAmount,
+            donationCurrency,
+            locale,
+            {
+              hideZeroDecimals:
+                true,
+            },
+          )}
+        </strong>
+      </div>
     </li>
   );
 }

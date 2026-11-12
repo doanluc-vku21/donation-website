@@ -1,4 +1,5 @@
 import "server-only";
+import { isCurrency } from "@/lib/currency";
 import { formatRelativeTime } from "@/lib/relative-time";
 import type { RecentDonation } from "@/lib/sample-data";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -10,6 +11,8 @@ type MonthlyDonationRow = {
   display_name: string | null;
   is_anonymous: boolean | null;
   amount_cents: number;
+  charged_amount_cents?: number | null;
+  charged_currency?: string | null;
   created_at: string;
 };
 
@@ -24,7 +27,7 @@ export async function getMonthlySupporters(campaignId: string): Promise<RecentDo
   try {
     for (let offset = 0; ; offset += pageSize) {
       const { data, error } = await supabaseAdmin.from("donations")
-        .select("id,donor_id,stripe_subscription_id,display_name,is_anonymous,amount_cents,created_at")
+        .select("id,donor_id,stripe_subscription_id,display_name,is_anonymous,amount_cents,charged_amount_cents,charged_currency,created_at")
         .eq("campaign_id", campaignId)
         .eq("frequency", "monthly")
         .eq("status", "succeeded")
@@ -65,13 +68,24 @@ export async function getMonthlySupporters(campaignId: string): Promise<RecentDo
     if (!previous || compareRecentPayments(row, previous) < 0) supporters.set(key, row);
   }
 
-  return [...supporters.values()].sort(compareRecentPayments).map((row) => ({
-    id: row.id,
-    displayName: row.is_anonymous === false ? row.display_name?.trim() || "Anonymous" : "Anonymous",
-    amountUsd: Number(row.amount_cents),
-    frequency: "monthly",
-    relativeTime: formatRelativeTime(row.created_at),
-  }));
+  return [...supporters.values()].sort(compareRecentPayments).map((row) => {
+    const rawChargedAmount = Number(row.charged_amount_cents);
+    const rawChargedCurrency = (row.charged_currency ?? "").trim().toUpperCase();
+    const chargedCurrency = isCurrency(rawChargedCurrency) ? rawChargedCurrency : undefined;
+    const chargedAmount =
+      chargedCurrency && Number.isFinite(rawChargedAmount) && rawChargedAmount > 0
+        ? Math.round(rawChargedAmount)
+        : undefined;
+
+    return {
+      id: row.id,
+      displayName: row.is_anonymous === false ? row.display_name?.trim() || "Anonymous" : "Anonymous",
+      amountUsd: Number(row.amount_cents),
+      ...(chargedAmount !== undefined && chargedCurrency ? { chargedAmount, chargedCurrency } : {}),
+      frequency: "monthly",
+      relativeTime: formatRelativeTime(row.created_at),
+    };
+  });
 }
 
 function compareRecentPayments(a: MonthlyDonationRow, b: MonthlyDonationRow): number {
