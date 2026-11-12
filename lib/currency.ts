@@ -5,6 +5,21 @@ export const currencies = [
   "CAD",
   "AUD",
   "AED",
+  "SAR",
+  "QAR",
+  "CHF",
+  "SGD",
+  "MYR",
+  "TRY",
+  "SEK",
+  "NOK",
+  "DKK",
+  "NZD",
+  "ZAR",
+  "PLN",
+  "HKD",
+  "MXN",
+  "BRL",
 ] as const;
 
 export type Currency =
@@ -24,6 +39,21 @@ export const currencyLabels:
   CAD: "CAD $",
   AUD: "AUD $",
   AED: "AED د.إ",
+  SAR: "SAR ﷼",
+  QAR: "QAR ر.ق",
+  CHF: "CHF ₣",
+  SGD: "SGD $",
+  MYR: "MYR RM",
+  TRY: "TRY ₺",
+  SEK: "SEK kr",
+  NOK: "NOK kr",
+  DKK: "DKK kr",
+  NZD: "NZD $",
+  ZAR: "ZAR R",
+  PLN: "PLN zł",
+  HKD: "HKD $",
+  MXN: "MXN $",
+  BRL: "BRL R$",
 };
 
 export const currencySymbols:
@@ -37,6 +67,21 @@ export const currencySymbols:
   CAD: "$",
   AUD: "$",
   AED: "د.إ",
+  SAR: "﷼",
+  QAR: "ر.ق",
+  CHF: "CHF",
+  SGD: "$",
+  MYR: "RM",
+  TRY: "₺",
+  SEK: "kr",
+  NOK: "kr",
+  DKK: "kr",
+  NZD: "$",
+  ZAR: "R",
+  PLN: "zł",
+  HKD: "$",
+  MXN: "$",
+  BRL: "R$",
 };
 
 export function isCurrency(
@@ -103,16 +148,47 @@ const countryCurrencyMap:
   CA: "CAD",
 
   // -----------------------------------------
-  // AUSTRALIA
+  // AUSTRALIA & NEW ZEALAND
   // -----------------------------------------
 
   AU: "AUD",
+  NZ: "NZD",
 
   // -----------------------------------------
-  // UNITED ARAB EMIRATES
+  // MIDDLE EAST
   // -----------------------------------------
 
   AE: "AED",
+  SA: "SAR",
+  QA: "QAR",
+
+  // -----------------------------------------
+  // EUROPE (NON-EURO)
+  // -----------------------------------------
+
+  CH: "CHF",
+  LI: "CHF",
+  SE: "SEK",
+  NO: "NOK",
+  DK: "DKK",
+  PL: "PLN",
+  TR: "TRY",
+
+  // -----------------------------------------
+  // ASIA PACIFIC
+  // -----------------------------------------
+
+  SG: "SGD",
+  MY: "MYR",
+  HK: "HKD",
+
+  // -----------------------------------------
+  // AFRICA & AMERICAS
+  // -----------------------------------------
+
+  ZA: "ZAR",
+  MX: "MXN",
+  BR: "BRL",
 };
 
 export function getCurrencyForCountry(
