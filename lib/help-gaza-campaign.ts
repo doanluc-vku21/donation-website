@@ -24,6 +24,9 @@ type HelpGazaCopy = {
   storyEyebrow: string;
   storyHeading: string;
   paragraphs: HelpGazaSpan[][];
+  fundTitle: string;
+  fundSubtitle: string;
+  fundItems: [string, string][];
 };
 
 const copy: Record<Locale, HelpGazaCopy> = {
@@ -48,6 +51,15 @@ const copy: Record<Locale, HelpGazaCopy> = {
       ],
       [{ text: "Donate today and help bring hope to families in Gaza. ❤️🇵🇸", strong: true }],
     ],
+    fundTitle: "❤️ How Your Donation Will Be Used",
+    fundSubtitle: "Your generosity can help provide essential food and humanitarian assistance to families affected by the crisis in Gaza.",
+    fundItems: [
+      ["🍚 Food & Essential Supplies", "Help provide flour, rice, cooking oil, and other essential food items to families in need."],
+      ["🍲 Fresh Meals & Nutrition", "Support the preparation and distribution of nutritious meals for children and families."],
+      ["💧 Clean Water & Basic Necessities", "Help provide safe drinking water and essential daily supplies."],
+      ["🤝 Emergency Family Support", "Support urgent humanitarian needs and help vulnerable families during difficult times."],
+      ["❤️ Every Donation Makes a Difference", "Your kindness can bring nourishment, comfort, and hope to families facing hardship."],
+    ],
   },
   fr: {
     title: "❤️ Aidez à nourrir les familles à Gaza, en Palestine 🇵🇸",
@@ -69,6 +81,15 @@ const copy: Record<Locale, HelpGazaCopy> = {
         { text: " Que vous donniez une fois ou chaque mois, votre générosité peut faire une réelle différence." },
       ],
       [{ text: "Faites un don aujourd’hui et aidez à redonner espoir aux familles à Gaza. ❤️🇵🇸", strong: true }],
+    ],
+    fundTitle: "❤️ Comment votre don sera utilisé",
+    fundSubtitle: "Votre générosité peut aider à fournir une alimentation essentielle et une aide humanitaire aux familles touchées par la crise à Gaza.",
+    fundItems: [
+      ["🍚 Alimentation et fournitures essentielles", "Aider à fournir de la farine, du riz, de l’huile de cuisson et d’autres denrées alimentaires essentielles aux familles dans le besoin."],
+      ["🍲 Repas frais et nutrition", "Soutenir la préparation et la distribution de repas nutritifs pour les enfants et les familles."],
+      ["💧 Eau potable et produits de première nécessité", "Aider à fournir de l’eau potable salubre et des fournitures quotidiennes essentielles."],
+      ["🤝 Soutien familial d’urgence", "Répondre aux besoins humanitaires urgents et aider les familles vulnérables dans les moments difficiles."],
+      ["❤️ Chaque don fait la différence", "Votre bonté peut apporter nourriture, réconfort et espoir aux familles confrontées à l’épreuve."],
     ],
   },
   de: {
@@ -92,6 +113,15 @@ const copy: Record<Locale, HelpGazaCopy> = {
       ],
       [{ text: "Spenden Sie heute und schenken Sie Familien in Gaza Hoffnung. ❤️🇵🇸", strong: true }],
     ],
+    fundTitle: "❤️ Wie Ihre Spende verwendet wird",
+    fundSubtitle: "Ihre Großzügigkeit kann dazu beitragen, Familien, die von der Krise in Gaza betroffen sind, mit lebenswichtigen Nahrungsmitteln und humanitärer Hilfe zu versorgen.",
+    fundItems: [
+      ["🍚 Lebensmittel & Grundversorgung", "Helfen Sie, Mehl, Reis, Speiseöl und andere wichtige Grundnahrungsmittel für Familien in Not bereitzustellen."],
+      ["🍲 Frische Mahlzeiten & Ernährung", "Unterstützen Sie die Zubereitung und Verteilung nahrhafter Mahlzeiten für Kinder und Familien."],
+      ["💧 Sauberes Wasser & Dinge des täglichen Bedarfs", "Helfen Sie, sicheres Trinkwasser und wichtige Güter des täglichen Bedarfs bereitzustellen."],
+      ["🤝 Soforthilfe für Familien", "Unterstützen Sie dringende humanitäre Bedürfnisse und helfen Sie gefährdeten Familien in schweren Zeiten."],
+      ["❤️ Jede Spende macht einen Unterschied", "Ihre Güte kann Familien in Not Nahrung, Trost und Hoffnung schenken."],
+    ],
   },
   es: {
     title: "❤️ Ayuda a alimentar a las familias en Gaza, Palestina 🇵🇸",
@@ -114,6 +144,15 @@ const copy: Record<Locale, HelpGazaCopy> = {
       ],
       [{ text: "Dona hoy y ayuda a llevar esperanza a las familias en Gaza. ❤️🇵🇸", strong: true }],
     ],
+    fundTitle: "❤️ Cómo se utilizará tu donación",
+    fundSubtitle: "Tu generosidad puede ayudar a proporcionar alimentos esenciales y asistencia humanitaria a las familias afectadas por la crisis en Gaza.",
+    fundItems: [
+      ["🍚 Alimentos y suministros esenciales", "Ayuda a proporcionar harina, arroz, aceite de cocina y otros alimentos básicos a las familias necesitadas."],
+      ["🍲 Comidas frescas y nutrición", "Apoya la preparación y distribución de comidas nutritivas para niños y familias."],
+      ["💧 Agua potable y necesidades básicas", "Ayuda a proporcionar agua potable segura y suministros diarios esenciales."],
+      ["🤝 Apoyo familiar de emergencia", "Apoya las necesidades humanitarias urgentes y ayuda a las familias vulnerables en momentos difíciles."],
+      ["❤️ Cada donación marca la diferencia", "Tu bondad puede brindar alimento, consuelo y esperanza a las familias que enfrentan dificultades."],
+    ],
   },
   ar: {
     title: "❤️ ساعد في إطعام العائلات في غزة، فلسطين 🇵🇸",
@@ -135,6 +174,15 @@ const copy: Record<Locale, HelpGazaCopy> = {
         { text: " سواء تبرعت مرة واحدة أو شهريًا، فإن كرمك يمكن أن يُحدث فرقًا حقيقيًا." },
       ],
       [{ text: "تبرع اليوم وساعد في منح الأمل للعائلات في غزة. ❤️🇵🇸", strong: true }],
+    ],
+    fundTitle: "❤️ كيف سيتم استخدام تبرعك",
+    fundSubtitle: "يمكن لكرمك أن يساعد في توفير الغذاء الأساسي والمساعدات الإنسانية للعائلات المتضررة من الأزمة في غزة.",
+    fundItems: [
+      ["🍚 الغذاء والإمدادات الأساسية", "المساعدة في توفير الدقيق والأرز وزيت الطهي وغيرها من المواد الغذائية الأساسية للعائلات المحتاجة."],
+      ["🍲 الوجبات الطازجة والتغذية", "دعم إعداد وتوزيع الوجبات المغذية للأطفال والعائلات."],
+      ["💧 المياه النظيفة والاحتياجات الأساسية", "المساعدة في توفير مياه الشرب الآمنة والمستلزمات اليومية الأساسية."],
+      ["🤝 الدعم العائلي الطارئ", "دعم الاحتياجات الإنسانية العاجلة ومساعدة العائلات الضعيفة خلال الأوقات الصعبة."],
+      ["❤️ كل تبرع يُحدث فرقًا", "يمكن لعطائك أن يجلب الغذاء والراحة والأمل للعائلات التي تواجه المحن."],
     ],
   },
 };
@@ -177,6 +225,18 @@ export function localizeHelpGazaCampaign(content: SanityCampaign, locale: Locale
     storyHeadingI18n: translatedText(value => value.storyHeading),
     story: storyBlocks(copy.en.paragraphs),
     storyI18n: Object.fromEntries(locales.map(language => [language, storyBlocks(copy[language].paragraphs)])),
+    fundUsageTitle: copy.en.fundTitle,
+    fundUsageTitleI18n: translatedText(value => value.fundTitle),
+    fundUsageSubtitle: copy.en.fundSubtitle,
+    fundUsageSubtitleI18n: translatedText(value => value.fundSubtitle),
+    fundUsageItems: copy.en.fundItems.map(([title, description], index) => ({
+      _key: `help-gaza-fund-${index}`,
+      itemType: "allocation",
+      title,
+      description,
+      titleI18n: translatedText(value => value.fundItems[index][0]),
+      descriptionI18n: translatedText(value => value.fundItems[index][1]),
+    })),
     heroImage: {
       asset: {
         _id: "help-gaza-hero",

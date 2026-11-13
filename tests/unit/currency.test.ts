@@ -11,7 +11,7 @@ import { formatMoney, convertUsdToCurrencyMinor, convertCurrencyMinorToUsd } fro
 
 describe("expanded currency support", () => {
   it("defines labels, symbols, and formatting for all supported currencies", () => {
-    expect(currencies.length).toBeGreaterThanOrEqual(20);
+    expect(currencies.length).toBeGreaterThanOrEqual(100);
     for (const currency of currencies) {
       expect(isCurrency(currency)).toBe(true);
       expect(currencyLabels[currency]).toContain(currency);

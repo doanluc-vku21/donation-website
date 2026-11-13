@@ -53,6 +53,9 @@ describe("/help-gaza landing page and content", () => {
     expect(content.slug).toBe(HELP_GAZA_CAMPAIGN_SLUG);
     expect(content.title).not.toBe("Old Title");
     expect(content.story).toHaveLength(6);
+    expect(content.fundUsageTitle).toBeTruthy();
+    expect(content.fundUsageSubtitle).toBeTruthy();
+    expect(content.fundUsageItems).toHaveLength(5);
     expect(content.heroImage?.asset).toMatchObject({
       url: "/help-gaza.jpg",
       metadata: { dimensions: { width: 1024, height: 576 } },
@@ -72,6 +75,17 @@ describe("/help-gaza landing page and content", () => {
       "🤲 Be the reason someone eats today. Whether you give once or monthly, your generosity can make a meaningful difference.",
       "Donate today and help bring hope to families in Gaza. ❤️🇵🇸",
     ]);
+    expect(content.fundUsageTitle).toBe("❤️ How Your Donation Will Be Used");
+    expect(content.fundUsageSubtitle).toBe(
+      "Your generosity can help provide essential food and humanitarian assistance to families affected by the crisis in Gaza.",
+    );
+    expect(content.fundUsageItems?.map(item => [item.title, item.description])).toEqual([
+      ["🍚 Food & Essential Supplies", "Help provide flour, rice, cooking oil, and other essential food items to families in need."],
+      ["🍲 Fresh Meals & Nutrition", "Support the preparation and distribution of nutritious meals for children and families."],
+      ["💧 Clean Water & Basic Necessities", "Help provide safe drinking water and essential daily supplies."],
+      ["🤝 Emergency Family Support", "Support urgent humanitarian needs and help vulnerable families during difficult times."],
+      ["❤️ Every Donation Makes a Difference", "Your kindness can bring nourishment, comfort, and hope to families facing hardship."],
+    ]);
 
     const result = await HelpGazaPage();
     expect(mocks.campaign).toHaveBeenCalledExactlyOnceWith(HELP_GAZA_CAMPAIGN_SLUG);
@@ -81,13 +95,13 @@ describe("/help-gaza landing page and content", () => {
       showProgress: false,
       fitMobileHeroImage: true,
       showStory: true,
-      showFundUsage: false,
+      showFundUsage: true,
       showSummary: false,
-      expandStory: true,
       showOneTimeLabels: true,
       showOrganizationCharityStatus: true,
       showOrganizationVerification: true,
     });
+    expect(result.props.expandStory).toBeUndefined();
     expect(result.props.campaign.donationOptions).toEqual(
       expect.arrayContaining(HELP_GAZA_ONE_TIME_DONATION_OPTIONS),
     );

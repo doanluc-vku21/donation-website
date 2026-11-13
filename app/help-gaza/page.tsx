@@ -70,8 +70,7 @@ export default async function HelpGazaPage() {
       showOrganizationVerification
       showSummary={false}
       showStory
-      showFundUsage={false}
-      expandStory
+      showFundUsage
       locale={locale}
       currency={currency}
       exchangeRate={exchangeRate}
