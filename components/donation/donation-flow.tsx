@@ -6017,8 +6017,8 @@ function resetCheckoutSession() {
 
 
 
-        {showMinimumAmountError &&
-          customAmountBelowMinimum && (
+        {(customAmountBelowMinimum ||
+          showMinimumAmountError) && (
             <p
               role="alert"
               className="
