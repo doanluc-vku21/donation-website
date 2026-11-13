@@ -41,14 +41,29 @@ const intlLocaleMap:
  * 6 currency hiện tại của project đều là
  * two-decimal currencies.
  */
+export type MoneyFormatOptions = {
+  hideZeroDecimals?: boolean;
+
+  /*
+   * Intl currencyDisplay.
+   *
+   * "narrowSymbol" turns
+   * "BDT 3,124" into "৳3,124"
+   * and keeps the code only for
+   * currencies without a symbol.
+   */
+  currencyDisplay?:
+    | "symbol"
+    | "narrowSymbol"
+    | "code"
+    | "name";
+};
+
 export function formatMoney(
   amountMinor: number,
   currency: Currency,
   locale: Locale = "en",
-  options?: {
-    hideZeroDecimals?:
-      boolean;
-  },
+  options?: MoneyFormatOptions,
 ) {
   const amount =
     amountMinor / 100;
@@ -63,6 +78,14 @@ export function formatMoney(
           "currency",
 
         currency,
+
+        ...(options
+          ?.currencyDisplay
+          ? {
+              currencyDisplay:
+                options.currencyDisplay,
+            }
+          : {}),
 
         minimumFractionDigits:
           options

@@ -85,6 +85,13 @@ export type UiTranslations = {
   continueWith: string;
   selectAmountToContinue: string;
 
+  changeCurrency: string;
+  currencySheetTitle: string;
+  searchCurrency: string;
+  currencyEmpty: string;
+  currencyUpdateFailed: string;
+  useMinimumAmount: string;
+
   securePaymentByStripe: string;
 
   back: string;
@@ -287,6 +294,24 @@ const en: UiTranslations = {
 
   selectAmountToContinue:
     "Select an amount to continue",
+
+  changeCurrency:
+    "Change currency",
+
+  currencySheetTitle:
+    "Choose currency",
+
+  searchCurrency:
+    "Search currency",
+
+  currencyEmpty:
+    "No currency found",
+
+  currencyUpdateFailed:
+    "Unable to switch currency. Please try again.",
+
+  useMinimumAmount:
+    "Use {amount}",
 
   securePaymentByStripe:
   "Pay by Card",
@@ -541,6 +566,24 @@ const fr: UiTranslations = {
   selectAmountToContinue:
     "Sélectionnez un montant pour continuer",
 
+  changeCurrency:
+    "Changer de devise",
+
+  currencySheetTitle:
+    "Choisir la devise",
+
+  searchCurrency:
+    "Rechercher une devise",
+
+  currencyEmpty:
+    "Aucune devise trouvée",
+
+  currencyUpdateFailed:
+    "Impossible de changer de devise. Veuillez réessayer.",
+
+  useMinimumAmount:
+    "Utiliser {amount}",
+
   securePaymentByStripe:
     "Payer par carte",
 
@@ -787,6 +830,24 @@ const de: UiTranslations = {
 
   selectAmountToContinue:
     "Betrag auswählen, um fortzufahren",
+
+  changeCurrency:
+    "Währung ändern",
+
+  currencySheetTitle:
+    "Währung wählen",
+
+  searchCurrency:
+    "Währung suchen",
+
+  currencyEmpty:
+    "Keine Währung gefunden",
+
+  currencyUpdateFailed:
+    "Währung konnte nicht gewechselt werden. Bitte erneut versuchen.",
+
+  useMinimumAmount:
+    "{amount} verwenden",
 
   securePaymentByStripe:
     "Mit Karte bezahlen",
@@ -1035,6 +1096,24 @@ const es: UiTranslations = {
   selectAmountToContinue:
     "Selecciona una cantidad para continuar",
 
+  changeCurrency:
+    "Cambiar moneda",
+
+  currencySheetTitle:
+    "Elegir moneda",
+
+  searchCurrency:
+    "Buscar moneda",
+
+  currencyEmpty:
+    "No se encontró la moneda",
+
+  currencyUpdateFailed:
+    "No se pudo cambiar la moneda. Inténtalo de nuevo.",
+
+  useMinimumAmount:
+    "Usar {amount}",
+
   securePaymentByStripe:
     "Pagar con tarjeta",
 
@@ -1281,6 +1360,24 @@ const ar: UiTranslations = {
 
   selectAmountToContinue:
     "اختر مبلغًا للمتابعة",
+
+  changeCurrency:
+    "تغيير العملة",
+
+  currencySheetTitle:
+    "اختر العملة",
+
+  searchCurrency:
+    "ابحث عن عملة",
+
+  currencyEmpty:
+    "لا توجد عملة مطابقة",
+
+  currencyUpdateFailed:
+    "تعذّر تغيير العملة. يرجى إعادة المحاولة.",
+
+  useMinimumAmount:
+    "استخدم {amount}",
 
   securePaymentByStripe:
     "الدفع بالبطاقة",

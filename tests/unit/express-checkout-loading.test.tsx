@@ -137,21 +137,21 @@ describe("Apple Pay session loading", () => {
     expect(input).toHaveValue(100);
     expect(screen.getByRole("radio", { name: /\$100/ })).toBeChecked();
     fireEvent.change(input, { target: { value: "19" } });
-    expect(screen.getByText("The minimum donation amount is USD 20.")).toBeVisible();
+    expect(screen.getByText("The minimum donation amount is $20.")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /Pay.*Card/ }));
-    expect(screen.getByText("The minimum donation amount is USD 20.")).toBeVisible();
+    expect(screen.getByText("The minimum donation amount is $20.")).toBeVisible();
     fireEvent.change(input, { target: { value: "20" } });
-    expect(screen.queryByText("The minimum donation amount is USD 20.")).not.toBeInTheDocument();
+    expect(screen.queryByText("The minimum donation amount is $20.")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Pay.*Card/ })).toBeEnabled();
     fireEvent.click(screen.getByRole("radio", { name: "Give once" }));
     const oneTimeMinimum = pathname === "/help-mango-seller" || pathname === "/help-mango-seller-1" || pathname === "/help-street-vendor" ? 20 : 25;
     fireEvent.change(input, { target: { value: String(oneTimeMinimum - 0.01) } });
     expect(input).toHaveValue(oneTimeMinimum - 0.01);
-    expect(screen.getByText(`The minimum donation amount is USD ${oneTimeMinimum}.`)).toBeVisible();
+    expect(screen.getByText(`The minimum donation amount is $${oneTimeMinimum}.`)).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /Pay.*Card/ }));
-    expect(screen.getByText(`The minimum donation amount is USD ${oneTimeMinimum}.`)).toBeVisible();
+    expect(screen.getByText(`The minimum donation amount is $${oneTimeMinimum}.`)).toBeVisible();
     fireEvent.change(input, { target: { value: String(oneTimeMinimum) } });
-    expect(screen.queryByText(`The minimum donation amount is USD ${oneTimeMinimum}.`)).not.toBeInTheDocument();
+    expect(screen.queryByText(`The minimum donation amount is $${oneTimeMinimum}.`)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Pay.*Card/ })).toBeEnabled();
   });
 

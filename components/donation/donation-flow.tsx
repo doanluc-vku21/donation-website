@@ -80,7 +80,12 @@ import {
 
   calculateFeeContribution,
 
+  convertCurrencyMinorToUsd,
+
+
+
   convertUsdMinimumToWholeCurrencyMinor,
+
 
   convertUsdToCurrencyMinor,
 
@@ -103,6 +108,17 @@ import {
   DonationExpressCheckout,
 
 } from "./donation-express-checkout";
+
+
+
+import {
+
+  CurrencyChipButton,
+
+  CurrencyPickerSheet,
+
+} from "./currency-picker-sheet";
+
 
 
 
@@ -213,6 +229,17 @@ type DonationFlowProps = {
 
 };
 
+/*
+ * Remembers the donor's currency for the next
+ * page load. Kept outside the component so the
+ * preference write stays a plain side effect.
+ */
+function persistCurrencyPreference(
+  nextCurrency: Currency,
+) {
+  document.cookie = `site_currency=${nextCurrency}; Path=/; Max-Age=31536000; SameSite=Lax`;
+}
+
 function isCheckoutAbortError(
 
   error: unknown,
@@ -239,9 +266,12 @@ export function DonationFlow({
 
   locale,
 
-  currency,
+  currency: initialCurrency,
 
-  exchangeRate,
+
+
+  exchangeRate: initialExchangeRate,
+
 
   prefetchedExpress,
 
@@ -260,6 +290,108 @@ export function DonationFlow({
       locale,
 
     );
+
+
+
+  /*
+
+   * Currency is local state so the donor can
+
+   * switch it inside the modal without a full
+
+   * remount, which would tear down the mounted
+
+   * Stripe wallets. The prop stays the seed:
+
+   * once the server-rendered currency changes,
+
+   * the derived value follows it again.
+
+   */
+
+  const [
+
+    currencyState,
+
+    setCurrencyState,
+
+  ] = useState<{
+
+    seed: Currency;
+
+    value: Currency;
+
+  }>({
+
+    seed: initialCurrency,
+
+    value: initialCurrency,
+
+  });
+
+
+
+  const currency =
+
+    currencyState.seed === initialCurrency
+
+      ? currencyState.value
+
+      : initialCurrency;
+
+
+
+  const [
+
+    exchangeRateState,
+
+    setExchangeRateState,
+
+  ] = useState<{
+
+    seed: number;
+
+    value: number;
+
+  }>({
+
+    seed: initialExchangeRate,
+
+    value: initialExchangeRate,
+
+  });
+
+
+
+  const exchangeRate =
+
+    exchangeRateState.seed === initialExchangeRate
+
+      ? exchangeRateState.value
+
+      : initialExchangeRate;
+
+
+
+  const [
+
+    isCurrencyPickerOpen,
+
+    setCurrencyPickerOpen,
+
+  ] = useState(false);
+
+
+
+  const [
+
+    isCurrencySwitching,
+
+    setIsCurrencySwitching,
+
+  ] = useState(false);
+
+
 
 
 
@@ -875,14 +1007,26 @@ export function DonationFlow({
 
 
 
-  const minimumCustomAmountMajor =
-    Math.round(
-      minimumCustomAmount /
-        100,
+  const minimumCustomAmountLabel =
+
+    formatMoney(
+
+      minimumCustomAmount,
+
+      currency,
+
+      locale,
+
+      {
+
+        hideZeroDecimals: true,
+
+        currencyDisplay: "narrowSymbol",
+
+      },
+
     );
 
-  const minimumCustomAmountLabel =
-    `${currency} ${minimumCustomAmountMajor}`;
 
 
 
@@ -917,6 +1061,41 @@ export function DonationFlow({
         fee
 
       : 0;
+
+
+
+  /*
+
+   * Amount shown in the summary. It stays
+
+   * visible while a custom amount is still
+
+   * below the page minimum so the donor
+
+   * always sees what they typed.
+
+   */
+
+  const displayTotal =
+
+    amount > 0
+
+      ? amount +
+
+        (coverFee
+
+          ? calculateFeeContribution(
+
+              amount,
+
+              exchangeRate,
+
+            )
+
+          : 0)
+
+      : 0;
+
 
   const canAttemptAmountSubmit =
     hasValidAmount ||
@@ -1119,7 +1298,282 @@ export function DonationFlow({
 
 
 
+  function useMinimumAmount() {
+
+    chooseCustom(
+
+      String(
+
+        Math.max(
+
+          1,
+
+          Math.round(
+
+            minimumCustomAmount / 100,
+
+          ),
+
+        ),
+
+      ),
+
+    );
+
+  }
+
+
+
+  async function changeCurrency(
+
+    nextCurrency: Currency,
+
+  ) {
+
+    if (nextCurrency === currency) {
+
+      setCurrencyPickerOpen(false);
+
+      return;
+
+    }
+
+
+
+    if (isCurrencySwitching) return;
+
+
+
+    setIsCurrencySwitching(true);
+
+    setError("");
+
+
+
+    /*
+
+     * Hold the donor's USD value while the
+
+     * currency changes so a preset or a custom
+
+     * amount keeps meaning the same donation.
+
+     */
+
+    const anchorUsdCents =
+
+      selectedPreset !== null
+
+        ? selectedPreset
+
+        : amount > 0
+
+          ? convertCurrencyMinorToUsd(
+
+              amount,
+
+              exchangeRate,
+
+            )
+
+          : 0;
+
+
+
+    const keepCustomAmount =
+
+      selectedPreset === null;
+
+
+
+    try {
+
+      const response =
+
+        await fetch(
+
+          `/api/currency/rate?currency=${nextCurrency}`,
+
+        );
+
+
+
+      const data =
+
+        (await response
+
+          .json()
+
+          .catch(() => null)) as
+
+          | {
+
+              currency?: string;
+
+              rate?: number;
+
+            }
+
+          | null;
+
+
+
+      const nextRate =
+
+        Number(data?.rate);
+
+
+
+      if (
+
+        !response.ok ||
+
+        !Number.isFinite(nextRate) ||
+
+        nextRate <= 0
+
+      ) {
+
+        throw new Error(
+
+          "Invalid exchange rate response",
+
+        );
+
+      }
+
+
+
+      persistCurrencyPreference(
+        nextCurrency,
+      );
+
+
+
+      resetCheckoutSession();
+
+      resetExpressCheckout();
+
+
+
+      const nextAmount =
+
+        anchorUsdCents > 0
+
+          ? convertUsdToCurrencyMinor(
+
+              anchorUsdCents,
+
+              nextRate,
+
+            )
+
+          : 0;
+
+
+
+      setExchangeRateState({
+
+        seed: initialExchangeRate,
+
+        value: nextRate,
+
+      });
+
+
+
+      setCurrencyState({
+
+        seed: initialCurrency,
+
+        value: nextCurrency,
+
+      });
+
+
+
+      setShowMinimumAmountError(false);
+
+
+
+      if (
+
+        keepCustomAmount &&
+
+        anchorUsdCents > 0
+
+      ) {
+
+        const nextMajor =
+
+          Math.max(
+
+            1,
+
+            Math.round(
+
+              nextAmount / 100,
+
+            ),
+
+          );
+
+
+
+        setCustomAmount(
+
+          String(nextMajor),
+
+        );
+
+
+
+        setAmount(
+
+          nextMajor * 100,
+
+        );
+
+      } else {
+
+        setCustomAmount("");
+
+        setAmount(nextAmount);
+
+      }
+
+    } catch (rateError) {
+
+      console.error(
+
+        "Currency switch failed:",
+
+        rateError,
+
+      );
+
+
+
+      setError(
+
+        t.currencyUpdateFailed,
+
+      );
+
+    } finally {
+
+      setIsCurrencySwitching(false);
+
+      setCurrencyPickerOpen(false);
+
+    }
+
+  }
+
+
+
   function resetExpressCheckout() {
+
 
     /*
 
@@ -5530,29 +5984,60 @@ function resetCheckoutSession() {
 
 
 
-        <h2
+        <div
 
           className="
 
             mt-4
 
-            text-[16px]
+            flex
 
-            font-bold
+            items-center
 
-            text-[#171717]
+            justify-between
+
+            gap-3
 
           "
 
         >
 
-          {
+          <h2
 
-            t.chooseYourGift
+            className="
 
-          }
+              text-[16px]
 
-        </h2>
+              font-bold
+
+              text-[#171717]
+
+            "
+
+          >
+
+            {
+
+              t.chooseYourGift
+
+            }
+
+          </h2>
+
+
+
+          <CurrencyChipButton
+
+            currency={currency}
+
+            locale={locale}
+
+            onClick={() => setCurrencyPickerOpen(true)}
+
+          />
+
+        </div>
+
 
 
 
@@ -5744,11 +6229,12 @@ function resetCheckoutSession() {
 
                           {
 
-                            hideZeroDecimals:
+                            hideZeroDecimals: true,
 
-                              true,
+                            currencyDisplay: "narrowSymbol",
 
                           },
+
 
                         )}
 
@@ -5850,7 +6336,7 @@ function resetCheckoutSession() {
 
 
 
-        <label
+        <div
 
           className="
 
@@ -5874,8 +6360,6 @@ function resetCheckoutSession() {
 
             transition
 
-
-
             focus-within:border-[#1f6a47]
 
             focus-within:ring-1
@@ -5885,6 +6369,7 @@ function resetCheckoutSession() {
           "
 
         >
+
 
           <span
 
@@ -5923,6 +6408,12 @@ function resetCheckoutSession() {
             step="1"
 
             inputMode="decimal"
+
+            aria-label={
+
+              t.donationAmount
+
+            }
 
             placeholder={
 
@@ -5989,55 +6480,119 @@ function resetCheckoutSession() {
 
 
 
-          <span
+          <CurrencyChipButton
 
-            className="
+            currency={currency}
 
-              shrink-0
+            locale={locale}
 
-              text-[11px]
+            variant="ghost"
 
-              font-medium
+            onClick={() => setCurrencyPickerOpen(true)}
 
-              text-[#7c8580]
+          />
 
-            "
+        </div>
 
-          >
-
-            {
-
-              currency
-
-            }
-
-          </span>
-
-        </label>
 
 
 
         {(customAmountBelowMinimum ||
+
           showMinimumAmountError) && (
-            <p
+
+            <div
+
               role="alert"
+
               className="
+
                 mt-1.5
+
+                flex
+
+                flex-wrap
+
+                items-center
+
+                gap-x-2
+
+                gap-y-1
+
                 text-[11px]
+
                 leading-4
+
                 text-red-600
+
               "
+
             >
-              {getMinimumCustomAmountText(
-                locale,
-                minimumCustomAmountLabel,
+
+              <span>
+
+                {getMinimumCustomAmountText(
+
+                  locale,
+
+                  minimumCustomAmountLabel,
+
+                )}
+
+              </span>
+
+
+
+              {!isCurrencySwitching && (
+
+                <button
+
+                  type="button"
+
+                  onClick={useMinimumAmount}
+
+                  className="
+
+                    rounded-full
+
+                    bg-red-50
+
+                    px-2
+
+                    py-0.5
+
+                    font-bold
+
+                    text-red-700
+
+                    transition
+
+                    hover:bg-red-100
+
+                    focus-visible:outline-2
+
+                    focus-visible:outline-offset-2
+
+                    focus-visible:outline-red-500
+
+                  "
+
+                >
+
+                  {t.useMinimumAmount.replace("{amount}", minimumCustomAmountLabel)}
+
+                </button>
+
               )}
-            </p>
+
+            </div>
+
           )}
 
 
 
-        {hasValidAmount && (
+
+        {amount > 0 && (
 
           <div
 
@@ -6075,9 +6630,7 @@ function resetCheckoutSession() {
 
             >
 
-              {frequency ===
-
-              "monthly"
+              {frequency === "monthly"
 
                 ? t.totalPerMonth
 
@@ -6101,11 +6654,19 @@ function resetCheckoutSession() {
 
               {formatMoney(
 
-                total,
+                displayTotal,
 
                 currency,
 
                 locale,
+
+                {
+
+                  hideZeroDecimals: true,
+
+                  currencyDisplay: "narrowSymbol",
+
+                },
 
               )}
 
@@ -6117,7 +6678,27 @@ function resetCheckoutSession() {
 
 
 
+
+        <CurrencyPickerSheet
+
+          open={isCurrencyPickerOpen}
+
+          currency={currency}
+
+          locale={locale}
+
+          pending={isCurrencySwitching}
+
+          onSelect={changeCurrency}
+
+          onClose={() => setCurrencyPickerOpen(false)}
+
+        />
+
+
+
         {renderExpressCheckout()}
+
 
 
 
@@ -6231,7 +6812,7 @@ function resetCheckoutSession() {
           {showButtonAmount && isAkramDirectPage && <CardApplePayIcons />}
           <span className={isAkramDirectPage ? "min-w-0 flex-1 text-center text-[13px] leading-snug sm:text-[15px]" : undefined}>
           {showButtonAmount && isAkramDirectPage
-            ? t.payWithCardOrApplePay.replace("{amount}", formatMoney(buttonTotal, currency, locale, { hideZeroDecimals: true }))
+            ? t.payWithCardOrApplePay.replace("{amount}", formatMoney(buttonTotal, currency, locale, { hideZeroDecimals: true, currencyDisplay: "narrowSymbol" }))
             : showButtonAmount
   ? `${locale === "fr"
       ? "Payer"
@@ -6248,6 +6829,8 @@ function resetCheckoutSession() {
       locale,
       {
         hideZeroDecimals: true,
+        currencyDisplay: "narrowSymbol",
+
       },
     )} ${
       locale === "fr"
