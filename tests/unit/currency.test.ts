@@ -7,7 +7,12 @@ import {
   getCurrencyForCountry,
   isCurrency,
 } from "@/lib/currency";
-import { formatMoney, convertUsdToCurrencyMinor, convertCurrencyMinorToUsd } from "@/lib/money";
+import {
+  formatMoney,
+  convertUsdToCurrencyMinor,
+  convertUsdMinimumToWholeCurrencyMinor,
+  convertCurrencyMinorToUsd,
+} from "@/lib/money";
 
 describe("expanded currency support", () => {
   it("defines labels, symbols, and formatting for all supported currencies", () => {
@@ -42,5 +47,12 @@ describe("expanded currency support", () => {
     expect(getCurrencyForCountry("HK")).toBe("HKD");
     expect(getCurrencyForCountry("MX")).toBe("MXN");
     expect(getCurrencyForCountry("BR")).toBe("BRL");
+  });
+
+  it("rounds local-currency minimum donation amounts to whole numbers without pennies", () => {
+    expect(convertUsdMinimumToWholeCurrencyMinor(2000, 1)).toBe(2000);
+    expect(convertUsdMinimumToWholeCurrencyMinor(2000, 1.38)).toBe(2800);
+    expect(convertUsdMinimumToWholeCurrencyMinor(2000, 0.86)).toBe(1700);
+    expect(convertUsdMinimumToWholeCurrencyMinor(2500, 3.6725)).toBe(9200);
   });
 });

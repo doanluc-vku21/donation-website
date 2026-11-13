@@ -151,6 +151,30 @@ export function convertUsdToCurrencyMinor(
   );
 }
 
+/**
+ * Convert a USD minimum amount (in cents) to the selected local currency's
+ * minor units, rounded to the nearest whole major currency unit (no pennies).
+ */
+export function convertUsdMinimumToWholeCurrencyMinor(
+  usdCents: number,
+  usdToCurrencyRate: number,
+) {
+  const minor =
+    convertUsdToCurrencyMinor(
+      usdCents,
+      usdToCurrencyRate,
+    );
+
+  if (minor <= 0) {
+    return 0;
+  }
+
+  return Math.max(
+    100,
+    Math.round(minor / 100) * 100,
+  );
+}
+
 // =========================================================
 // LOCAL CURRENCY → USD
 // =========================================================

@@ -5,7 +5,7 @@ import { isCurrency } from "@/lib/currency";
 import { getDonationPageMinimumUsdCents, isStandardUpsellDonationPage } from "@/lib/donation-page-policy";
 import { getUsdToCurrencyRate } from "@/lib/exchange-rate";
 import { getDonationAmounts } from "@/lib/stripe/donation-amount";
-import { convertUsdToCurrencyMinor } from "@/lib/money";
+import { convertUsdMinimumToWholeCurrencyMinor } from "@/lib/money";
 import { verifyWalletUpdateContext, type WalletUpdateContext } from "@/lib/stripe/wallet-update-context";
 
 export async function POST(request: Request) {
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const minimumUsdCents = isStandardUpsellDonationPage(context.campaignPath)
       ? getDonationPageMinimumUsdCents(context.campaignPath, frequency)
       : 2000;
-    if (amountCents < convertUsdToCurrencyMinor(minimumUsdCents, exchangeRate) || amounts.totalAmountCents > 99_999_999) {
+    if (amountCents < convertUsdMinimumToWholeCurrencyMinor(minimumUsdCents, exchangeRate) || amounts.totalAmountCents > 99_999_999) {
       return NextResponse.json({ error: "Invalid custom donation amount." }, { status: 400 });
     }
     const updated = await stripe.checkout.sessions.update(sessionId, {

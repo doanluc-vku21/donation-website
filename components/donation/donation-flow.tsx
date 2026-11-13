@@ -80,6 +80,8 @@ import {
 
   calculateFeeContribution,
 
+  convertUsdMinimumToWholeCurrencyMinor,
+
   convertUsdToCurrencyMinor,
 
   formatMoney,
@@ -804,11 +806,16 @@ export function DonationFlow({
 
     );
 
+  const [
+    showMinimumAmountError,
+    setShowMinimumAmountError,
+  ] = useState(false);
+
 
 
   const minimumCustomAmount =
 
-    convertUsdToCurrencyMinor(
+    convertUsdMinimumToWholeCurrencyMinor(
 
       getDonationPageMinimumUsdCents(pathname, frequency),
 
@@ -834,7 +841,7 @@ export function DonationFlow({
 
     isCustomAmount &&
 
-    amount >
+    amount >=
 
       0 &&
 
@@ -868,25 +875,14 @@ export function DonationFlow({
 
 
 
-  const minimumCustomAmountLabel =
-
-    formatMoney(
-
-      minimumCustomAmount,
-
-      currency,
-
-      locale,
-
-      {
-
-        hideZeroDecimals:
-
-          true,
-
-      },
-
+  const minimumCustomAmountMajor =
+    Math.round(
+      minimumCustomAmount /
+        100,
     );
+
+  const minimumCustomAmountLabel =
+    `${currency} ${minimumCustomAmountMajor}`;
 
 
 
@@ -922,13 +918,35 @@ export function DonationFlow({
 
       : 0;
 
+  const canAttemptAmountSubmit =
+    hasValidAmount ||
+    customAmountBelowMinimum;
+
+  const showButtonAmount =
+    hasValidAmount ||
+    (customAmountBelowMinimum &&
+      amount > 0);
+
+  const buttonTotal =
+    hasValidAmount
+      ? total
+      : showButtonAmount
+        ? amount +
+          (coverFee
+            ? calculateFeeContribution(
+                amount,
+                exchangeRate,
+              )
+            : 0)
+        : 0;
+
 
   const suggestedMonthlyAmount =
 
     Math.max(
 
       isAkramShakeUpsellPage
-        ? convertUsdToCurrencyMinor(getDonationPageMinimumUsdCents(pathname, "monthly"), exchangeRate)
+        ? convertUsdMinimumToWholeCurrencyMinor(getDonationPageMinimumUsdCents(pathname, "monthly"), exchangeRate)
         : 100,
 
       Math.round(
@@ -2455,6 +2473,8 @@ function resetCheckoutSession() {
 
     );
 
+    setShowMinimumAmountError(false);
+
 
 
     resetCheckoutSession();
@@ -2484,6 +2504,8 @@ function resetCheckoutSession() {
       raw,
 
     );
+
+    setShowMinimumAmountError(false);
 
 
 
@@ -2893,6 +2915,11 @@ function resetCheckoutSession() {
 
     );
 
+    if (customAmountBelowMinimum) {
+      setShowMinimumAmountError(true);
+      return;
+    }
+
 
 
     if (
@@ -2912,6 +2939,8 @@ function resetCheckoutSession() {
       return;
 
     }
+
+    setShowMinimumAmountError(false);
 
 
 
@@ -5395,6 +5424,8 @@ function resetCheckoutSession() {
 
                     resetExpressCheckout();
 
+                    setShowMinimumAmountError(false);
+
 
 
                     setError(
@@ -5921,6 +5952,13 @@ function resetCheckoutSession() {
 
             }
 
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                continueToDonor();
+              }
+            }}
+
             onBlur={() => pendingExpressLoadRef.current?.()}
 
             className="
@@ -5979,41 +6017,23 @@ function resetCheckoutSession() {
 
 
 
-        <p
-
-          className={`
-
-            mt-1.5
-
-            text-[11px]
-
-            leading-4
-
-
-
-            ${
-
-              customAmountBelowMinimum
-
-                ? "text-red-600"
-
-                : "text-[#7c8580]"
-
-            }
-
-          `}
-
-        >
-
-          {getMinimumCustomAmountText(
-
-            locale,
-
-            minimumCustomAmountLabel,
-
+        {showMinimumAmountError &&
+          customAmountBelowMinimum && (
+            <p
+              role="alert"
+              className="
+                mt-1.5
+                text-[11px]
+                leading-4
+                text-red-600
+              "
+            >
+              {getMinimumCustomAmountText(
+                locale,
+                minimumCustomAmountLabel,
+              )}
+            </p>
           )}
-
-        </p>
 
 
 
@@ -6146,7 +6166,7 @@ function resetCheckoutSession() {
 
           disabled={
 
-            !hasValidAmount
+            !canAttemptAmountSubmit
 
           }
 
@@ -6208,11 +6228,11 @@ function resetCheckoutSession() {
 
         >
 
-          {hasValidAmount && isAkramDirectPage && <CardApplePayIcons />}
+          {showButtonAmount && isAkramDirectPage && <CardApplePayIcons />}
           <span className={isAkramDirectPage ? "min-w-0 flex-1 text-center text-[13px] leading-snug sm:text-[15px]" : undefined}>
-          {hasValidAmount && isAkramDirectPage
-            ? t.payWithCardOrApplePay.replace("{amount}", formatMoney(total, currency, locale, { hideZeroDecimals: true }))
-            : hasValidAmount
+          {showButtonAmount && isAkramDirectPage
+            ? t.payWithCardOrApplePay.replace("{amount}", formatMoney(buttonTotal, currency, locale, { hideZeroDecimals: true }))
+            : showButtonAmount
   ? `${locale === "fr"
       ? "Payer"
       : locale === "de"
@@ -6223,7 +6243,7 @@ function resetCheckoutSession() {
             ? "الدفع"
             : "Pay"
     } ${formatMoney(
-      total,
+      buttonTotal,
       currency,
       locale,
       {
@@ -6245,7 +6265,7 @@ function resetCheckoutSession() {
 
 
 
-          {hasValidAmount && (
+          {showButtonAmount && (
 
             <ArrowRight
 
@@ -7447,31 +7467,31 @@ function getMinimumCustomAmountText(
 
     case "fr":
 
-      return `Montant personnalisé minimum : ${amountLabel}`;
+      return `Le montant minimum du don est de ${amountLabel}.`;
 
 
 
     case "de":
 
-      return `Mindestbetrag für einen eigenen Betrag: ${amountLabel}`;
+      return `Der Mindestspendenbetrag beträgt ${amountLabel}.`;
 
 
 
     case "es":
 
-      return `Importe personalizado mínimo: ${amountLabel}`;
+      return `El monto mínimo de donación es ${amountLabel}.`;
 
 
 
     case "ar":
 
-      return `الحد الأدنى للمبلغ المخصص: ${amountLabel}`;
+      return `الحد الأدنى لمبلغ التبرع هو ${amountLabel}.`;
 
 
 
     default:
 
-      return `❤️ Every donation starts at just ${amountLabel}`;
+      return `The minimum donation amount is ${amountLabel}.`;
 
   }
 

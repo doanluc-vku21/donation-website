@@ -1,5 +1,5 @@
 import { getDonationPageMinimumUsdCents, isStandardUpsellDonationPage } from "@/lib/donation-page-policy";
-import { convertUsdToCurrencyMinor as pageMinimumMinor } from "@/lib/money";
+import { convertUsdMinimumToWholeCurrencyMinor as pageMinimumMinor } from "@/lib/money";
 import {
   NextResponse,
 } from "next/server";
