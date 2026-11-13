@@ -146,11 +146,19 @@ export function CurrencyPickerSheet({
     useRef<HTMLInputElement>(
       null,
     );
+  /*
+   * The tap that opens the sheet can reach the freshly mounted backdrop on
+   * touch devices and would close it again straight away.
+   */
+  const openedAtRef =
+    useRef(0);
 
   useEffect(() => {
     if (!open) {
       return;
     }
+    openedAtRef.current =
+      Date.now();
 
     const focusTimer =
       window.setTimeout(
@@ -299,7 +307,7 @@ export function CurrencyPickerSheet({
       className="
         fixed
         inset-0
-        z-[95]
+        z-[400]
         flex
         items-end
         justify-center
@@ -314,6 +322,13 @@ export function CurrencyPickerSheet({
       onMouseDown={(
         event,
       ) => {
+        if (
+          Date.now() -
+            openedAtRef.current <
+          350
+        ) {
+          return;
+        }
         if (
           event.target ===
           event.currentTarget

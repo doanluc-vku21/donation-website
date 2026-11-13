@@ -89,6 +89,8 @@ import {
 
   convertUsdToCurrencyMinor,
 
+  convertUsdToWholeCurrencyMinor,
+
   formatMoney,
 
 } from "@/lib/money";
@@ -388,6 +390,18 @@ export function DonationFlow({
     isCurrencySwitching,
 
     setIsCurrencySwitching,
+
+  ] = useState(false);
+
+  /*
+   * The custom field mirrors the selected preset until the donor focuses it,
+   * so typed digits start a fresh amount instead of appending to the preset.
+   */
+  const [
+
+    isAmountFieldFocused,
+
+    setAmountFieldFocused,
 
   ] = useState(false);
 
@@ -2901,7 +2915,7 @@ function resetCheckoutSession() {
 
     setAmount(
 
-      convertUsdToCurrencyMinor(
+      convertUsdToWholeCurrencyMinor(
 
         amountUsdCents,
 
@@ -6213,7 +6227,7 @@ function resetCheckoutSession() {
 
                         {formatMoney(
 
-                          convertUsdToCurrencyMinor(
+                          convertUsdToWholeCurrencyMinor(
 
                             option
 
@@ -6423,7 +6437,15 @@ function resetCheckoutSession() {
 
             value={
 
-              isAkramShakeUpsellPage && selectedPreset !== null ? String(amount / 100) : customAmount
+              !isAmountFieldFocused &&
+
+              isAkramShakeUpsellPage &&
+
+              selectedPreset !== null
+
+                ? String(amount / 100)
+
+                : customAmount
 
             }
 
@@ -6450,7 +6472,17 @@ function resetCheckoutSession() {
               }
             }}
 
-            onBlur={() => pendingExpressLoadRef.current?.()}
+            onFocus={() =>
+              setAmountFieldFocused(
+                true,
+              )
+            }
+            onBlur={() => {
+              setAmountFieldFocused(
+                false,
+              );
+              pendingExpressLoadRef.current?.();
+            }}
 
             className="
 

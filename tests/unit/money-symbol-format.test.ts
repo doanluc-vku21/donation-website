@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vitest";
-import { formatMoney } from "@/lib/money";
+import { convertUsdToWholeCurrencyMinor, formatMoney } from "@/lib/money";
 
 describe("formatMoney currency display", () => {
   it("renders the currency symbol instead of the ISO code when asked", () => {
@@ -22,5 +22,19 @@ describe("formatMoney currency display", () => {
   it("keeps the locale's own symbol placement", () => {
     expect(formatMoney(2_500, "EUR", "fr", { currencyDisplay: "narrowSymbol" })).toContain("25,00");
     expect(formatMoney(2_500, "EUR", "fr", { currencyDisplay: "narrowSymbol" })).toContain("€");
+  });
+});
+
+describe("convertUsdToWholeCurrencyMinor", () => {
+  it("rounds fractional local amounts to tidy whole units", () => {
+    expect(convertUsdToWholeCurrencyMinor(2_500, 124.95)).toBe(312_400);
+    expect(convertUsdToWholeCurrencyMinor(5_000, 124.95)).toBe(624_800);
+    expect(convertUsdToWholeCurrencyMinor(7_500, 124.95)).toBe(937_100);
+    expect(convertUsdToWholeCurrencyMinor(2_500, 1)).toBe(2_500);
+  });
+
+  it("never returns a fractional or sub-unit amount", () => {
+    expect(convertUsdToWholeCurrencyMinor(2_000, 124.95) % 100).toBe(0);
+    expect(convertUsdToWholeCurrencyMinor(1, 124.95)).toBe(100);
   });
 });

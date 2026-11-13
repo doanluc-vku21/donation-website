@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { sampleCampaign } from "@/lib/sample-data";
 
@@ -129,5 +130,54 @@ describe("in-modal currency handling", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Unable to switch currency. Please try again.");
     expect(screen.getByRole("button", { name: "Pay ৳3,125 by Card" })).toBeEnabled();
+  });
+});
+
+describe("custom amount typing", () => {
+  it("starts a fresh amount instead of appending to the selected preset", async () => {
+    const fetchMock = vi.fn(() => new Promise<Response>(() => {}));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<DonationFlow campaign={sampleCampaign} locale="en" currency="BDT" exchangeRate={124.95} />);
+
+    const input = screen.getByPlaceholderText("Enter amount");
+
+    fireEvent.click(screen.getByRole("radio", { name: "৳3,124" }));
+    // The field mirrors the preset while it is unfocused ...
+    expect(input).toHaveValue(3124);
+
+    const user = userEvent.setup();
+    await user.click(input);
+    // ... and becomes a clean field as soon as the donor types into it.
+    expect(input).toHaveValue(null);
+    await user.keyboard("4550");
+    expect(input).toHaveValue(4550);
+    expect(screen.getByRole("button", { name: "Pay ৳4,550 by Card" })).toBeEnabled();
+  });
+
+  it("renders presets in whole local currency units", () => {
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})));
+
+    render(<DonationFlow campaign={sampleCampaign} locale="en" currency="BDT" exchangeRate={124.95} />);
+
+    expect(screen.getByRole("radio", { name: "৳3,124" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /৳6,248/ })).toBeInTheDocument();
+    expect(screen.queryByText("৳3,123.75")).not.toBeInTheDocument();
+  });
+});
+
+describe("currency sheet stacking", () => {
+  it("opens above the donation modal layer", () => {
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})));
+
+    render(<DonationFlow campaign={sampleCampaign} locale="en" currency="BDT" exchangeRate={125} />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Change currency: BDT" })[0]);
+
+    const sheet = screen.getByRole("dialog", { name: "Choose currency" });
+    const overlay = sheet.closest(".fixed");
+
+    expect(overlay?.className).toContain("z-[400]");
+    expect(overlay?.className).toContain("inset-0");
   });
 });

@@ -64,6 +64,30 @@ the warning was the only feedback.
   contains `Change currency`, `Choose currency`, `Search currency` and
   `api/currency/rate`, confirming the new UI is live.
 
+## Follow-up fixes after the first deploy
+
+The first release surfaced two device bugs on the live site.
+
+1. The currency chip did nothing. The sheet was a body portal at `z-[95]`
+   while the donation modal overlay sits at `z-[300]`, so the sheet opened
+   underneath the modal. The overlay is now `z-[400]`, and taps that reach the
+   freshly mounted backdrop within 350 ms of opening are ignored so the opening
+   tap cannot close it again.
+2. The custom amount field accepted only one digit. On the upsell pages the
+   field mirrored the selected preset (`6247.5`), so typed digits appended to
+   that value and read as `6247.5455`. The field now mirrors the preset only
+   while it is unfocused and starts empty as soon as the donor focuses it.
+3. Presets showed fractional local amounts such as `৳3,123.75` because the
+   provider rate is 124.95. `lib/money.ts` gained
+   `convertUsdToWholeCurrencyMinor`, which rounds a converted preset to whole
+   major units, and the preset label, the selected amount and the Stripe
+   amount all use it, so the grid, the total and the charge agree:
+   `৳3,124 / ৳6,248 / ৳9,371`.
+
+Regression coverage lives in `tests/unit/donation-currency-switch.test.tsx`
+(fresh typing after a preset, whole-unit presets, sheet stacking) and
+`tests/unit/money-symbol-format.test.ts` (whole-unit conversion).
+
 ## Known behavior and rollback
 
 Switching currency writes the `site_currency` cookie but does not call

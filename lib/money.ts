@@ -175,10 +175,11 @@ export function convertUsdToCurrencyMinor(
 }
 
 /**
- * Convert a USD minimum amount (in cents) to the selected local currency's
- * minor units, rounded to the nearest whole major currency unit (no pennies).
+ * Convert a USD amount (in cents) to the selected local currency's minor units,
+ * rounded to the nearest whole major currency unit, so presets read as tidy
+ * numbers such as 3,124 instead of 3,123.75.
  */
-export function convertUsdMinimumToWholeCurrencyMinor(
+export function convertUsdToWholeCurrencyMinor(
   usdCents: number,
   usdToCurrencyRate: number,
 ) {
@@ -195,6 +196,20 @@ export function convertUsdMinimumToWholeCurrencyMinor(
   return Math.max(
     100,
     Math.round(minor / 100) * 100,
+  );
+}
+
+/**
+ * Convert a USD minimum amount (in cents) to the selected local currency's
+ * minor units, rounded to the nearest whole major currency unit (no pennies).
+ */
+export function convertUsdMinimumToWholeCurrencyMinor(
+  usdCents: number,
+  usdToCurrencyRate: number,
+) {
+  return convertUsdToWholeCurrencyMinor(
+    usdCents,
+    usdToCurrencyRate,
   );
 }
 
