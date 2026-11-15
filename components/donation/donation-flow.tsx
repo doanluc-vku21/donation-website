@@ -1,7 +1,7 @@
 "use client";
 
 import { metaCheckoutFetch } from "@/lib/meta/client";
-import { areDonorNamesOptional, getDonationPageMinimumUsdCents, isMonthlyOnlyDonationPage, isStandardUpsellDonationPage } from "@/lib/donation-page-policy";
+import { areDonorNamesOptional, getDonationPageMinimumUsdCents, isMonthlyOnlyDonationPage, isStandardUpsellDonationPage, sortsDonationOptionsDescending } from "@/lib/donation-page-policy";
 import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
 import { beginWalletTiming, currentWalletTiming, recordWalletTiming } from "@/lib/stripe/wallet-diagnostics";
 import { WalletDiagnostics } from "./wallet-diagnostics";
@@ -472,7 +472,11 @@ export function DonationFlow({
 
     DonationFrequency =
 
-    "monthly";
+    monthlyOnly
+
+      ? "monthly"
+
+      : "one_time";
 
 
 
@@ -1279,7 +1283,10 @@ export function DonationFlow({
 
         ) =>
 
-          campaign.slug === "help-street-vendor"
+          sortsDonationOptionsDescending(
+            pathname,
+            campaign.slug,
+          )
             ? b.amountUsd - a.amountUsd
             : a.amountUsd - b.amountUsd,
 
@@ -1294,6 +1301,8 @@ export function DonationFlow({
       campaign.slug,
 
       frequency,
+
+      pathname,
 
     ]);
 
@@ -6160,6 +6169,56 @@ function resetCheckoutSession() {
 
                 option.amountUsd;
 
+              const presetAmount =
+
+                formatMoney(
+
+                  convertUsdToWholeCurrencyMinor(
+
+                    option
+
+                      .amountUsd,
+
+                    exchangeRate,
+
+                    currency,
+
+                  ),
+
+                  currency,
+
+                  locale,
+
+                  {
+
+                    hideZeroDecimals:
+
+                      true,
+
+                    currencyDisplay:
+
+                      "narrowSymbol",
+
+                  },
+
+                );
+
+              const presetCaption =
+
+                option
+
+                  .impactText ||
+
+                (option.featured
+
+                  ? t.recommended
+
+                  : "");
+
+              const presetCaptionId =
+
+                `preset-caption-${option.frequency}-${option.amountUsd}`;
+
 
 
               return (
@@ -6204,6 +6263,30 @@ function resetCheckoutSession() {
 
                     }
 
+                    aria-label={
+
+                      option
+
+                        .featured
+
+                        ? `${presetAmount} ${t.recommended}`
+
+                        : presetAmount
+
+                    }
+
+                    aria-describedby={
+
+                      option
+
+                        .impactText
+
+                        ? presetCaptionId
+
+                        : undefined
+
+                    }
+
                     onChange={() =>
 
                       selectAmount(
@@ -6228,7 +6311,7 @@ function resetCheckoutSession() {
 
                       flex
 
-                      min-h-[56px]
+                      min-h-[64px]
 
                       items-center
 
@@ -6242,7 +6325,9 @@ function resetCheckoutSession() {
 
                       bg-white
 
-                      px-1
+                      px-1.5
+
+                      py-2
 
                       text-center
 
@@ -6288,70 +6373,45 @@ function resetCheckoutSession() {
 
                       >
 
-                        {formatMoney(
-
-                          convertUsdToWholeCurrencyMinor(
-
-                            option
-
-                              .amountUsd,
-
-                            exchangeRate,
-
-                            currency,
-
-                          ),
-
-                          currency,
-
-                          locale,
-
-                          {
-
-                            hideZeroDecimals: true,
-
-                            currencyDisplay: "narrowSymbol",
-
-                          },
-
-
-                        )}
+                        {presetAmount}
 
                       </strong>
 
 
 
-                      {option
-
-                        .featured && (
+                      {presetCaption && (
 
                         <small
 
-                          className="
+                          id={presetCaptionId}
+
+                          className={`
 
                             mt-1
 
                             block
 
-                            whitespace-nowrap
+                            text-[9px]
 
-                            text-[8px]
+                            leading-[1.15]
 
-                            font-bold
+                            ${
 
-                            leading-none
+                              option
 
-                            text-[#1d6b46]
+                                .impactText
 
-                          "
+                                ? "font-semibold text-[#5b6b60]"
+
+                                : "whitespace-nowrap font-bold text-[#1d6b46]"
+
+                            }
+
+                          `}
 
                         >
 
-                          {
-
-                            t.recommended
-
-                          }
+                          {presetCaption}
 
                         </small>
 

@@ -55,15 +55,15 @@ describe("in-modal currency handling", () => {
 
     const input = screen.getByPlaceholderText("Enter amount");
 
-    fireEvent.change(input, { target: { value: "2499" } });
+    fireEvent.change(input, { target: { value: "499" } });
 
-    expect(input).toHaveValue(2499);
+    expect(input).toHaveValue(499);
     // The typed amount must stay on screen even though it is under the minimum.
-    expect(screen.getByText("Total per month")).toBeVisible();
-    expect(screen.getByText("৳2,499")).toBeVisible();
-    expect(screen.getByText("The minimum donation amount is ৳2,500.")).toBeVisible();
+    expect(screen.getByText("Total")).toBeVisible();
+    expect(screen.getByText("৳499")).toBeVisible();
+    expect(screen.getByText("The minimum donation amount is ৳625.")).toBeVisible();
     // The button stays clickable so pressing it surfaces the minimum warning.
-    expect(screen.getByRole("button", { name: "Pay ৳2,499 by Card" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Pay ৳499 by Card" })).toBeEnabled();
   });
 
   it("fills the minimum amount from the warning", () => {
@@ -71,12 +71,12 @@ describe("in-modal currency handling", () => {
 
     const input = screen.getByPlaceholderText("Enter amount");
 
-    fireEvent.change(input, { target: { value: "2499" } });
-    fireEvent.click(screen.getByRole("button", { name: "Use ৳2,500" }));
+    fireEvent.change(input, { target: { value: "499" } });
+    fireEvent.click(screen.getByRole("button", { name: "Use ৳625" }));
 
-    expect(input).toHaveValue(2500);
+    expect(input).toHaveValue(625);
     expect(screen.queryByText(/The minimum donation amount is/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Pay ৳2,500 by Card" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Pay ৳625 by Card" })).toBeEnabled();
   });
 
   it("shows symbols on the presets instead of the ISO code", () => {
@@ -197,11 +197,11 @@ describe("zero-decimal currencies", () => {
 
     const input = screen.getByPlaceholderText("Enter amount");
 
-    fireEvent.change(input, { target: { value: "2500" } });
+    fireEvent.change(input, { target: { value: "500" } });
 
-    expect(input).toHaveValue(2500);
-    expect(screen.getByText("The minimum donation amount is ¥3,040.")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Pay ¥2,500 by Card" })).toBeEnabled();
+    expect(input).toHaveValue(500);
+    expect(screen.getByText("The minimum donation amount is ¥760.")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Pay ¥500 by Card" })).toBeEnabled();
   });
 });
 

@@ -69,7 +69,7 @@ describe("Apple Pay session loading", () => {
     vi.stubGlobal("fetch", fetch);
     mountModal({ ...sampleCampaign, slug: "help-street-vendor", donationOptions: withStreetVendorDonationOptions(sampleCampaign.donationOptions) });
     await advance(121);
-    expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toMatchObject({ amountCents: 10000, frequency: "monthly" });
+    expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toMatchObject({ amountCents: 10000, frequency: "one_time" });
     openModal(); await advance(1);
     const checkOptions = () => {
       const radios = within(screen.getByRole("group", { name: "Donation amount" })).getAllByRole("radio");
@@ -82,7 +82,7 @@ describe("Apple Pay session loading", () => {
       expect(screen.getByRole("button", { name: "Pay $100 by Card" })).toBeEnabled();
     };
     checkOptions();
-    fireEvent.click(screen.getByRole("radio", { name: "Give once" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Monthly" }));
     await advance(1000);
     checkOptions();
     expect(screen.queryByRole("radio", { name: "$125" })).not.toBeInTheDocument();
@@ -91,7 +91,7 @@ describe("Apple Pay session loading", () => {
       await advance(1000);
       expect(screen.getByPlaceholderText("Enter amount")).toHaveValue(amount);
       const request = fetch.mock.calls.filter(([url]) => url === "/api/stripe/express-checkout").at(-1);
-      expect(JSON.parse(String(request?.[1]?.body))).toMatchObject({ amountCents: amount * 100, frequency: "one_time" });
+      expect(JSON.parse(String(request?.[1]?.body))).toMatchObject({ amountCents: amount * 100, frequency: "monthly" });
     }
   });
   it("selects the mango seller's recommended $50 gift and sends the new one-time presets to wallet checkout", async () => {
@@ -126,7 +126,7 @@ describe("Apple Pay session loading", () => {
     }
   });
 
-  it.each(["/akram-shake-2", "/help-mango-seller", "/help-mango-seller-1", "/help-street-vendor"])("mirrors presets and applies separate monthly and one-time minimums on %s", async pathname => {
+  it.each(["/akram-shake-2", "/help-mango-seller", "/help-mango-seller-1", "/help-street-vendor"])("mirrors presets and applies the \\$5 minimum on %s", async pathname => {
     navigation.pathname = pathname;
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response("cs_ryan")));
     mountModal(); openModal(); await advance(1);
@@ -136,22 +136,20 @@ describe("Apple Pay session loading", () => {
     fireEvent.click(screen.getByRole("radio", { name: /\$100/ }));
     expect(input).toHaveValue(100);
     expect(screen.getByRole("radio", { name: /\$100/ })).toBeChecked();
-    fireEvent.change(input, { target: { value: "19" } });
-    expect(screen.getByText("The minimum donation amount is $20.")).toBeVisible();
+    fireEvent.change(input, { target: { value: "4" } });
+    expect(screen.getByText("The minimum donation amount is $5.")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /Pay.*Card/ }));
-    expect(screen.getByText("The minimum donation amount is $20.")).toBeVisible();
-    fireEvent.change(input, { target: { value: "20" } });
-    expect(screen.queryByText("The minimum donation amount is $20.")).not.toBeInTheDocument();
+    expect(screen.getByText("The minimum donation amount is $5.")).toBeVisible();
+    fireEvent.change(input, { target: { value: "5" } });
+    expect(screen.queryByText("The minimum donation amount is $5.")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Pay.*Card/ })).toBeEnabled();
-    fireEvent.click(screen.getByRole("radio", { name: "Give once" }));
-    const oneTimeMinimum = pathname === "/help-mango-seller" || pathname === "/help-mango-seller-1" || pathname === "/help-street-vendor" ? 20 : 25;
-    fireEvent.change(input, { target: { value: String(oneTimeMinimum - 0.01) } });
-    expect(input).toHaveValue(oneTimeMinimum - 0.01);
-    expect(screen.getByText(`The minimum donation amount is $${oneTimeMinimum}.`)).toBeVisible();
+    fireEvent.click(screen.getByRole("radio", { name: "Monthly" }));
+    fireEvent.change(input, { target: { value: "4.99" } });
+    expect(screen.getByText("The minimum donation amount is $5.")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /Pay.*Card/ }));
-    expect(screen.getByText(`The minimum donation amount is $${oneTimeMinimum}.`)).toBeVisible();
-    fireEvent.change(input, { target: { value: String(oneTimeMinimum) } });
-    expect(screen.queryByText(`The minimum donation amount is $${oneTimeMinimum}.`)).not.toBeInTheDocument();
+    expect(screen.getByText("The minimum donation amount is $5.")).toBeVisible();
+    fireEvent.change(input, { target: { value: "5" } });
+    expect(screen.queryByText("The minimum donation amount is $5.")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Pay.*Card/ })).toBeEnabled();
   });
 
@@ -317,14 +315,14 @@ describe("Apple Pay session loading", () => {
   it("keeps monthly and one-time wallets separate when amount reuse is available", async () => {
     navigation.pathname = "/akram-shake";
     walletReadiness.update = vi.fn().mockResolvedValue(undefined);
-    const fetch = vi.fn().mockResolvedValueOnce(response("cs_monthly_boundary"))
-      .mockResolvedValueOnce(response("cs_once_boundary"));
+    const fetch = vi.fn().mockResolvedValueOnce(response("cs_once_boundary"))
+      .mockResolvedValueOnce(response("cs_monthly_boundary"));
     vi.stubGlobal("fetch", fetch);
     mountModal(); await advance(121); openModal(); await advance(1);
-    act(() => { fireEvent.click(screen.getByRole("radio", { name: "Give once" })); });
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: "Monthly" })); });
     await advance(1);
     expect(fetch).toHaveBeenCalledTimes(2);
-    expect(JSON.parse(fetch.mock.calls[1][1].body)).toMatchObject({ frequency: "one_time" });
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toMatchObject({ frequency: "monthly" });
     expect(walletReadiness.update).not.toHaveBeenCalled();
   });
 
@@ -352,15 +350,15 @@ describe("Apple Pay session loading", () => {
     vi.stubGlobal("fetch", fetch);
     render(<DonationModal campaign={{ ...sampleCampaign, id: `loading-campaign-${++campaignIndex}`,
       donationOptions: [...sampleCampaign.donationOptions.map((option) => ({ ...option, frequency: "monthly" as const })),
-        { ...sampleCampaign.donationOptions[0], frequency: "monthly", amountUsd: 500, featured: false }] }}
+        { ...sampleCampaign.donationOptions[0], frequency: "monthly", amountUsd: 300, featured: false }] }}
       content={{ _id: "test-content", title: "Test campaign", slug: sampleCampaign.slug }}
       locale="en" currency="USD" exchangeRate={1} />);
     await advance(121); openModal(); await advance(1);
-    act(() => { fireEvent.click(screen.getByRole("radio", { name: /^\$5$/ })); });
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: /^\$3$/ })); });
     await advance(1);
     await advance(1);
     expect(walletReadiness.update).not.toHaveBeenCalled();
-    expect(JSON.parse(fetch.mock.calls[1][1].body)).toMatchObject({ amountCents: 500 });
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toMatchObject({ amountCents: 300 });
     expect(screen.getByText("cs_small_preset_secret").closest("[inert]")).toBeNull();
   });
 
@@ -381,22 +379,22 @@ describe("Apple Pay session loading", () => {
     expect(screen.getByText("or")).toBeInTheDocument();
   });
 
-  it("shows the Give once wallet and reuses the monthly wallet when switching back on Akram", async () => {
+  it("shows the one-time wallet first and reuses the monthly wallet when switching back on Akram", async () => {
     navigation.pathname = "/akram-shake-2";
-    const express = vi.fn().mockResolvedValueOnce(response("cs_monthly")).mockResolvedValueOnce(response("cs_one_time"));
+    const express = vi.fn().mockResolvedValueOnce(response("cs_one_time")).mockResolvedValueOnce(response("cs_monthly"));
     vi.stubGlobal("fetch", vi.fn((url) => url === "/api/stripe/express-checkout" ? express() : Promise.resolve(response("cs_card"))));
     mountModal(); await advance(121); openModal(); await advance(1);
-    const monthlyWallet = screen.getByText("cs_monthly_secret");
-    act(() => { fireEvent.click(screen.getByRole("radio", { name: "Give once" })); });
-    await advance(1);
     const oneTimeWallet = screen.getByText("cs_one_time_secret");
-    expect(oneTimeWallet.closest("[inert]")).toBeNull();
-    expect(monthlyWallet.closest("[inert]")).not.toBeNull();
     act(() => { fireEvent.click(screen.getByRole("radio", { name: "Monthly" })); });
     await advance(1);
-    expect(screen.getByText("cs_monthly_secret")).toBe(monthlyWallet);
+    const monthlyWallet = screen.getByText("cs_monthly_secret");
     expect(monthlyWallet.closest("[inert]")).toBeNull();
     expect(oneTimeWallet.closest("[inert]")).not.toBeNull();
+    act(() => { fireEvent.click(screen.getByRole("radio", { name: "Give once" })); });
+    await advance(1);
+    expect(screen.getByText("cs_one_time_secret")).toBe(oneTimeWallet);
+    expect(oneTimeWallet.closest("[inert]")).toBeNull();
+    expect(monthlyWallet.closest("[inert]")).not.toBeNull();
     expect(express).toHaveBeenCalledTimes(2);
   });
 
@@ -578,7 +576,7 @@ describe("Apple Pay session loading", () => {
 
   it("keeps the selected amount and existing wallet when refreshed campaign statistics arrive", async () => {
     navigation.pathname = "/help-street-vendor";
-    const fetch = vi.fn().mockResolvedValue(response("cs_live_statistics"));
+    const fetch = vi.fn().mockImplementation(() => Promise.resolve(response("cs_live_statistics")));
     vi.stubGlobal("fetch", fetch);
     const campaign = { ...sampleCampaign, id: `loading-campaign-${++campaignIndex}`, slug: "help-street-vendor" };
     const content = { _id: "test-content", title: "Test campaign", slug: campaign.slug };
@@ -588,14 +586,16 @@ describe("Apple Pay session loading", () => {
     openModal(); await advance(1);
     fireEvent.change(screen.getByPlaceholderText("Enter amount"), { target: { value: "35" } });
     await advance(1000);
-    const wallet = screen.getByTestId("wallet-session");
+    const activeWallet = () => screen.getAllByTestId("wallet-session").find(element => element.closest("[inert]") === null);
+    const wallet = activeWallet();
+    expect(wallet).toBeDefined();
     const requestCount = fetch.mock.calls.length;
     view.rerender(modal({ ...campaign, raisedAmountUsd: campaign.raisedAmountUsd + 2000,
       donorCount: campaign.donorCount + 1, donationOptions: campaign.donationOptions.map(option => ({ ...option })),
       recentDonations: [...campaign.recentDonations] }));
     await advance(1000);
     expect(screen.getByPlaceholderText("Enter amount")).toHaveValue(35);
-    expect(screen.getByTestId("wallet-session")).toBe(wallet);
+    expect(activeWallet()).toBe(wallet);
     expect(fetch).toHaveBeenCalledTimes(requestCount);
   });
 

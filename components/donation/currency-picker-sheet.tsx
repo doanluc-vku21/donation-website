@@ -271,6 +271,28 @@ export function CurrencyPickerSheet({
     onClose,
   ]);
 
+  /*
+   * The effect above parks the list on the active currency, so a search would
+   * otherwise show its matches far below the fold: reset to the first row as
+   * soon as the query changes.
+   */
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const list =
+      listRef.current;
+
+    if (list) {
+      list.scrollTop =
+        0;
+    }
+  }, [
+    open,
+    query,
+  ]);
+
   const names =
     useMemo(
       () =>

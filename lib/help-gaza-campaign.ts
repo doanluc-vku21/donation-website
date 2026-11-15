@@ -1,4 +1,5 @@
 import type { PortableTextBlock } from "@portabletext/react";
+import { familyFeedingPresets } from "@/lib/donation-presets";
 import { locales, type Locale } from "@/lib/i18n";
 import { localizeCampaign } from "@/lib/localize-campaign";
 import type { DonationOption } from "@/lib/sample-data";
@@ -7,12 +8,7 @@ import type { SanityCampaign } from "@/sanity/types/campaign";
 export const HELP_GAZA_PATH = "/help-gaza";
 export const HELP_GAZA_CAMPAIGN_SLUG = "give-a-child-a-brighter-tomorrow";
 
-export const HELP_GAZA_ONE_TIME_DONATION_OPTIONS: DonationOption[] = [2500, 5000, 7500].map(amountUsd => ({
-  amountUsd,
-  frequency: "one_time",
-  featured: amountUsd === 5000,
-  impactText: "",
-}));
+export const HELP_GAZA_ONE_TIME_DONATION_OPTIONS: DonationOption[] = familyFeedingPresets("one_time");
 
 type HelpGazaSpan = {
   text: string;

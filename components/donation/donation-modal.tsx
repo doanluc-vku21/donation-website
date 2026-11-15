@@ -1,5 +1,6 @@
 "use client";
 import { metaCheckoutFetch } from "@/lib/meta/client";
+import { isMonthlyOnlyDonationPage } from "@/lib/donation-page-policy";
 import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
 import { shouldPrewarmApplePay } from "@/lib/stripe/wallet-platform";
 import { prepareStripe } from "@/lib/stripe/client";
@@ -291,19 +292,23 @@ export function DonationModal({
       >
     >({});
 
-  const monthlyDonationOptions =
+  // Mirrors DonationFlow: the modal pre-warms whichever gift type opens first.
+  const prefetchFrequency: DonationFrequency =
+    isMonthlyOnlyDonationPage(pathname) ? "monthly" : "one_time";
+
+  const prefetchDonationOptions =
     campaign.donationOptions.filter(
       (
         option,
       ) =>
         option.frequency ===
-        "monthly",
+        prefetchFrequency,
     );
 
   const defaultDonationOptions =
-    monthlyDonationOptions.length >
+    prefetchDonationOptions.length >
     0
-      ? monthlyDonationOptions
+      ? prefetchDonationOptions
       : campaign.donationOptions;
 
   const defaultDonationOptionUsd =
@@ -324,10 +329,10 @@ export function DonationModal({
       currency,
     );
 
-  const monthlyPrefetchKey = getExpressCheckoutKey({
+  const prefetchKey = getExpressCheckoutKey({
     campaignId: campaign.id,
     campaignPath: pathname,
-    frequency: "monthly",
+    frequency: prefetchFrequency,
     amount: defaultAmount,
     currency,
     locale,
@@ -336,7 +341,7 @@ export function DonationModal({
   });
   // Google Pay loads its third-party iframe/cookies only after Donate opens.
   // iPhone/iPad still prepare Apple Pay ahead of that interaction.
-  const canWarmWallet = prewarmApplePay && prefetchedExpress.monthly?.key === monthlyPrefetchKey;
+  const canWarmWallet = prewarmApplePay && prefetchedExpress[prefetchFrequency]?.key === prefetchKey;
   useEffect(() => {
     if (prewarmApplePay && !disableExpressPrefetch) prepareStripe();
   }, [prewarmApplePay, disableExpressPrefetch]);
@@ -370,7 +375,7 @@ export function DonationModal({
       return;
     }
 
-    const monthly =
+    const prefetch =
       getOrCreateExpressPrefetch(
         {
           campaignId:
@@ -383,7 +388,7 @@ export function DonationModal({
             pathname,
 
           frequency:
-            "monthly",
+            prefetchFrequency,
 
           amount:
             defaultAmount,
@@ -396,18 +401,21 @@ export function DonationModal({
 
     // The modal may stay closed. Keep failed warm-ups handled until a consumer
     // retries them; the original promise still rejects for awaiting consumers.
-    void monthly.promise.catch(() => {});
+    void prefetch.promise.catch(() => {});
 
     setPrefetchedExpress(
       (
         current,
       ) => {
         if (
-          current
-            .monthly
+          current[
+            prefetchFrequency
+          ]
             ?.key ===
-            monthly.key &&
-          current.monthly.promise === monthly.promise
+            prefetch.key &&
+          current[
+            prefetchFrequency
+          ].promise === prefetch.promise
         ) {
           return current;
         }
@@ -415,14 +423,16 @@ export function DonationModal({
         return {
           ...current,
 
-          monthly,
+          [prefetchFrequency]:
+            prefetch,
         };
       },
     );
-  }, [campaign.id, campaign.slug, currency, defaultAmount, disableExpressPrefetch, locale, pathname]);
+  }, [campaign.id, campaign.slug, currency, defaultAmount, disableExpressPrefetch, locale, pathname, prefetchFrequency]);
 
   /*
-   * Warm only the default Monthly Express Checkout session.
+   * Warm only the default Express Checkout session (one-time unless the
+   * page only sells monthly gifts).
    *
    * There is now exactly one DonationModal / DonationFlow on
    * the campaign page. This avoids creating multiple Stripe

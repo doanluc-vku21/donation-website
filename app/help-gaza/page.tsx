@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { CampaignPage } from "@/components/campaign/campaign-page";
 import { getCampaignMetadata } from "@/lib/campaign-metadata";
 import { getCurrencyContext } from "@/lib/currency-server";
-import { withTwentyFiveDollarPresets } from "@/lib/donation-presets";
+import { familyFeedingPresets } from "@/lib/donation-presets";
 import {
   HELP_GAZA_CAMPAIGN_SLUG,
   HELP_GAZA_ONE_TIME_DONATION_OPTIONS,
@@ -55,7 +55,7 @@ export default async function HelpGazaPage() {
         organizationName: "MEAL SUPPORT INC",
         summary: content.summary ?? "",
         donationOptions: [
-          ...withTwentyFiveDollarPresets(campaign.donationOptions.filter(option => option.frequency === "monthly")),
+          ...familyFeedingPresets("monthly"),
           ...HELP_GAZA_ONE_TIME_DONATION_OPTIONS,
         ],
       }}

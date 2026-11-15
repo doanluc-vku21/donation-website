@@ -39,7 +39,7 @@ describe("in-place wallet amount updates", () => {
         (["USD", "GBP"] as const).map(currency => ({ campaignPath, signed, frequency, currency }))))
   ))("enforces the $frequency minimum during $currency wallet updates on $campaignPath (signed: $signed)", async ({ signed, campaignPath, frequency, currency }) => {
     const exchangeRate = currency === "USD" ? 1 : 0.8;
-    const minimum = Math.round((campaignPath === "/help-mango-seller" || campaignPath === "/help-mango-seller-1" || campaignPath === "/help-street-vendor" || frequency === "monthly" ? 2000 : 2500) * exchangeRate);
+    const minimum = Math.round(500 * exchangeRate);
     const updateContext = signed ? signWalletUpdateContext({
       sessionId: "cs_unit_amount", productId: "prod_existing", currency, frequency,
       coverFee: false, exchangeRate, campaignPath,
@@ -56,7 +56,7 @@ describe("in-place wallet amount updates", () => {
   });
 
   it.each([false, true].flatMap(signed => [false, true].map(coverFee => ({ signed, coverFee }))))(
-    "keeps the mango one-time wallet floor at $20 before fees (signed: $signed, cover fee: $coverFee)",
+    "keeps the mango one-time wallet floor at \\$5 before fees (signed: $signed, cover fee: $coverFee)",
     async ({ signed, coverFee }) => {
       const campaignPath = "/help-mango-seller";
       const updateContext = signed ? signWalletUpdateContext({
@@ -66,15 +66,15 @@ describe("in-place wallet amount updates", () => {
       mocks.retrieve.mockResolvedValue({ ...session(), mode: "payment", metadata: {
         ...session().metadata, campaign_path: campaignPath, charged_fee_amount_cents: coverFee ? "100" : "0",
       } });
-      expect((await POST(request({ amountCents: 1999, updateContext }))).status).toBe(400);
+      expect((await POST(request({ amountCents: 499, updateContext }))).status).toBe(400);
       expect(mocks.update).not.toHaveBeenCalled();
-      const result = await POST(request({ amountCents: 2000, updateContext }));
+      const result = await POST(request({ amountCents: 500, updateContext }));
       expect(result.status).toBe(200);
       const payload = mocks.update.mock.calls[0][1];
       expect(payload.line_items[0].price_data.recurring).toBeUndefined();
-      expect(payload.metadata.charged_donation_amount_cents).toBe("2000");
+      expect(payload.metadata.charged_donation_amount_cents).toBe("500");
       expect(Number(payload.metadata.charged_fee_amount_cents) > 0).toBe(coverFee);
-      expect(payload.line_items[0].price_data.unit_amount).toBe(2000 + Number(payload.metadata.charged_fee_amount_cents));
+      expect(payload.line_items[0].price_data.unit_amount).toBe(500 + Number(payload.metadata.charged_fee_amount_cents));
     },
   );
 
