@@ -59,6 +59,12 @@ const quickCurrencies:
   "GBP",
   "AED",
   "SAR",
+  "KWD",
+  "JPY",
+  "KRW",
+  "RUB",
+  "TWD",
+  "HUF",
 ];
 
 type CurrencyNames =
@@ -146,6 +152,11 @@ export function CurrencyPickerSheet({
     useRef<HTMLInputElement>(
       null,
     );
+
+  const listRef =
+    useRef<HTMLDivElement>(
+      null,
+    );
   /*
    * The tap that opens the sheet can reach the freshly mounted backdrop on
    * touch devices and would close it again straight away.
@@ -171,6 +182,45 @@ export function CurrencyPickerSheet({
           );
         },
         60,
+      );
+
+    /*
+     * Keep the donor's own currency on screen: the list runs to 139 entries,
+     * so without this the sheet opens on USD and the currency that is
+     * actually selected sits far below the fold.
+     */
+    const scrollTimer =
+      window.setTimeout(
+        () => {
+          const list =
+            listRef.current;
+
+          if (!list) {
+            return;
+          }
+
+          const active =
+            list.querySelector<HTMLElement>(
+              '[role="option"][aria-selected="true"]',
+            );
+
+          if (!active) {
+            return;
+          }
+
+          const listRect =
+            list.getBoundingClientRect();
+
+          const activeRect =
+            active.getBoundingClientRect();
+
+          list.scrollTop +=
+            activeRect.top -
+            listRect.top -
+            listRect.height / 2 +
+            activeRect.height / 2;
+        },
+        80,
       );
 
     const previousOverflow =
@@ -202,6 +252,10 @@ export function CurrencyPickerSheet({
     return () => {
       window.clearTimeout(
         focusTimer,
+      );
+
+      window.clearTimeout(
+        scrollTimer,
       );
 
       window.removeEventListener(
@@ -586,6 +640,9 @@ export function CurrencyPickerSheet({
         </div>
 
         <div
+          ref={
+            listRef
+          }
           className="
             min-h-0
             flex-1

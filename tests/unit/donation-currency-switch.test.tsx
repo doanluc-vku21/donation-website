@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { currencies } from "@/lib/currency";
 import { sampleCampaign } from "@/lib/sample-data";
 
 const navigation = vi.hoisted(() => ({ pathname: "/help-gaza" }));
@@ -201,5 +202,37 @@ describe("zero-decimal currencies", () => {
     expect(input).toHaveValue(2500);
     expect(screen.getByText("The minimum donation amount is ¥3,040.")).toBeVisible();
     expect(screen.getByRole("button", { name: "Pay ¥2,500 by Card" })).toBeEnabled();
+  });
+});
+
+describe("currency sheet contents", () => {
+  it("offers every supported currency, including the newly added ones", async () => {
+    const user = userEvent.setup();
+
+    mount("KWD", 0.307);
+
+    await user.click(screen.getAllByRole("button", { name: /Change currency/i })[0]);
+
+    const options = screen.getAllByRole("option");
+
+    expect(options).toHaveLength(currencies.length);
+
+    const labels = options.map((option) => option.textContent ?? "");
+
+    for (const code of ["AFN", "BYN", "HUF", "JPY", "KRW", "RUB", "TND", "VND", "KWD"]) {
+      expect(labels.some((label) => label.includes(code))).toBe(true);
+    }
+  });
+
+  it("keeps the newly supported majors one tap away", async () => {
+    const user = userEvent.setup();
+
+    mount("KWD", 0.307);
+
+    await user.click(screen.getAllByRole("button", { name: /Change currency/i })[0]);
+
+    for (const code of ["KWD", "JPY", "KRW", "RUB", "TWD", "HUF"]) {
+      expect(screen.getAllByRole("button", { name: new RegExp(`^${code}$`) }).length).toBeGreaterThan(0);
+    }
   });
 });
