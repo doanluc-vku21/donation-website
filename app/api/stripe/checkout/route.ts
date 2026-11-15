@@ -16,6 +16,7 @@ import {
 } from "@/lib/i18n";
 
 import {
+  getCurrencyMinorUnitFactor,
   isCurrency,
   type Currency,
 } from "@/lib/currency";
@@ -288,7 +289,9 @@ export async function POST(
         amountCents,
       ) ||
       amountCents <
-        100
+        getCurrencyMinorUnitFactor(
+          currency,
+        )
     ) {
       return NextResponse.json(
         {
@@ -330,6 +333,7 @@ export async function POST(
         ? calculateFeeContribution(
             amountCents,
             exchangeRate,
+            siteCurrency,
           )
         : 0;
 
@@ -341,6 +345,7 @@ export async function POST(
       convertCurrencyMinorToUsd(
         amountCents,
         exchangeRate,
+        siteCurrency,
       );
 
     const normalizedFeeUsdCents =
@@ -348,6 +353,7 @@ export async function POST(
         ? convertCurrencyMinorToUsd(
             feeAmountCents,
             exchangeRate,
+            siteCurrency,
           )
         : 0;
 
@@ -421,7 +427,7 @@ export async function POST(
     }
 
     const minimumUsdCents = getDonationPageMinimumUsdCents(campaignPath, frequency);
-    if (isStandardUpsellDonationPage(campaignPath) && amountCents < pageMinimumMinor(minimumUsdCents, exchangeRate)) {
+    if (isStandardUpsellDonationPage(campaignPath) && amountCents < pageMinimumMinor(minimumUsdCents, exchangeRate, siteCurrency)) {
       return NextResponse.json({ error: `Minimum donation is $${minimumUsdCents / 100} or its equivalent in the selected currency.` }, { status: 400 });
     }
 

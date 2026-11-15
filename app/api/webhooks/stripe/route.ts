@@ -1578,18 +1578,21 @@ async function handleInvoicePaymentSucceeded(
     convertCurrencyMinorToUsd(
       chargedDonationAmountCents,
       exchangeRate,
+      chargedCurrency,
     );
 
   const normalizedFeeUsdCents =
     convertCurrencyMinorToUsd(
       chargedFeeAmountCents,
       exchangeRate,
+      chargedCurrency,
     );
 
   const normalizedTotalUsdCents =
     convertCurrencyMinorToUsd(
       chargedTotalAmountCents,
       exchangeRate,
+      chargedCurrency,
     );
 
   // =========================================================

@@ -94,7 +94,7 @@ type ChargedDonationRow = {
   charged_currency: string | null;
 };
 
-export async function getCampaignBySlug(
+async function loadCampaignBySlug(
   slug: string,
 ): Promise<
   Campaign | null
@@ -396,4 +396,101 @@ export async function getCampaignBySlug(
 
     recentDonations,
   };
+}
+
+const CAMPAIGN_CACHE_TTL_MS =
+  15_000;
+
+type CachedCampaign = {
+  value: Campaign | null;
+
+  expiresAt: number;
+};
+
+const campaignCache =
+  new Map<
+    string,
+    CachedCampaign
+  >();
+
+/**
+ * One campaign read costs five Supabase round trips, and every campaign route
+ * calls it on each request. A short-lived per-instance cache absorbs bursts,
+ * and the last known good result keeps the campaign online when Supabase fails
+ * transiently instead of turning the page into a 500.
+ *
+ * The window stays far below the client-side refresh cadence, so donation
+ * totals still move for visitors within seconds.
+ */
+export async function getCampaignBySlug(
+  slug: string,
+): Promise<
+  Campaign | null
+> {
+  const cached =
+    campaignCache.get(
+      slug,
+    );
+
+  if (
+    cached &&
+    cached.expiresAt >
+      Date.now()
+  ) {
+    return cached.value;
+  }
+
+  let lastError: unknown;
+
+  for (
+    let attempt =
+      0;
+    attempt <
+    2;
+    attempt +=
+      1
+  ) {
+    try {
+      const value =
+        await loadCampaignBySlug(
+          slug,
+        );
+
+      campaignCache.set(
+        slug,
+        {
+          value,
+
+          expiresAt:
+            Date.now() +
+            CAMPAIGN_CACHE_TTL_MS,
+        },
+      );
+
+      return value;
+    } catch (
+      error
+    ) {
+      lastError =
+        error;
+    }
+  }
+
+  if (
+    cached
+  ) {
+    console.error(
+      "Serving the last known campaign after a failed reload.",
+      lastError,
+    );
+
+    return cached.value;
+  }
+
+  throw lastError instanceof
+    Error
+    ? lastError
+    : new Error(
+        "Unable to load campaign",
+      );
 }

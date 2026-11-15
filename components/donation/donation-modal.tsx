@@ -321,6 +321,7 @@ export function DonationModal({
     convertUsdToCurrencyMinor(
       defaultDonationOptionUsd,
       exchangeRate,
+      currency,
     );
 
   const monthlyPrefetchKey = getExpressCheckoutKey({

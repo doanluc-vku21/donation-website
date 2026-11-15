@@ -18,6 +18,7 @@ import {
 
 import {
   formatMoney,
+  toMajorUnits,
 } from "@/lib/money";
 
 import {
@@ -267,8 +268,10 @@ export default async function ThankYouPage({
               session.id
             }
             value={
-              amountTotal /
-              100
+              toMajorUnits(
+                amountTotal,
+                currency,
+              )
             }
             currency={
               currency

@@ -93,6 +93,8 @@ import {
 
   formatMoney,
 
+  toMajorUnits,
+
 } from "@/lib/money";
 
 
@@ -124,9 +126,11 @@ import {
 
 
 
-import type {
+import {
 
-  Currency,
+  getCurrencyMinorUnitFactor,
+
+  type Currency,
 
 } from "@/lib/currency";
 
@@ -967,6 +971,8 @@ export function DonationFlow({
 
       exchangeRate,
 
+      currency,
+
     );
 
 
@@ -1007,7 +1013,11 @@ export function DonationFlow({
 
     amount >=
 
-      100 &&
+      getCurrencyMinorUnitFactor(
+
+        currency,
+
+      ) &&
 
     (
 
@@ -1060,6 +1070,8 @@ export function DonationFlow({
 
           exchangeRate,
 
+          currency,
+
         )
 
       : 0;
@@ -1104,6 +1116,8 @@ export function DonationFlow({
 
               exchangeRate,
 
+              currency,
+
             )
 
           : 0)
@@ -1129,6 +1143,7 @@ export function DonationFlow({
             ? calculateFeeContribution(
                 amount,
                 exchangeRate,
+                currency,
               )
             : 0)
         : 0;
@@ -1139,8 +1154,14 @@ export function DonationFlow({
     Math.max(
 
       isAkramShakeUpsellPage
-        ? convertUsdMinimumToWholeCurrencyMinor(getDonationPageMinimumUsdCents(pathname, "monthly"), exchangeRate)
-        : 100,
+        ? convertUsdMinimumToWholeCurrencyMinor(
+            getDonationPageMinimumUsdCents(pathname, "monthly"),
+            exchangeRate,
+            currency,
+          )
+        : getCurrencyMinorUnitFactor(
+            currency,
+          ),
 
       Math.round(
 
@@ -1324,7 +1345,13 @@ export function DonationFlow({
 
           Math.round(
 
-            minimumCustomAmount / 100,
+            minimumCustomAmount /
+
+              getCurrencyMinorUnitFactor(
+
+                currency,
+
+              ),
 
           ),
 
@@ -1387,6 +1414,8 @@ export function DonationFlow({
               amount,
 
               exchangeRate,
+
+              currency,
 
             )
 
@@ -1480,6 +1509,8 @@ export function DonationFlow({
 
               nextRate,
 
+              nextCurrency,
+
             )
 
           : 0;
@@ -1526,7 +1557,13 @@ export function DonationFlow({
 
             Math.round(
 
-              nextAmount / 100,
+              nextAmount /
+
+                getCurrencyMinorUnitFactor(
+
+                  nextCurrency,
+
+                ),
 
             ),
 
@@ -1544,7 +1581,13 @@ export function DonationFlow({
 
         setAmount(
 
-          nextMajor * 100,
+          nextMajor *
+
+            getCurrencyMinorUnitFactor(
+
+              nextCurrency,
+
+            ),
 
         );
 
@@ -2921,6 +2964,8 @@ function resetCheckoutSession() {
 
         exchangeRate,
 
+        currency,
+
       ),
 
     );
@@ -3049,7 +3094,11 @@ function resetCheckoutSession() {
 
           localAmount *
 
-            100,
+            getCurrencyMinorUnitFactor(
+
+              currency,
+
+            ),
 
         ),
 
@@ -3734,9 +3783,13 @@ function resetCheckoutSession() {
 
               value:
 
-                data.totalAmountMinor /
+                toMajorUnits(
 
-                100,
+                  data.totalAmountMinor,
+
+                  currency,
+
+                ),
 
 
 
@@ -3837,9 +3890,13 @@ function resetCheckoutSession() {
 
             value:
 
-              data.totalAmountMinor /
+              toMajorUnits(
 
-                100,
+                data.totalAmountMinor,
+
+                currency,
+
+              ),
 
 
 
@@ -4195,9 +4252,13 @@ function resetCheckoutSession() {
 
                                 value:
 
-                                  total /
+                                  toMajorUnits(
 
-                                  100,
+                                    total,
+
+                                    currency,
+
+                                  ),
 
 
 
@@ -5864,6 +5925,8 @@ function resetCheckoutSession() {
 
                           exchangeRate,
 
+                          currency,
+
                         ),
 
                       );
@@ -6235,6 +6298,8 @@ function resetCheckoutSession() {
 
                             exchangeRate,
 
+                            currency,
+
                           ),
 
                           currency,
@@ -6415,7 +6480,11 @@ function resetCheckoutSession() {
 
               minimumCustomAmount /
 
-              100
+              getCurrencyMinorUnitFactor(
+
+                currency,
+
+              )
 
             }
 
@@ -6443,7 +6512,17 @@ function resetCheckoutSession() {
 
               selectedPreset !== null
 
-                ? String(amount / 100)
+                ? String(
+
+                    toMajorUnits(
+
+                      amount,
+
+                      currency,
+
+                    ),
+
+                  )
 
                 : customAmount
 

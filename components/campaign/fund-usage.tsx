@@ -261,6 +261,7 @@ function FundUsageRow({
                 100,
             ),
             exchangeRate,
+            currency,
           ),
           currency,
           locale,
@@ -399,6 +400,7 @@ function convertEmbeddedUsdAmounts(
             100,
         ),
         exchangeRate,
+        currency,
       );
 
     return formatMoney(

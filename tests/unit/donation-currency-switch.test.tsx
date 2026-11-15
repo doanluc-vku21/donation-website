@@ -31,7 +31,7 @@ afterEach(() => {
   document.cookie = "site_currency=; Path=/; Max-Age=0";
 });
 
-function mount() {
+function mount(currency = "BDT", exchangeRate = 125) {
   const fetchMock = vi.fn((url: string) => {
     if (url.startsWith("/api/currency/rate?currency=USD")) {
       return Promise.resolve(new Response(JSON.stringify({ currency: "USD", rate: 1 }), { status: 200 }));
@@ -43,7 +43,7 @@ function mount() {
 
   vi.stubGlobal("fetch", fetchMock);
 
-  render(<DonationFlow campaign={sampleCampaign} locale="en" currency="BDT" exchangeRate={125} />);
+  render(<DonationFlow campaign={sampleCampaign} locale="en" currency={currency as never} exchangeRate={exchangeRate} />);
 
   return fetchMock;
 }
@@ -179,5 +179,27 @@ describe("currency sheet stacking", () => {
 
     expect(overlay?.className).toContain("z-[400]");
     expect(overlay?.className).toContain("inset-0");
+  });
+});
+
+describe("zero-decimal currencies", () => {
+  it("shows yen presets and totals as whole units", () => {
+    mount("JPY", 152);
+
+    // $25 -> 3,800 yen, never 38.00 or 380,000.
+    expect(screen.getByRole("radio", { name: "¥3,800" })).toBeInTheDocument();
+    expect(screen.queryByText("¥38.00")).not.toBeInTheDocument();
+  });
+
+  it("keeps a typed yen amount whole and uses yen for the minimum warning", () => {
+    mount("JPY", 152);
+
+    const input = screen.getByPlaceholderText("Enter amount");
+
+    fireEvent.change(input, { target: { value: "2500" } });
+
+    expect(input).toHaveValue(2500);
+    expect(screen.getByText("The minimum donation amount is ¥3,040.")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Pay ¥2,500 by Card" })).toBeEnabled();
   });
 });

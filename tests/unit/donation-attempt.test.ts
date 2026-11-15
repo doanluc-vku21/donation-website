@@ -50,6 +50,14 @@ describe("shared donation-attempt persistence", () => {
     expect(mocks.is).toHaveBeenCalledWith("reminder_sent_at", null);
   });
 
+  it("rejects a payload without a currency instead of throwing", async () => {
+    const withoutCurrency: Record<string, unknown> = { ...body };
+    delete withoutCurrency.currency;
+    const response = await saveDonationAttempt(withoutCurrency as typeof body);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: "Invalid currency." });
+  });
+
   it("rejects invalid email before any database operation", async () => {
     expect((await saveDonationAttempt({ ...body, email: "invalid" })).status).toBe(400);
     expect(mocks.from).not.toHaveBeenCalled();

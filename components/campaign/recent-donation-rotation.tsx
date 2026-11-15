@@ -95,7 +95,7 @@ export function RotatingDonationHint({
           <span className="shrink-0 whitespace-nowrap">
             {t.donated}{" "}
             <span dir="ltr" className="inline-block">
-              {formatMoney(convertUsdToCurrencyMinor(donation.amountUsd, exchangeRate), currency, locale, { hideZeroDecimals: true })}
+              {formatMoney(convertUsdToCurrencyMinor(donation.amountUsd, exchangeRate, currency), currency, locale, { hideZeroDecimals: true })}
             </span>
           </span>
         )}

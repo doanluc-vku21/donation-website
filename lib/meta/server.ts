@@ -3,6 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { isIP } from "node:net";
 import type Stripe from "stripe";
+import { toMajorUnitsForCode } from "@/lib/money";
 import { metaPixelId, metaPurchaseEventId } from "./config";
 
 function cookie(request: Request, name: string) {
@@ -130,7 +131,10 @@ export function buildMetaPurchase(session: Stripe.Checkout.Session, paidAt: numb
     event_source_url: sourceUrl,
     user_data: buildMetaUserData(session),
     custom_data: {
-      value: session.amount_total! / 100,
+      value: toMajorUnitsForCode(
+        session.amount_total!,
+        session.currency,
+      ),
       currency: session.currency.toUpperCase(),
       content_name: "Donation",
       content_category: metadata.frequency === "monthly" ? "Monthly donation" : "One-time donation",

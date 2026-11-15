@@ -92,12 +92,14 @@ export function MobileCampaignHero({
     convertUsdToCurrencyMinor(
       campaign.raisedAmountUsd,
       exchangeRate,
+      currency,
     );
 
   const goalAmount =
     convertUsdToCurrencyMinor(
       campaign.goalAmountUsd,
       exchangeRate,
+      currency,
     );
 
   const heroUrl =

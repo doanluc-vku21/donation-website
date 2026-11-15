@@ -2,7 +2,7 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { isCurrency, type Currency } from "@/lib/currency";
+import { getMinorUnitFactorForCode, isCurrency, type Currency } from "@/lib/currency";
 
 type DonationFrequency =
   | "one_time"
@@ -156,7 +156,9 @@ export async function saveDonationAttempt(
         amountCents,
       ) ||
       amountCents <
-        100
+        getMinorUnitFactorForCode(
+          currency,
+        )
     ) {
       return NextResponse.json(
         {

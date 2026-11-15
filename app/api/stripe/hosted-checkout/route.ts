@@ -17,6 +17,7 @@ import {
 } from "@/lib/i18n";
 
 import {
+  getCurrencyMinorUnitFactor,
   isCurrency,
   type Currency,
 } from "@/lib/currency";
@@ -352,7 +353,9 @@ export async function POST(
         amountCents,
       ) ||
       amountCents <
-        100
+        getCurrencyMinorUnitFactor(
+          currency,
+        )
     ) {
       return NextResponse.json(
         {
@@ -486,6 +489,7 @@ export async function POST(
         ? calculateFeeContribution(
             amountCents,
             exchangeRate,
+            siteCurrency,
           )
         : 0;
 
@@ -497,6 +501,7 @@ export async function POST(
       convertCurrencyMinorToUsd(
         amountCents,
         exchangeRate,
+        siteCurrency,
       );
 
     const normalizedFeeUsdCents =
@@ -504,6 +509,7 @@ export async function POST(
         ? convertCurrencyMinorToUsd(
             feeAmountCents,
             exchangeRate,
+            siteCurrency,
           )
         : 0;
 

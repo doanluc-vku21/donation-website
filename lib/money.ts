@@ -1,5 +1,8 @@
-import type {
-  Currency,
+import {
+  getCurrencyMinorUnitExponent,
+  getCurrencyMinorUnitFactor,
+  getMinorUnitFactorForCode,
+  type Currency,
 } from "@/lib/currency";
 
 import type {
@@ -23,24 +26,65 @@ const intlLocaleMap:
 };
 
 // =========================================================
-// FORMAT MONEY
+// MAJOR ↔ MINOR UNITS
 // =========================================================
 
 /**
- * amountMinor:
+ * Minor units in this project always match what Stripe expects
+ * for the currency:
  *
- * USD:
- * 100 = $1.00
+ * USD: 100 = $1.00
+ * JPY: 100 = ¥100
+ * KWD: 1000 = KWD 1.000
  *
- * EUR:
- * 100 = €1.00
- *
- * GBP:
- * 100 = £1.00
- *
- * 6 currency hiện tại của project đều là
- * two-decimal currencies.
+ * toMajorUnits() turns those integers into the number a donor
+ * reads, so formatting and Meta values stay correct for
+ * zero-decimal and three-decimal currencies.
  */
+export function toMajorUnits(
+  amountMinor: number,
+  currency: Currency,
+): number {
+  return (
+    amountMinor /
+    getCurrencyMinorUnitFactor(
+      currency,
+    )
+  );
+}
+
+/**
+ * Same as toMajorUnits() for a raw Stripe / ISO code that has not
+ * been narrowed to Currency yet. Unknown codes fall back to 2.
+ */
+export function toMajorUnitsForCode(
+  amountMinor: number,
+  currencyCode: string,
+): number {
+  return (
+    amountMinor /
+    getMinorUnitFactorForCode(
+      currencyCode,
+    )
+  );
+}
+
+export function toMinorUnits(
+  amountMajor: number,
+  currency: Currency,
+): number {
+  return Math.round(
+    amountMajor *
+      getCurrencyMinorUnitFactor(
+        currency,
+      ),
+  );
+}
+
+// =========================================================
+// FORMAT MONEY
+// =========================================================
+
 export type MoneyFormatOptions = {
   hideZeroDecimals?: boolean;
 
@@ -66,7 +110,25 @@ export function formatMoney(
   options?: MoneyFormatOptions,
 ) {
   const amount =
-    amountMinor / 100;
+    toMajorUnits(
+      amountMinor,
+      currency,
+    );
+
+  /*
+   * JPY has no subunit, KWD has thousandths.
+   * Match the currency instead of always showing 2 digits.
+   */
+  const fractionDigits =
+    options
+      ?.hideZeroDecimals &&
+    Number.isInteger(
+      amount,
+    )
+      ? 0
+      : getCurrencyMinorUnitExponent(
+          currency,
+        );
 
   const formatter =
     new Intl.NumberFormat(
@@ -88,22 +150,10 @@ export function formatMoney(
           : {}),
 
         minimumFractionDigits:
-          options
-            ?.hideZeroDecimals &&
-          Number.isInteger(
-            amount,
-          )
-            ? 0
-            : 2,
+          fractionDigits,
 
         maximumFractionDigits:
-          options
-            ?.hideZeroDecimals &&
-          Number.isInteger(
-            amount,
-          )
-            ? 0
-            : 2,
+          fractionDigits,
       },
     );
 
@@ -149,11 +199,16 @@ export function formatUsd(
  * $25 → €21.50
  *
  * return = 2150
+ *
+ * Zero-decimal and three-decimal currencies are scaled by
+ * 10 ** (exponent - 2) so JPY is not charged 100× and KWD is
+ * not charged 10× less than intended.
  */
 export function convertUsdToCurrencyMinor(
   usdCents: number,
   usdToCurrencyRate:
     number,
+  currency: Currency = "USD",
 ) {
   if (
     !Number.isFinite(
@@ -168,9 +223,15 @@ export function convertUsdToCurrencyMinor(
     return 0;
   }
 
+  const exponentShift =
+    getCurrencyMinorUnitExponent(
+      currency,
+    ) - 2;
+
   return Math.round(
     usdCents *
-      usdToCurrencyRate,
+      usdToCurrencyRate *
+      10 ** exponentShift,
   );
 }
 
@@ -182,11 +243,18 @@ export function convertUsdToCurrencyMinor(
 export function convertUsdToWholeCurrencyMinor(
   usdCents: number,
   usdToCurrencyRate: number,
+  currency: Currency = "USD",
 ) {
+  const factor =
+    getCurrencyMinorUnitFactor(
+      currency,
+    );
+
   const minor =
     convertUsdToCurrencyMinor(
       usdCents,
       usdToCurrencyRate,
+      currency,
     );
 
   if (minor <= 0) {
@@ -194,8 +262,11 @@ export function convertUsdToWholeCurrencyMinor(
   }
 
   return Math.max(
-    100,
-    Math.round(minor / 100) * 100,
+    factor,
+    Math.round(
+      minor /
+        factor,
+    ) * factor,
   );
 }
 
@@ -206,10 +277,12 @@ export function convertUsdToWholeCurrencyMinor(
 export function convertUsdMinimumToWholeCurrencyMinor(
   usdCents: number,
   usdToCurrencyRate: number,
+  currency: Currency = "USD",
 ) {
   return convertUsdToWholeCurrencyMinor(
     usdCents,
     usdToCurrencyRate,
+    currency,
   );
 }
 
@@ -235,6 +308,7 @@ export function convertCurrencyMinorToUsd(
   amountMinor: number,
   usdToCurrencyRate:
     number,
+  currency: Currency = "USD",
 ) {
   if (
     !Number.isFinite(
@@ -249,8 +323,15 @@ export function convertCurrencyMinorToUsd(
     return 0;
   }
 
+  const exponentShift =
+    2 -
+    getCurrencyMinorUnitExponent(
+      currency,
+    );
+
   return Math.round(
-    amountMinor /
+    amountMinor *
+      10 ** exponentShift /
       usdToCurrencyRate,
   );
 }
@@ -269,6 +350,7 @@ export function convertCurrencyMinorToUsd(
  * local currency.
  *
  * LƯU Ý:
+ *
  * Đây vẫn chỉ là "fee contribution estimate".
  * Stripe fee thật có thể khác tùy quốc gia /
  * payment method / international card.
@@ -276,11 +358,22 @@ export function convertCurrencyMinorToUsd(
 export function calculateFeeContribution(
   amountMinor: number,
   usdToCurrencyRate = 1,
+  currency: Currency = "USD",
 ) {
+  const factor =
+    getCurrencyMinorUnitFactor(
+      currency,
+    );
+
+  /*
+   * $0.30 expressed in the local currency's minor units.
+   */
   const fixedFee =
     Math.round(
       30 *
-        usdToCurrencyRate,
+        usdToCurrencyRate *
+        factor /
+        100,
     );
 
   return Math.round(

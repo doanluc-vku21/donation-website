@@ -79,12 +79,14 @@ export function CampaignDonateCard({
     convertUsdToCurrencyMinor(
       campaign.raisedAmountUsd,
       exchangeRate,
+      currency,
     );
 
   const goalAmount =
     convertUsdToCurrencyMinor(
       campaign.goalAmountUsd,
       exchangeRate,
+      currency,
     );
 
   return (

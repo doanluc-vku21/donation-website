@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe/server";
-import { isCurrency } from "@/lib/currency";
+import { getCurrencyMinorUnitFactor, isCurrency } from "@/lib/currency";
 import { getDonationPageMinimumUsdCents, isStandardUpsellDonationPage } from "@/lib/donation-page-policy";
 import { getUsdToCurrencyRate } from "@/lib/exchange-rate";
 import { getDonationAmounts } from "@/lib/stripe/donation-amount";
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const { sessionId, clientSecret, amountCents, updateContext } = await request.json();
     if (typeof sessionId !== "string" || !/^cs_[a-zA-Z0-9_]+$/.test(sessionId) ||
         typeof clientSecret !== "string" || clientSecret.length > 512 ||
-        !Number.isSafeInteger(amountCents) || amountCents < 100 || amountCents > 99_999_999) {
+        !Number.isSafeInteger(amountCents) || amountCents < 1 || amountCents > 99_999_999) {
       return NextResponse.json({ error: "Invalid payment amount update." }, { status: 400 });
     }
 
@@ -49,11 +49,13 @@ export async function POST(request: Request) {
     // Signed immutable fields were verified at creation, including the secret
     // hash and FX quote. The client cannot replace currency, product or fees.
     const { currency, coverFee, exchangeRate, productId, frequency } = context;
-    const amounts = getDonationAmounts(amountCents, coverFee, exchangeRate);
+    const amounts = getDonationAmounts(amountCents, coverFee, exchangeRate, currency);
     const minimumUsdCents = isStandardUpsellDonationPage(context.campaignPath)
       ? getDonationPageMinimumUsdCents(context.campaignPath, frequency)
       : 2000;
-    if (amountCents < convertUsdMinimumToWholeCurrencyMinor(minimumUsdCents, exchangeRate) || amounts.totalAmountCents > 99_999_999) {
+    if (amountCents < getCurrencyMinorUnitFactor(currency) ||
+        amountCents < convertUsdMinimumToWholeCurrencyMinor(minimumUsdCents, exchangeRate, currency) ||
+        amounts.totalAmountCents > 99_999_999) {
       return NextResponse.json({ error: "Invalid custom donation amount." }, { status: 400 });
     }
     const updated = await stripe.checkout.sessions.update(sessionId, {
