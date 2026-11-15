@@ -164,6 +164,13 @@ export function CurrencyPickerSheet({
   const openedAtRef =
     useRef(0);
 
+  /*
+   * The centring timer fires 80ms after opening; if the donor already started
+   * typing, the search owns the scroll position instead.
+   */
+  const queryRef =
+    useRef("");
+
   useEffect(() => {
     if (!open) {
       return;
@@ -195,7 +202,7 @@ export function CurrencyPickerSheet({
           const list =
             listRef.current;
 
-          if (!list) {
+          if (!list || queryRef.current.trim() !== "") {
             return;
           }
 
@@ -284,10 +291,15 @@ export function CurrencyPickerSheet({
     const list =
       listRef.current;
 
-    if (list) {
-      list.scrollTop =
-        0;
+    queryRef.current =
+      query;
+
+    if (!list || query.trim() === "") {
+      return;
     }
+
+    list.scrollTop =
+      0;
   }, [
     open,
     query,
@@ -427,14 +439,14 @@ export function CurrencyPickerSheet({
         }
         className="
           flex
-          max-h-[82dvh]
+          h-[82dvh]
           w-full
           flex-col
           overflow-hidden
           rounded-t-[26px]
           bg-[#fffdfb]
           shadow-[0_-18px_60px_rgba(0,0,0,.26)]
-          sm:max-h-[74vh]
+          sm:h-[74vh]
           sm:max-w-[430px]
           sm:rounded-[24px]
           sm:shadow-[0_24px_80px_rgba(0,0,0,.28)]

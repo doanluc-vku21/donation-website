@@ -236,3 +236,38 @@ describe("currency sheet contents", () => {
     }
   });
 });
+
+describe("currency search", () => {
+  async function openSheet() {
+    const user = userEvent.setup();
+
+    mount("KWD", 0.307);
+    await user.click(screen.getAllByRole("button", { name: /Change currency/i })[0]);
+
+    const dialog = screen.getByRole("dialog", { name: /currency/i });
+    const list = dialog.querySelector<HTMLElement>('[role="listbox"]')?.parentElement;
+
+    expect(list).toBeTruthy();
+
+    return { user, dialog, list: list as HTMLElement, input: screen.getByPlaceholderText("Search currency") };
+  }
+
+  it("keeps the panel height stable while results shrink", async () => {
+    const { dialog } = await openSheet();
+
+    expect(dialog.className).toContain("h-[82dvh]");
+    expect(dialog.className).not.toContain("max-h-[82dvh]");
+  });
+
+  it("jumps back to the first match instead of keeping the old scroll position", async () => {
+    const { user, list, input } = await openSheet();
+
+    list.scrollTop = 4800;
+    expect(list.scrollTop).toBe(4800);
+
+    await user.type(input, "din");
+
+    expect(list.scrollTop).toBe(0);
+    expect(screen.getAllByRole("option")[0]).toHaveAccessibleName(/Dinar/);
+  });
+});
