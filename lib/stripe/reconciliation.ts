@@ -29,6 +29,12 @@ export type ReconciliationResult = {
   paid: number;
   alreadyRecorded: number;
   backfilled: number;
+  /*
+   * Rows written while the schema refused their charged currency carry no
+   * original currency. Once the table accepts it, this counts the rows the
+   * cron repaired in place.
+   */
+  labelsRepaired: number;
   unattributed: UnattributedPayment[];
   skipped: string[];
 };
@@ -134,6 +140,58 @@ async function buildSession(session: Stripe.Checkout.Session): Promise<PaidSessi
     paymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : null,
     customerId: typeof session.customer === "string" ? session.customer : null,
   };
+}
+
+/*
+ * A donation that was stored without its charged currency renders as a plain
+ * USD amount. Once the donations table accepts that currency the row can be
+ * completed from Stripe, so the campaign page shows the gift in the currency
+ * the donor actually paid.
+ */
+async function repairChargedColumns(
+  existing: { id: string; charged_currency: string | null },
+  session: PaidSession,
+): Promise<boolean> {
+  if (existing.charged_currency) {
+    return false;
+  }
+
+  if (!session.chargedCurrency || session.chargedDonationMinor <= 0) {
+    return false;
+  }
+
+  const { error } = await supabaseAdmin
+    .from("donations")
+    .update({
+      charged_amount_cents: session.chargedDonationMinor,
+      charged_fee_amount_cents: session.chargedFeeMinor,
+      charged_total_amount_cents: session.chargedTotalMinor,
+      charged_currency: session.chargedCurrency,
+      usd_exchange_rate: session.exchangeRate,
+    })
+    .eq("id", existing.id);
+
+  if (!error) {
+    console.info(
+      "Restored the charged currency on an existing donation:",
+      existing.id,
+      session.chargedCurrency,
+    );
+    return true;
+  }
+
+  if (isChargedColumnRejection(error)) {
+    console.warn(
+      "Existing donation still cannot store its charged currency:",
+      existing.id,
+      session.chargedCurrency,
+      error.code,
+    );
+    return false;
+  }
+
+  console.error("Reconciliation label repair error:", error);
+  return false;
 }
 
 /*
@@ -252,6 +310,7 @@ export async function reconcilePaidSessions(options: {
     paid: 0,
     alreadyRecorded: 0,
     backfilled: 0,
+    labelsRepaired: 0,
     unattributed: [],
     skipped: [],
   };
@@ -276,7 +335,7 @@ export async function reconcilePaidSessions(options: {
 
       const { data: existing, error } = await supabaseAdmin
         .from("donations")
-        .select("id")
+        .select("id, charged_currency")
         .eq("stripe_checkout_session_id", session.id)
         .maybeSingle();
 
@@ -286,12 +345,20 @@ export async function reconcilePaidSessions(options: {
         continue;
       }
 
+      const candidate = await buildSession(session);
+
       if (existing) {
         result.alreadyRecorded += 1;
+
+        const stored = existing as { id: string; charged_currency: string | null };
+
+        if (candidate && (await repairChargedColumns(stored, candidate))) {
+          result.labelsRepaired += 1;
+        }
+
         continue;
       }
 
-      const candidate = await buildSession(session);
       if (!candidate) {
         result.skipped.push(session.id);
         continue;

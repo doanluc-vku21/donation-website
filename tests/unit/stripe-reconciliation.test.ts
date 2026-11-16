@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   from: vi.fn(),
   select: vi.fn(),
   insert: vi.fn(),
+  update: vi.fn(),
   eq: vi.fn(),
   maybeSingle: vi.fn(),
   getOrCreateDonor: vi.fn(),
@@ -60,6 +61,9 @@ describe("reconcilePaidSessions", () => {
     mocks.from.mockReturnValue(mocks);
     mocks.select.mockReturnValue(mocks);
     mocks.insert.mockResolvedValue({ error: null });
+    mocks.update.mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    });
     mocks.eq.mockReturnValue(mocks);
     mocks.maybeSingle.mockResolvedValue({ data: null, error: null });
     mocks.getOrCreateDonor.mockResolvedValue("donor-1");
@@ -128,6 +132,41 @@ describe("reconcilePaidSessions", () => {
     expect(result.alreadyRecorded).toBe(1);
     expect(result.backfilled).toBe(0);
     expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
+  it("completes a row that was stored without its charged currency", async () => {
+    mocks.list.mockResolvedValue({ data: [paidSession()], has_more: false });
+    mocks.maybeSingle.mockResolvedValue({
+      data: { id: "donation-1", charged_currency: null },
+      error: null,
+    });
+
+    const result = await reconcilePaidSessions({ sinceSeconds: 1_762_000_000, apply: true });
+
+    expect(result.alreadyRecorded).toBe(1);
+    expect(result.labelsRepaired).toBe(1);
+    expect(result.backfilled).toBe(0);
+
+    const patch = mocks.update.mock.calls[0][0] as Record<string, unknown>;
+    expect(patch).toMatchObject({
+      charged_amount_cents: 12900,
+      charged_currency: "SGD",
+      charged_total_amount_cents: 12900,
+      usd_exchange_rate: 1.27,
+    });
+  });
+
+  it("leaves a row that already carries its charged currency alone", async () => {
+    mocks.list.mockResolvedValue({ data: [paidSession()], has_more: false });
+    mocks.maybeSingle.mockResolvedValue({
+      data: { id: "donation-1", charged_currency: "SGD" },
+      error: null,
+    });
+
+    const result = await reconcilePaidSessions({ sinceSeconds: 1_762_000_000, apply: true });
+
+    expect(result.labelsRepaired).toBe(0);
+    expect(mocks.update).not.toHaveBeenCalled();
   });
 
   it("reports a paid session that carries no campaign metadata instead of inventing one", async () => {

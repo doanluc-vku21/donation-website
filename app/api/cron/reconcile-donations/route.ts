@@ -49,6 +49,7 @@ export async function GET(request: Request) {
       paid: result.paid,
       alreadyRecorded: result.alreadyRecorded,
       backfilled: result.backfilled,
+      labelsRepaired: result.labelsRepaired,
       unattributed: result.unattributed.length,
       skipped: result.skipped.length,
     });
