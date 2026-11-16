@@ -320,7 +320,7 @@ export async function POST(
         siteCurrency,
       );
 
-    const { feeAmountCents, totalAmountCents, normalizedDonationUsdCents,
+    const { donationAmountCents, feeAmountCents, totalAmountCents, normalizedDonationUsdCents,
       normalizedFeeUsdCents, normalizedTotalUsdCents } = getDonationAmounts(amountCents, coverFee, exchangeRate, siteCurrency);
 
     if (
@@ -430,7 +430,7 @@ export async function POST(
 
       charged_donation_amount_cents:
         String(
-          amountCents,
+          donationAmountCents,
         ),
 
       charged_fee_amount_cents:

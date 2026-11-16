@@ -21,10 +21,7 @@ import {
   type Currency,
 } from "@/lib/currency";
 
-import {
-  calculateFeeContribution,
-  convertCurrencyMinorToUsd,
-} from "@/lib/money";
+import { getDonationAmounts } from "@/lib/stripe/donation-amount";
 
 import {
   getUsdToCurrencyRate,
@@ -328,38 +325,20 @@ export async function POST(
         siteCurrency,
       );
 
-    const feeAmountCents =
-      coverFee
-        ? calculateFeeContribution(
-            amountCents,
-            exchangeRate,
-            siteCurrency,
-          )
-        : 0;
-
-    const totalAmountCents =
-      amountCents +
-      feeAmountCents;
-
-    const normalizedDonationUsdCents =
-      convertCurrencyMinorToUsd(
-        amountCents,
-        exchangeRate,
-        siteCurrency,
-      );
-
-    const normalizedFeeUsdCents =
-      coverFee
-        ? convertCurrencyMinorToUsd(
-            feeAmountCents,
-            exchangeRate,
-            siteCurrency,
-          )
-        : 0;
-
-    const normalizedTotalUsdCents =
-      normalizedDonationUsdCents +
-      normalizedFeeUsdCents;
+    /*
+     * Snap the donation and its fee to the smallest chargeable unit
+     * before the Session is created: three-decimal currencies must
+     * end in 0 and ISK/UGX must end in 00, otherwise Stripe rejects
+     * the amount after the donor has already entered a card.
+     */
+    const { donationAmountCents, feeAmountCents, totalAmountCents,
+      normalizedDonationUsdCents, normalizedFeeUsdCents,
+      normalizedTotalUsdCents } = getDonationAmounts(
+      amountCents,
+      coverFee,
+      exchangeRate,
+      siteCurrency,
+    );
 
     if (
       normalizedDonationUsdCents <=
@@ -427,7 +406,7 @@ export async function POST(
     }
 
     const minimumUsdCents = getDonationPageMinimumUsdCents(campaignPath, frequency);
-    if (isStandardUpsellDonationPage(campaignPath) && amountCents < pageMinimumMinor(minimumUsdCents, exchangeRate, siteCurrency)) {
+    if (isStandardUpsellDonationPage(campaignPath) && donationAmountCents < pageMinimumMinor(minimumUsdCents, exchangeRate, siteCurrency)) {
       return NextResponse.json({ error: `Minimum donation is $${minimumUsdCents / 100} or its equivalent in the selected currency.` }, { status: 400 });
     }
 
@@ -497,7 +476,7 @@ export async function POST(
 
       charged_donation_amount_cents:
         String(
-          amountCents,
+          donationAmountCents,
         ),
 
       charged_fee_amount_cents:
@@ -667,7 +646,7 @@ export async function POST(
           siteCurrency,
 
         donationAmountMinor:
-          amountCents,
+          donationAmountCents,
 
         feeAmountMinor:
           feeAmountCents,

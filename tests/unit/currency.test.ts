@@ -14,8 +14,11 @@ import {
   convertCurrencyMinorToUsd,
 } from "@/lib/money";
 import {
+  getCurrencyChargeStep,
+  getCurrencyChargeStepForCode,
   getCurrencyMinorUnitExponent,
   getCurrencyMinorUnitFactor,
+  normalizeChargeableMinorUnits,
 } from "@/lib/currency";
 
 describe("expanded currency support", () => {
@@ -80,13 +83,49 @@ describe("minor unit exponents", () => {
     expect(convertUsdToCurrencyMinor(2500, 152, "JPY")).toBe(3800);
     expect(convertCurrencyMinorToUsd(3800, 152, "JPY")).toBe(2500);
     expect(convertUsdMinimumToWholeCurrencyMinor(2000, 152, "JPY")).toBe(3040);
-    expect(convertUsdMinimumToWholeCurrencyMinor(20, 3700, "UGX")).toBe(740);
+    // Stripe takes UGX as a two-decimal value: 740 UGX is sent as 74_000.
+    expect(convertUsdMinimumToWholeCurrencyMinor(20, 3700, "UGX")).toBe(74_000);
+    expect(convertUsdToCurrencyMinor(500, 3700, "UGX")).toBe(1_850_000);
+    expect(convertCurrencyMinorToUsd(1_850_000, 3700, "UGX")).toBe(500);
+  });
+
+  it("keeps ISK on two-decimal values that are always whole krona", () => {
+    expect(getCurrencyMinorUnitFactor("ISK")).toBe(100);
+    expect(convertUsdToCurrencyMinor(2500, 138, "ISK")).toBe(345_000);
+    expect(convertUsdMinimumToWholeCurrencyMinor(500, 138, "ISK")).toBe(69_000);
   });
 
   it("converts USD to three-decimal currencies by 1000 minor units", () => {
     expect(convertUsdToCurrencyMinor(2500, 0.307, "KWD")).toBe(7675);
     expect(convertUsdMinimumToWholeCurrencyMinor(2500, 0.307, "KWD")).toBe(8000);
     expect(convertCurrencyMinorToUsd(8000, 0.307, "KWD")).toBe(2606);
+  });
+});
+
+describe("chargeable minor units", () => {
+  it("snaps three-decimal currencies to a trailing zero", () => {
+    expect(getCurrencyChargeStep("KWD")).toBe(10);
+    expect(normalizeChargeableMinorUnits(15_492, "KWD")).toBe(15_490);
+    expect(normalizeChargeableMinorUnits(15_495, "KWD")).toBe(15_500);
+    expect(normalizeChargeableMinorUnits(15_490, "KWD")).toBe(15_490);
+    expect(getCurrencyChargeStep("TND")).toBe(10);
+    expect(normalizeChargeableMinorUnits(1_234, "TND")).toBe(1_230);
+  });
+
+  it("snaps ISK and UGX to whole units", () => {
+    expect(getCurrencyChargeStep("ISK")).toBe(100);
+    expect(getCurrencyChargeStep("UGX")).toBe(100);
+    expect(normalizeChargeableMinorUnits(345_678, "ISK")).toBe(345_700);
+    expect(normalizeChargeableMinorUnits(1_850_123, "UGX")).toBe(1_850_100);
+    expect(getCurrencyChargeStepForCode(" ugx ")).toBe(100);
+    expect(getCurrencyChargeStepForCode("ZZZ")).toBe(1);
+  });
+
+  it("leaves two-decimal currencies untouched", () => {
+    expect(getCurrencyChargeStep("USD")).toBe(1);
+    expect(normalizeChargeableMinorUnits(2_499, "USD")).toBe(2_499);
+    expect(normalizeChargeableMinorUnits(2_500.4, "USD")).toBe(2_500);
+    expect(normalizeChargeableMinorUnits(Number.NaN, "USD")).toBe(0);
   });
 });
 

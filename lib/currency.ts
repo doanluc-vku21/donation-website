@@ -575,7 +575,8 @@ export const currencyMinorUnitExponents:
   STD: 2,
   TWD: 2,
   ISK: 2,
-  UGX: 0,
+  // Stripe takes UGX as a two-decimal value whose decimals are always 00.
+  UGX: 2,
   BIF: 0,
   CLP: 0,
   DJF: 0,
@@ -643,6 +644,98 @@ export function getMinorUnitFactorForCode(
 
   return 10 ** (
     exponent ?? 2
+  );
+}
+
+// =========================================================
+// CHARGEABLE MINOR UNITS
+// =========================================================
+
+/*
+ * Stripe only accepts amounts whose least-significant minor unit is
+ * representable in the presentment currency:
+ * three-decimal currencies must end in 0, and ISK/UGX are sent as
+ * two-decimal values whose decimals are always 00.
+ */
+const chargeStepCurrencies:
+  Partial<
+    Record<
+      Currency,
+      number
+    >
+  > = {
+  BHD: 10,
+  JOD: 10,
+  KWD: 10,
+  OMR: 10,
+  TND: 10,
+  ISK: 100,
+  UGX: 100,
+};
+
+export function getCurrencyChargeStep(
+  currency: Currency,
+): number {
+  return chargeStepCurrencies[currency] ?? 1;
+}
+
+export function getCurrencyChargeStepForCode(
+  code:
+    | string
+    | undefined
+    | null,
+): number {
+  const normalized =
+    (
+      code ?? ""
+    )
+      .trim()
+      .toUpperCase();
+
+  return (
+    chargeStepCurrencies as
+      Record<string, number | undefined>
+  )[normalized] ?? 1;
+}
+
+/**
+ * Snap an amount to the smallest chargeable unit Stripe accepts so a
+ * three-decimal or ISK/UGX donation is never rejected after the donor
+ * has already entered a card.
+ */
+export function normalizeChargeableMinorUnits(
+  amountMinor: number,
+  currency: Currency,
+): number {
+  const step =
+    getCurrencyChargeStep(
+      currency,
+    );
+
+  if (
+    !Number.isFinite(
+      amountMinor,
+    )
+  ) {
+    return 0;
+  }
+
+  if (
+    step ===
+    1
+  ) {
+    return Math.round(
+      amountMinor,
+    );
+  }
+
+  return Math.max(
+    step,
+    Math.round(
+      amountMinor /
+        step,
+    ) *
+      step,
   );
 }
 

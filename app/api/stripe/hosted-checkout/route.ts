@@ -22,10 +22,7 @@ import {
   type Currency,
 } from "@/lib/currency";
 
-import {
-  calculateFeeContribution,
-  convertCurrencyMinorToUsd,
-} from "@/lib/money";
+import { getDonationAmounts } from "@/lib/stripe/donation-amount";
 
 import {
   getUsdToCurrencyRate,
@@ -484,38 +481,16 @@ export async function POST(
     if (rateResult.status === "rejected") throw rateResult.reason;
     const exchangeRate = rateResult.value;
 
-    const feeAmountCents =
-      coverFee
-        ? calculateFeeContribution(
-            amountCents,
-            exchangeRate,
-            siteCurrency,
-          )
-        : 0;
-
-    const totalAmountCents =
-      amountCents +
-      feeAmountCents;
-
-    const normalizedDonationUsdCents =
-      convertCurrencyMinorToUsd(
-        amountCents,
-        exchangeRate,
-        siteCurrency,
-      );
-
-    const normalizedFeeUsdCents =
-      coverFee
-        ? convertCurrencyMinorToUsd(
-            feeAmountCents,
-            exchangeRate,
-            siteCurrency,
-          )
-        : 0;
-
-    const normalizedTotalUsdCents =
-      normalizedDonationUsdCents +
-      normalizedFeeUsdCents;
+    // Keep the charge on Stripe's smallest chargeable unit (three-decimal
+    // currencies and ISK/UGX reject other amounts).
+    const { donationAmountCents, feeAmountCents, totalAmountCents,
+      normalizedDonationUsdCents, normalizedFeeUsdCents,
+      normalizedTotalUsdCents } = getDonationAmounts(
+      amountCents,
+      coverFee,
+      exchangeRate,
+      siteCurrency,
+    );
 
     if (
       normalizedDonationUsdCents <=
@@ -597,7 +572,7 @@ export async function POST(
 
       charged_donation_amount_cents:
         String(
-          amountCents,
+          donationAmountCents,
         ),
 
       charged_fee_amount_cents:
@@ -764,7 +739,7 @@ export async function POST(
           siteCurrency,
 
         donationAmountMinor:
-          amountCents,
+          donationAmountCents,
 
         feeAmountMinor:
           feeAmountCents,

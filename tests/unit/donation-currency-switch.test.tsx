@@ -205,6 +205,33 @@ describe("zero-decimal currencies", () => {
   });
 });
 
+describe("three-decimal currencies", () => {
+  it("snaps a typed Kuwaiti dinar amount to Stripe's chargeable step", () => {
+    mount("KWD", 0.307);
+
+    const input = screen.getByPlaceholderText("Enter amount");
+
+    // 15.492 KWD is not chargeable; Stripe only accepts amounts ending in 0.
+    fireEvent.change(input, { target: { value: "15.492" } });
+
+    // 15.492 KWD -> 15.490 KWD, which is what Stripe accepts.
+    expect(screen.getByRole("button", { name: /^Pay KWD\s15\.490 by Card$/ })).toBeEnabled();
+    expect(screen.queryByText(/15\.492/)).not.toBeInTheDocument();
+  });
+
+  it("shows whole-dinar presets instead of three-decimal fractions", () => {
+    mount("KWD", 0.307);
+
+    const labels = screen.getAllByRole("radio")
+      .map(option => (option.getAttribute("aria-label") ?? "").replace(/\u00a0/g, " "))
+      .filter(label => label.startsWith("KWD"));
+
+    // $25/$50/$100/$250 -> 8/15/31/77 dinars, never 7.675 or 15.492.
+    expect(labels).toEqual(expect.arrayContaining(["KWD 8", "KWD 15 Recommended"]));
+    expect(labels.every(label => /^KWD \d+( Recommended)?$/.test(label))).toBe(true);
+  });
+});
+
 describe("currency sheet contents", () => {
   it("offers every supported currency, including the newly added ones", async () => {
     const user = userEvent.setup();

@@ -53,8 +53,8 @@ export async function POST(request: Request) {
     const minimumUsdCents = isStandardUpsellDonationPage(context.campaignPath)
       ? getDonationPageMinimumUsdCents(context.campaignPath, frequency)
       : 2000;
-    if (amountCents < getCurrencyMinorUnitFactor(currency) ||
-        amountCents < convertUsdMinimumToWholeCurrencyMinor(minimumUsdCents, exchangeRate, currency) ||
+    if (amounts.donationAmountCents < getCurrencyMinorUnitFactor(currency) ||
+        amounts.donationAmountCents < convertUsdMinimumToWholeCurrencyMinor(minimumUsdCents, exchangeRate, currency) ||
         amounts.totalAmountCents > 99_999_999) {
       return NextResponse.json({ error: "Invalid custom donation amount." }, { status: 400 });
     }
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
         },
       }],
       metadata: {
-        charged_donation_amount_cents: String(amountCents),
+        charged_donation_amount_cents: String(amounts.donationAmountCents),
         charged_fee_amount_cents: String(amounts.feeAmountCents),
         charged_total_amount_cents: String(amounts.totalAmountCents),
         normalized_donation_usd_cents: String(amounts.normalizedDonationUsdCents),

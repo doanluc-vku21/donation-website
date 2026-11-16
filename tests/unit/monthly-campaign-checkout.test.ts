@@ -305,4 +305,26 @@ describe("monthly-only direct Hosted Checkout", () => {
     expect((await hostedCheckout(request(page, { frequency: "one_time", donor }))).status).toBe(200);
     expect(mocks.create.mock.calls[0][0]).toMatchObject({ mode: "payment", metadata: { campaign_path: page.campaignPath, frequency: "one_time" } });
   });
+
+  it.each([
+    { currency: "KWD", amountCents: 15_492, step: 10, snapped: 15_490 },
+    { currency: "UGX", amountCents: 1_850_123, step: 100, snapped: 1_850_100 },
+  ])("sends Stripe a chargeable amount for $currency", async ({ currency, amountCents, step, snapped }) => {
+    mocks.rate.mockImplementation(async (candidate: string) => candidate === "USD" ? 1 : candidate === "KWD" ? 0.307 : 3700);
+    mocks.create.mockResolvedValue({ id: "cs_hosted_chargeable", url: "https://checkout.stripe.com/c/pay/unit_chargeable" });
+    const response = await hostedCheckout(request(akram, { amountCents, currency, coverFee: true, donor }));
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    const options = mocks.create.mock.calls[0][0];
+    const unitAmount = options.line_items[0].price_data.unit_amount as number;
+    const donation = Number(options.metadata.charged_donation_amount_cents);
+    const fee = Number(options.metadata.charged_fee_amount_cents);
+    expect(result.donationAmountMinor).toBe(snapped);
+    expect(donation).toBe(snapped);
+    expect(donation % step).toBe(0);
+    expect(fee % step).toBe(0);
+    expect(unitAmount % step).toBe(0);
+    expect(Number(options.metadata.charged_total_amount_cents)).toBe(donation + fee);
+    expect(options.line_items[0].price_data.currency).toBe(currency.toLowerCase());
+  });
 });

@@ -128,7 +128,11 @@ import {
 
 import {
 
+  getCurrencyChargeStep,
+
   getCurrencyMinorUnitFactor,
+
+  normalizeChargeableMinorUnits,
 
   type Currency,
 
@@ -580,11 +584,13 @@ export function DonationFlow({
 
       () =>
 
-        convertUsdToCurrencyMinor(
+        convertUsdToWholeCurrencyMinor(
 
           defaultDonationOptionUsd,
 
           exchangeRate,
+
+          currency,
 
         ),
 
@@ -1068,11 +1074,17 @@ export function DonationFlow({
 
     coverFee
 
-      ? calculateFeeContribution(
+      ? normalizeChargeableMinorUnits(
 
-          amount,
+          calculateFeeContribution(
 
-          exchangeRate,
+            amount,
+
+            exchangeRate,
+
+            currency,
+
+          ),
 
           currency,
 
@@ -1114,11 +1126,17 @@ export function DonationFlow({
 
         (coverFee
 
-          ? calculateFeeContribution(
+          ? normalizeChargeableMinorUnits(
 
-              amount,
+              calculateFeeContribution(
 
-              exchangeRate,
+                amount,
+
+                exchangeRate,
+
+                currency,
+
+              ),
 
               currency,
 
@@ -1144,9 +1162,12 @@ export function DonationFlow({
       : showButtonAmount
         ? amount +
           (coverFee
-            ? calculateFeeContribution(
-                amount,
-                exchangeRate,
+            ? normalizeChargeableMinorUnits(
+                calculateFeeContribution(
+                  amount,
+                  exchangeRate,
+                  currency,
+                ),
                 currency,
               )
             : 0)
@@ -1155,23 +1176,29 @@ export function DonationFlow({
 
   const suggestedMonthlyAmount =
 
-    Math.max(
+    normalizeChargeableMinorUnits(
 
-      isAkramShakeUpsellPage
-        ? convertUsdMinimumToWholeCurrencyMinor(
-            getDonationPageMinimumUsdCents(pathname, "monthly"),
-            exchangeRate,
-            currency,
-          )
-        : getCurrencyMinorUnitFactor(
-            currency,
-          ),
+      Math.max(
 
-      Math.round(
+        isAkramShakeUpsellPage
+          ? convertUsdMinimumToWholeCurrencyMinor(
+              getDonationPageMinimumUsdCents(pathname, "monthly"),
+              exchangeRate,
+              currency,
+            )
+          : getCurrencyMinorUnitFactor(
+              currency,
+            ),
 
-        amount * 0.4,
+        Math.round(
+
+          amount * 0.4,
+
+        ),
 
       ),
+
+      currency,
 
     );
 
@@ -1512,7 +1539,7 @@ export function DonationFlow({
 
         anchorUsdCents > 0
 
-          ? convertUsdToCurrencyMinor(
+          ? convertUsdToWholeCurrencyMinor(
 
               anchorUsdCents,
 
@@ -3099,15 +3126,21 @@ function resetCheckoutSession() {
 
       setAmount(
 
-        Math.round(
+        normalizeChargeableMinorUnits(
 
-          localAmount *
+          Math.round(
 
-            getCurrencyMinorUnitFactor(
+            localAmount *
 
-              currency,
+              getCurrencyMinorUnitFactor(
 
-            ),
+                currency,
+
+              ),
+
+          ),
+
+          currency,
 
         ),
 
@@ -6548,7 +6581,21 @@ function resetCheckoutSession() {
 
             }
 
-            step="1"
+            step={
+
+              getCurrencyChargeStep(
+
+                currency,
+
+              ) /
+
+              getCurrencyMinorUnitFactor(
+
+                currency,
+
+              )
+
+            }
 
             inputMode="decimal"
 

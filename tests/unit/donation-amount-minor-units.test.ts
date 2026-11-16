@@ -1,6 +1,8 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vitest";
+import { currencies, getCurrencyChargeStep } from "@/lib/currency";
+import { convertUsdMinimumToWholeCurrencyMinor } from "@/lib/money";
 import { getDonationAmounts } from "@/lib/stripe/donation-amount";
 
 describe("getDonationAmounts minor unit scaling", () => {
@@ -26,5 +28,22 @@ describe("getDonationAmounts minor unit scaling", () => {
     expect(kwd.feeAmountCents).toBe(0);
     expect(kwd.totalAmountCents).toBe(2_500);
     expect(kwd.normalizedDonationUsdCents).toBe(814);
+  });
+});
+
+describe("chargeable totals across every supported currency", () => {
+  it.each([1, 0.8, 0.307, 152, 3700, 125])("keeps donations and fees on Stripe's step at rate %s", (rate) => {
+    for (const currency of currencies) {
+      const step = getCurrencyChargeStep(currency);
+      // Start from a realistic amount that already respects the minor unit.
+      const minimum = convertUsdMinimumToWholeCurrencyMinor(500, rate, currency);
+      for (const amount of [minimum, minimum + 1, Math.round(minimum * 2.37)]) {
+        const amounts = getDonationAmounts(amount, true, rate, currency);
+        expect(amounts.donationAmountCents % step).toBe(0);
+        expect(amounts.feeAmountCents % step).toBe(0);
+        expect(amounts.totalAmountCents % step).toBe(0);
+        expect(amounts.totalAmountCents).toBe(amounts.donationAmountCents + amounts.feeAmountCents);
+      }
+    }
   });
 });
