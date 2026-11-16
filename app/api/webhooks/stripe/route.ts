@@ -952,13 +952,13 @@ async function handleCheckoutSessionCompleted(
           .charged_currency,
     );
 
-  const chargedDonationAmountCents =
+  let chargedDonationAmountCents =
     readPositiveInteger(
       metadata
         .charged_donation_amount_cents,
     );
 
-  const chargedFeeAmountCents =
+  let chargedFeeAmountCents =
     readNonNegativeInteger(
       metadata
         .charged_fee_amount_cents,
@@ -979,26 +979,26 @@ async function handleCheckoutSessionCompleted(
             .charged_total_amount_cents,
         );
 
-  const normalizedDonationUsdCents =
+  let normalizedDonationUsdCents =
     readPositiveInteger(
       metadata
         .normalized_donation_usd_cents,
     );
 
-  const normalizedFeeUsdCents =
+  let normalizedFeeUsdCents =
     readNonNegativeInteger(
       metadata
         .normalized_fee_usd_cents,
     );
 
-  const normalizedTotalUsdCents =
+  let normalizedTotalUsdCents =
     readPositiveInteger(
       metadata
         .normalized_total_usd_cents,
     );
 
-  const exchangeRate =
-    readPositiveNumber(
+  let exchangeRate =
+    readRateOrZero(
       metadata
         .usd_exchange_rate,
     );
@@ -1021,11 +1021,108 @@ async function handleCheckoutSessionCompleted(
     );
   }
 
+  /*
+   * A paid session must never be dropped because its metadata is
+   * incomplete: the money already moved, and a missing row means the gift
+   * never appears on the campaign page. Fall back to what Stripe actually
+   * charged, then re-derive the normalized USD figures.
+   */
+  if (
+    !chargedDonationAmountCents &&
+    chargedTotalAmountCents >
+      0
+  ) {
+    console.warn(
+      `Recovering amounts from Stripe for Checkout Session ${session.id}`,
+    );
+
+    chargedDonationAmountCents =
+      chargedTotalAmountCents;
+
+    chargedFeeAmountCents =
+      0;
+  }
+
+  if (
+    chargedCurrency &&
+    exchangeRate <=
+      0
+  ) {
+    if (
+      chargedCurrency ===
+      "USD"
+    ) {
+      exchangeRate =
+        1;
+    } else {
+      try {
+        exchangeRate =
+          await getUsdToCurrencyRate(
+            chargedCurrency,
+          );
+      } catch (
+        error
+      ) {
+        console.error(
+          "Exchange rate lookup failed while recovering amounts:",
+          error,
+        );
+      }
+    }
+  }
+
+  if (
+    chargedCurrency &&
+    exchangeRate >
+      0 &&
+    chargedDonationAmountCents >
+      0
+  ) {
+    if (
+      normalizedDonationUsdCents <=
+      0
+    ) {
+      normalizedDonationUsdCents =
+        convertCurrencyMinorToUsd(
+          chargedDonationAmountCents,
+          exchangeRate,
+          chargedCurrency,
+        );
+    }
+
+    if (
+      normalizedFeeUsdCents <=
+        0 &&
+      chargedFeeAmountCents >
+        0
+    ) {
+      normalizedFeeUsdCents =
+        convertCurrencyMinorToUsd(
+          chargedFeeAmountCents,
+          exchangeRate,
+          chargedCurrency,
+        );
+    }
+
+    if (
+      normalizedTotalUsdCents <=
+      0
+    ) {
+      normalizedTotalUsdCents =
+        convertCurrencyMinorToUsd(
+          chargedTotalAmountCents >
+            0
+            ? chargedTotalAmountCents
+            : chargedDonationAmountCents,
+          exchangeRate,
+          chargedCurrency,
+        );
+    }
+  }
+
   if (
     !chargedCurrency ||
     !chargedDonationAmountCents ||
-    chargedTotalAmountCents <=
-      0 ||
     normalizedDonationUsdCents <=
       0 ||
     normalizedTotalUsdCents <=
@@ -2236,7 +2333,7 @@ function readNonNegativeInteger(
     : 0;
 }
 
-function readPositiveNumber(
+function readRateOrZero(
   value:
     | string
     | undefined,
@@ -2252,7 +2349,7 @@ function readPositiveNumber(
     parsed >
       0
     ? parsed
-    : 1;
+    : 0;
 }
 
 function splitCustomerName(

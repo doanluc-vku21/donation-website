@@ -1,11 +1,14 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
+  chargeableCurrencies,
   currencies,
   currencyLabels,
   currencySymbols,
   getCurrencyForCountry,
+  isChargeableCurrency,
   isCurrency,
+  unchargeableCurrencies,
 } from "@/lib/currency";
 import {
   formatMoney,
@@ -102,6 +105,19 @@ describe("minor unit exponents", () => {
   });
 });
 
+describe("chargeable currencies", () => {
+  it("hides the three-decimal codes Stripe only offers in the UAE", () => {
+    for (const code of ["BHD", "JOD", "KWD", "OMR", "TND"] as const) {
+      expect(isChargeableCurrency(code)).toBe(false);
+      expect(chargeableCurrencies).not.toContain(code);
+    }
+
+    expect(isChargeableCurrency("ISK")).toBe(true);
+    expect(isChargeableCurrency("UGX")).toBe(true);
+    expect(chargeableCurrencies).toHaveLength(currencies.length - unchargeableCurrencies.length);
+  });
+});
+
 describe("chargeable minor units", () => {
   it("snaps three-decimal currencies to a trailing zero", () => {
     expect(getCurrencyChargeStep("KWD")).toBe(10);
@@ -137,7 +153,8 @@ describe("newly supported currencies", () => {
     expect(getCurrencyForCountry("JP")).toBe("JPY");
     expect(getCurrencyForCountry("KR")).toBe("KRW");
     expect(getCurrencyForCountry("TW")).toBe("TWD");
-    expect(getCurrencyForCountry("KW")).toBe("KWD");
+    // KWD is listed but not chargeable, so Kuwaiti donors settle in USD.
+    expect(getCurrencyForCountry("KW")).toBe("USD");
     expect(getCurrencyForCountry("CM")).toBe("XAF");
     expect(getCurrencyForCountry("SN")).toBe("XOF");
     expect(getCurrencyForCountry("PF")).toBe("XPF");

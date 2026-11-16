@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/abandoned-donations",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/reconcile-donations",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

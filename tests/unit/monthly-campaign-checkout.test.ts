@@ -306,11 +306,24 @@ describe("monthly-only direct Hosted Checkout", () => {
     expect(mocks.create.mock.calls[0][0]).toMatchObject({ mode: "payment", metadata: { campaign_path: page.campaignPath, frequency: "one_time" } });
   });
 
+  it.each(["BHD", "JOD", "KWD", "OMR", "TND"])(
+    "refuses %s before calling Stripe, because the provider only sells it in the UAE",
+    async (currency) => {
+      const response = await hostedCheckout(request(akram, { amountCents: 15_000, currency, donor }));
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        error: "This currency isn't available for card payments. Please choose another currency.",
+      });
+      expect(mocks.create).not.toHaveBeenCalled();
+    },
+  );
+
   it.each([
-    { currency: "KWD", amountCents: 15_492, step: 10, snapped: 15_490 },
+    { currency: "ISK", amountCents: 75_123, step: 100, snapped: 75_100 },
     { currency: "UGX", amountCents: 1_850_123, step: 100, snapped: 1_850_100 },
   ])("sends Stripe a chargeable amount for $currency", async ({ currency, amountCents, step, snapped }) => {
-    mocks.rate.mockImplementation(async (candidate: string) => candidate === "USD" ? 1 : candidate === "KWD" ? 0.307 : 3700);
+    mocks.rate.mockImplementation(async (candidate: string) => candidate === "USD" ? 1 : candidate === "ISK" ? 138 : 3700);
     mocks.create.mockResolvedValue({ id: "cs_hosted_chargeable", url: "https://checkout.stripe.com/c/pay/unit_chargeable" });
     const response = await hostedCheckout(request(akram, { amountCents, currency, coverFee: true, donor }));
     expect(response.status).toBe(200);

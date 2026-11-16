@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { currencies } from "@/lib/currency";
+import { chargeableCurrencies, currencies } from "@/lib/currency";
 import { sampleCampaign } from "@/lib/sample-data";
 
 const navigation = vi.hoisted(() => ({ pathname: "/help-gaza" }));
@@ -205,30 +205,30 @@ describe("zero-decimal currencies", () => {
   });
 });
 
-describe("three-decimal currencies", () => {
-  it("snaps a typed Kuwaiti dinar amount to Stripe's chargeable step", () => {
-    mount("KWD", 0.307);
+describe("currencies Stripe only bills in whole units", () => {
+  it("snaps a typed Ugandan amount to a multiple of 100 minor units", () => {
+    mount("UGX", 3700);
 
     const input = screen.getByPlaceholderText("Enter amount");
 
-    // 15.492 KWD is not chargeable; Stripe only accepts amounts ending in 0.
-    fireEvent.change(input, { target: { value: "15.492" } });
+    // UGX is charged through Stripe's two-decimal form, so the minor units
+    // must be a multiple of 100 even though shillings have no cents.
+    fireEvent.change(input, { target: { value: "1234.5" } });
 
-    // 15.492 KWD -> 15.490 KWD, which is what Stripe accepts.
-    expect(screen.getByRole("button", { name: /^Pay KWD\s15\.490 by Card$/ })).toBeEnabled();
-    expect(screen.queryByText(/15\.492/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Pay UGX\s1,235 by Card$/ })).toBeEnabled();
+    expect(screen.queryByText(/1,234\.5/)).not.toBeInTheDocument();
   });
 
-  it("shows whole-dinar presets instead of three-decimal fractions", () => {
-    mount("KWD", 0.307);
+  it("shows whole-shilling presets instead of fractions", () => {
+    mount("UGX", 3700);
 
     const labels = screen.getAllByRole("radio")
       .map(option => (option.getAttribute("aria-label") ?? "").replace(/\u00a0/g, " "))
-      .filter(label => label.startsWith("KWD"));
+      .filter(label => label.startsWith("UGX"));
 
-    // $25/$50/$100/$250 -> 8/15/31/77 dinars, never 7.675 or 15.492.
-    expect(labels).toEqual(expect.arrayContaining(["KWD 8", "KWD 15 Recommended"]));
-    expect(labels.every(label => /^KWD \d+( Recommended)?$/.test(label))).toBe(true);
+    // $25/$50 -> 92,500/185,000 shillings, never a fractional shilling.
+    expect(labels).toEqual(expect.arrayContaining(["UGX 92,500", "UGX 185,000 Recommended"]));
+    expect(labels.every(label => /^UGX [\d,]+( Recommended)?$/.test(label))).toBe(true);
   });
 });
 
@@ -236,29 +236,36 @@ describe("currency sheet contents", () => {
   it("offers every supported currency, including the newly added ones", async () => {
     const user = userEvent.setup();
 
-    mount("KWD", 0.307);
+    mount("UGX", 3700);
 
     await user.click(screen.getAllByRole("button", { name: /Change currency/i })[0]);
 
     const options = screen.getAllByRole("option");
 
-    expect(options).toHaveLength(currencies.length);
+    // Five three-decimal codes stay out of the picker: Stripe only sells them
+    // to accounts settled in the UAE, so offering them would fail at payment.
+    expect(chargeableCurrencies).toHaveLength(currencies.length - 5);
+    expect(options).toHaveLength(chargeableCurrencies.length);
 
     const labels = options.map((option) => option.textContent ?? "");
 
-    for (const code of ["AFN", "BYN", "HUF", "JPY", "KRW", "RUB", "TND", "VND", "KWD"]) {
+    for (const code of ["AFN", "BYN", "HUF", "JPY", "KRW", "RUB", "VND", "ISK"]) {
       expect(labels.some((label) => label.includes(code))).toBe(true);
+    }
+
+    for (const code of ["BHD", "JOD", "KWD", "OMR", "TND"]) {
+      expect(labels.some((label) => label.includes(code))).toBe(false);
     }
   });
 
   it("keeps the newly supported majors one tap away", async () => {
     const user = userEvent.setup();
 
-    mount("KWD", 0.307);
+    mount("UGX", 3700);
 
     await user.click(screen.getAllByRole("button", { name: /Change currency/i })[0]);
 
-    for (const code of ["KWD", "JPY", "KRW", "RUB", "TWD", "HUF"]) {
+    for (const code of ["JPY", "KRW", "RUB", "TWD", "HUF"]) {
       expect(screen.getAllByRole("button", { name: new RegExp(`^${code}$`) }).length).toBeGreaterThan(0);
     }
   });
@@ -268,7 +275,7 @@ describe("currency search", () => {
   async function openSheet() {
     const user = userEvent.setup();
 
-    mount("KWD", 0.307);
+    mount("UGX", 3700);
     await user.click(screen.getAllByRole("button", { name: /Change currency/i })[0]);
 
     const dialog = screen.getByRole("dialog", { name: /currency/i });
@@ -292,9 +299,9 @@ describe("currency search", () => {
     list.scrollTop = 4800;
     expect(list.scrollTop).toBe(4800);
 
-    await user.type(input, "din");
+    await user.type(input, "forint");
 
     expect(list.scrollTop).toBe(0);
-    expect(screen.getAllByRole("option")[0]).toHaveAccessibleName(/Dinar/);
+    expect(screen.getAllByRole("option")[0]).toHaveAccessibleName(/Forint/);
   });
 });

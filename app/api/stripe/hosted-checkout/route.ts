@@ -17,9 +17,15 @@ import {
 } from "@/lib/i18n";
 
 import {
+
   getCurrencyMinorUnitFactor,
+
+  isChargeableCurrency,
+
   isCurrency,
+
   type Currency,
+
 } from "@/lib/currency";
 
 import { getDonationAmounts } from "@/lib/stripe/donation-amount";
@@ -314,6 +320,22 @@ export async function POST(
         {
           error:
             "Invalid currency.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    if (
+      !isChargeableCurrency(
+        currency,
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "This currency isn't available for card payments. Please choose another currency.",
         },
         {
           status: 400,

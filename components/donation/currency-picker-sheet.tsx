@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 import {
-  currencies,
+  chargeableCurrencies,
   currencySymbols,
   type Currency,
 } from "@/lib/currency";
@@ -59,7 +59,6 @@ const quickCurrencies:
   "GBP",
   "AED",
   "SAR",
-  "KWD",
   "JPY",
   "KRW",
   "RUB",
@@ -324,7 +323,7 @@ export function CurrencyPickerSheet({
             .trim()
             .toLowerCase();
 
-        return currencies
+        return chargeableCurrencies
           .map(
             (
               code,

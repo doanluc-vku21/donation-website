@@ -146,6 +146,43 @@ export type Currency =
 export const defaultCurrency:
   Currency = "USD";
 
+/*
+ * Stripe only sells three-decimal presentment currencies to accounts
+ * settled in the United Arab Emirates, so a Checkout Session priced in
+ * BHD, JOD, KWD, OMR or TND is rejected for every other account
+ * country. Keep them out of the picker and settle those donors in USD
+ * rather than letting the payment fail after the card is entered.
+ */
+export const unchargeableCurrencies:
+  readonly Currency[] = [
+  "BHD",
+  "JOD",
+  "KWD",
+  "OMR",
+  "TND",
+];
+
+const unchargeableCurrencySet:
+  ReadonlySet<
+    string
+  > = new Set(
+  unchargeableCurrencies,
+);
+
+export function isChargeableCurrency(
+  currency: Currency,
+): boolean {
+  return !unchargeableCurrencySet.has(
+    currency,
+  );
+}
+
+export const chargeableCurrencies:
+  Currency[] =
+  currencies.filter(
+    isChargeableCurrency,
+  );
+
 export const currencyLabels:
   Record<
     Currency,
@@ -955,10 +992,15 @@ export function getCurrencyForCountry(
       .trim()
       .toUpperCase();
 
-  return (
+  const mapped =
     countryCurrencyMap[
       normalized
     ] ??
-    defaultCurrency
-  );
+    defaultCurrency;
+
+  return isChargeableCurrency(
+    mapped,
+  )
+    ? mapped
+    : defaultCurrency;
 }
