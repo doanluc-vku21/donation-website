@@ -4,6 +4,11 @@ import type Stripe from "stripe";
 
 import { getOrCreateDonor } from "@/lib/queries/donors";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import {
+  isChargedColumnRejection,
+  shouldRetryWithoutChargedCurrency,
+  withoutChargedCurrencyColumns,
+} from "@/lib/supabase/schema-fallback";
 import { stripe } from "@/lib/stripe/server";
 import { getUsdToCurrencyRate } from "@/lib/exchange-rate";
 import { convertCurrencyMinorToUsd } from "@/lib/money";
@@ -131,9 +136,14 @@ async function buildSession(session: Stripe.Checkout.Session): Promise<PaidSessi
   };
 }
 
-async function insertDonation(session: PaidSession): Promise<boolean> {
+/*
+ * Returns null when the row landed, or a short machine-readable reason when it
+ * did not. The cron surfaces those reasons, which turns "the donation never
+ * appeared" into a database code without needing runtime log access.
+ */
+async function insertDonation(session: PaidSession): Promise<string | null> {
   if (!session.email) {
-    return false;
+    return "no donor email";
   }
 
   const donorId = await getOrCreateDonor({
@@ -156,7 +166,7 @@ async function insertDonation(session: PaidSession): Promise<boolean> {
     session.chargedCurrency,
   );
 
-  const { error } = await supabaseAdmin.from("donations").insert({
+  const payload: Record<string, unknown> = {
     campaign_id: session.campaignId,
     donor_id: donorId,
     display_name: session.displayName,
@@ -176,19 +186,53 @@ async function insertDonation(session: PaidSession): Promise<boolean> {
     stripe_payment_intent_id: session.paymentIntentId,
     stripe_checkout_session_id: session.sessionId,
     stripe_subscription_id: session.subscriptionId,
-  });
+  };
+
+  const { error } = await supabaseAdmin.from("donations").insert(payload);
 
   if (!error) {
-    return true;
+    return null;
   }
 
   // A concurrent webhook may have written the row between the lookup and here.
   if (error.code === "23505") {
-    return false;
+    return "already recorded";
+  }
+
+  /*
+   * The schema refused the charged currency. Backfill the gift anyway so the
+   * campaign page and the raised total keep the money; only the
+   * charged-currency detail is dropped.
+   */
+  if (shouldRetryWithoutChargedCurrency(error)) {
+    console.warn(
+      isChargedColumnRejection(error)
+        ? "Reconciliation insert refused the charged currency, retrying without it:"
+        : "Reconciliation insert failed, retrying without the charged currency:",
+      session.sessionId,
+      session.chargedCurrency,
+      error.code,
+      error.message,
+    );
+
+    const { error: retryError } = await supabaseAdmin
+      .from("donations")
+      .insert(withoutChargedCurrencyColumns(payload));
+
+    if (!retryError) {
+      return null;
+    }
+
+    if (retryError.code === "23505") {
+      return "already recorded";
+    }
+
+    console.error("Reconciliation insert error:", retryError);
+    return `insert failed (${retryError.code ?? "unknown"})`;
   }
 
   console.error("Reconciliation insert error:", error);
-  return false;
+  return `insert failed (${error.code ?? "unknown"})`;
 }
 
 /**
@@ -268,11 +312,13 @@ export async function reconcilePaidSessions(options: {
         continue;
       }
 
-      if (await insertDonation(candidate)) {
+      const failure = await insertDonation(candidate);
+
+      if (failure === null) {
         result.backfilled += 1;
         console.info("Reconciled missing donation:", candidate.sessionId, candidate.chargedDonationMinor, candidate.chargedCurrency);
       } else {
-        result.skipped.push(candidate.sessionId);
+        result.skipped.push(`${candidate.sessionId}: ${failure}`);
       }
     }
 

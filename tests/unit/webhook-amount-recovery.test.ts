@@ -98,6 +98,43 @@ describe("paid sessions are recorded even without multi-currency metadata", () =
     vi.restoreAllMocks();
   });
 
+  it("records the gift even when the schema refuses the charged currency", async () => {
+    const rejecting = {
+      select: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({
+          data: null,
+          error: {
+            code: "23514",
+            message: 'new row for relation "donations" violates check constraint',
+          },
+        }),
+      })),
+    };
+    const accepting = {
+      select: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({ data: { id: "donation-2" }, error: null }),
+      })),
+    };
+    mocks.insert.mockReturnValueOnce(rejecting).mockReturnValueOnce(accepting);
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(200);
+    expect(mocks.insert).toHaveBeenCalledTimes(2);
+
+    const retried = mocks.insert.mock.calls[1][0] as Record<string, unknown>;
+    expect(retried).toMatchObject({
+      charged_amount_cents: null,
+      charged_fee_amount_cents: null,
+      charged_total_amount_cents: null,
+      charged_currency: null,
+      usd_exchange_rate: 1.27,
+      stripe_checkout_session_id: "cs_live_sgd_recovered",
+      status: "succeeded",
+    });
+    expect(retried.amount_cents).toBe(10157);
+  });
+
   it("falls back to the amount Stripe actually charged and re-derives the USD figures", async () => {
     const response = await POST(request());
 

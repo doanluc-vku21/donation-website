@@ -95,6 +95,30 @@ describe("reconcilePaidSessions", () => {
     expect(payload.total_amount_cents).toBe(10157);
   });
 
+  it("backfills the gift even when the schema refuses the charged currency", async () => {
+    mocks.list.mockResolvedValue({ data: [paidSession()], has_more: false });
+    mocks.insert
+      .mockResolvedValueOnce({
+        error: { code: "23514", message: "new row for relation \"donations\" violates check constraint" },
+      })
+      .mockResolvedValueOnce({ error: null });
+
+    const result = await reconcilePaidSessions({ sinceSeconds: 1_762_000_000, apply: true });
+
+    expect(result.backfilled).toBe(1);
+    expect(mocks.insert).toHaveBeenCalledTimes(2);
+
+    const retried = mocks.insert.mock.calls[1][0] as Record<string, unknown>;
+    expect(retried).toMatchObject({
+      charged_amount_cents: null,
+      charged_fee_amount_cents: null,
+      charged_total_amount_cents: null,
+      charged_currency: null,
+      stripe_checkout_session_id: "cs_live_sgd129",
+    });
+    expect(retried.amount_cents).toBe(10157);
+  });
+
   it("leaves an existing donation untouched", async () => {
     mocks.list.mockResolvedValue({ data: [paidSession()], has_more: false });
     mocks.maybeSingle.mockResolvedValue({ data: { id: "donation-1" }, error: null });

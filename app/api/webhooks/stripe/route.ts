@@ -19,6 +19,12 @@ import {
 } from "@/lib/supabase/admin";
 
 import {
+  isChargedColumnRejection,
+  shouldRetryWithoutChargedCurrency,
+  withoutChargedCurrencyColumns,
+} from "@/lib/supabase/schema-fallback";
+
+import {
   isCurrency,
   type Currency,
 } from "@/lib/currency";
@@ -1284,77 +1290,129 @@ async function handleCheckoutSessionCompleted(
    *
    * charged_* columns store what Stripe actually charged.
    */
-  const {
-    data:
-      insertedDonation,
-    error:
-      donationError,
-  } =
+  /*
+   * A donation row has to survive even when the database refuses the
+   * charged-currency columns. Deployments of the donations table that only
+   * accept the codes the picker shipped with reject newer ones through a
+   * CHECK constraint, and a rejected insert drops a paid gift from both the
+   * campaign page and the raised total.
+   *
+   * The USD-normalized amount stays authoritative for stats, so the retry
+   * below keeps it and gives up only the charged-currency detail.
+   */
+  const donationInsert:
+    Record<
+      string,
+      unknown
+    > = {
+    campaign_id:
+      campaignId,
+
+    donor_id:
+      donorId,
+
+    display_name:
+      displayName,
+
+    amount_cents:
+      normalizedDonationUsdCents,
+
+    fee_amount_cents:
+      normalizedFeeUsdCents,
+
+    total_amount_cents:
+      normalizedTotalUsdCents,
+
+    currency:
+      "USD",
+
+    charged_amount_cents:
+      chargedDonationAmountCents,
+
+    charged_fee_amount_cents:
+      chargedFeeAmountCents,
+
+    charged_total_amount_cents:
+      chargedTotalAmountCents,
+
+    charged_currency:
+      chargedCurrency,
+
+    usd_exchange_rate:
+      exchangeRate,
+
+    frequency,
+
+    status:
+      "succeeded",
+
+    is_anonymous:
+      isAnonymous,
+
+    stripe_customer_id:
+      stripeCustomerId,
+
+    stripe_payment_intent_id:
+      paymentIntentId,
+
+    stripe_checkout_session_id:
+      session.id,
+
+    stripe_subscription_id:
+      subscriptionId,
+  };
+
+  let insertedDonationResult =
     await supabaseAdmin
       .from(
         "donations",
       )
-      .insert({
-        campaign_id:
-          campaignId,
-
-        donor_id:
-          donorId,
-
-        display_name:
-          displayName,
-
-        amount_cents:
-          normalizedDonationUsdCents,
-
-        fee_amount_cents:
-          normalizedFeeUsdCents,
-
-        total_amount_cents:
-          normalizedTotalUsdCents,
-
-        currency:
-          "USD",
-
-        charged_amount_cents:
-          chargedDonationAmountCents,
-
-        charged_fee_amount_cents:
-          chargedFeeAmountCents,
-
-        charged_total_amount_cents:
-          chargedTotalAmountCents,
-
-        charged_currency:
-          chargedCurrency,
-
-        usd_exchange_rate:
-          exchangeRate,
-
-        frequency,
-
-        status:
-          "succeeded",
-
-        is_anonymous:
-          isAnonymous,
-
-        stripe_customer_id:
-          stripeCustomerId,
-
-        stripe_payment_intent_id:
-          paymentIntentId,
-
-        stripe_checkout_session_id:
-          session.id,
-
-        stripe_subscription_id:
-          subscriptionId,
-      })
+      .insert(
+        donationInsert,
+      )
       .select(
         "id",
       )
       .single();
+
+  if (
+    shouldRetryWithoutChargedCurrency(
+      insertedDonationResult.error,
+    )
+  ) {
+    console.warn(
+      isChargedColumnRejection(
+        insertedDonationResult.error,
+      )
+        ? "Donation insert refused the charged currency, retrying without it:"
+        : "Donation insert failed, retrying without the charged currency:",
+      session.id,
+      chargedCurrency,
+      insertedDonationResult.error?.code,
+      insertedDonationResult.error?.message,
+    );
+
+    insertedDonationResult =
+      await supabaseAdmin
+        .from(
+          "donations",
+        )
+        .insert(
+          withoutChargedCurrencyColumns(
+            donationInsert,
+          ),
+        )
+        .select(
+          "id",
+        )
+        .single();
+  }
+
+  const insertedDonation =
+    insertedDonationResult.data;
+
+  const donationError =
+    insertedDonationResult.error;
 
   if (
     donationError
@@ -1432,6 +1490,14 @@ async function handleCheckoutSessionCompleted(
     );
 
     throw donationError;
+  }
+
+  if (
+    !insertedDonation
+  ) {
+    throw new Error(
+      `Donation insert returned no row: ${session.id}`,
+    );
   }
 
   await sendDonationReceipt({
