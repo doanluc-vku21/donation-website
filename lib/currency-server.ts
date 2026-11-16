@@ -6,6 +6,7 @@ import {
 import {
   defaultCurrency,
   getCurrencyForCountry,
+  isChargeableCurrency,
   isCurrency,
   type Currency,
 } from "@/lib/currency";
@@ -65,6 +66,9 @@ export async function getCurrency():
 
   if (
     isCurrency(
+      savedCurrency,
+    ) &&
+    isChargeableCurrency(
       savedCurrency,
     )
   ) {

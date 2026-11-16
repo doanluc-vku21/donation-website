@@ -16,7 +16,7 @@ import {
 } from "@/lib/i18n";
 
 import {
-  currencies,
+  chargeableCurrencies,
   currencyLabels,
   type Currency,
 } from "@/lib/currency";
@@ -225,7 +225,7 @@ export function LocaleCurrencySwitcher({
             sm:w-auto
           "
         >
-          {currencies.map(
+          {chargeableCurrencies.map(
             (
               item,
             ) => (
