@@ -5,6 +5,7 @@ import type { SanityCampaign } from "@/sanity/types/campaign";
 const mocks = vi.hoisted(() => ({ fetch: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/sanity/lib/client", () => ({ sanityClient: { fetch: mocks.fetch } }));
+import { campaignContentCache } from "@/lib/queries/campaign-content-cache";
 import { BENEFICIARY_CONTENT_QUERY, getBeneficiaryContent } from "@/lib/queries/beneficiary-content";
 
 beforeEach(() => { vi.clearAllMocks(); });
@@ -15,7 +16,7 @@ describe("beneficiary CMS content", () => {
     mocks.fetch.mockResolvedValue({ campaign, branding: { footerOrganizationName: "MEAL SUPPORT INC" } });
     expect(await getBeneficiaryContent("help-street-vendor")).toBe(campaign);
     expect(mocks.fetch).toHaveBeenCalledExactlyOnceWith(BENEFICIARY_CONTENT_QUERY,
-      { slug: "help-street-vendor", brandingSlug: "akram-shake" }, { cache: "no-store" });
+      { slug: "help-street-vendor", brandingSlug: "akram-shake" }, campaignContentCache("help-street-vendor"));
   });
 
   it("uses branding without a second request or another beneficiary's identity", async () => {

@@ -139,3 +139,87 @@ calculations, monthly accounting, stale-amount and duplicate-confirmation
 guards, SDK load retry and iOS-versus-Android startup behavior. Type checking
 and lint with zero warnings also pass. Before/after performance artifacts and
 recording frames stay under ignored `.local/diagnostics`.
+
+## Follow-up: deferred Pixel SDK and idle Checkout warm-up (2026-11-16)
+
+A fresh mobile Lighthouse run of `/gaza-food` (Moto G Power, slow 4G, simulate)
+reproduced the reported shape: FCP 1.07 s, LCP 1.67 s, TBT 211 ms, but Speed
+Index 3.44 s. The filmstrip is blank until 1.9 s and then paints the whole first
+screen in one frame at 2.25 s; 246 KB of the 522 KB total transfer was the Meta
+Pixel SDK (99 KB) plus its remote configuration (147 KB). Blocking
+`connect.facebook.net` and `facebook.com/tr` measured −409 ms LCP, −151 ms TBT,
+−3.0 s TTI and 276 KB total, while the single-run Speed Index moved the other
+way (3.44 s → 4.18 s) because the observed frames came from an unstable
+cross-continent link. Speed Index stayed the only red metric in both runs.
+
+Two changes were made:
+
+1. The Pixel queue and the SDK loader are now separate scripts.
+   `lib/meta/pixel-bootstrap.ts` keeps only the canonical `fbq` queue, `init`
+   and one `PageView` in a `beforeInteractive` inline script, which never
+   touches the network. The loader that requests `fbevents.js` uses
+   `strategy="lazyOnload"`, so it runs after the window `load` event in an idle
+   callback. The rendered page contains no `fbevents.js` script tag: the queue
+   is inlined as `self.__next_s` and the loader rides the RSC payload, which
+   `next/script` injects client-side. Queued events replay when the SDK
+   arrives, event IDs are unchanged, and the `noscript` `<img>` fallback stays.
+2. The speculative Express Checkout warm-up no longer posts
+   `/api/stripe/express-checkout` 120 ms after mount. `lib/stripe/checkout-warmup.ts`
+   skips data-saver and 2G/3G `effectiveType` visitors, and the modal schedules
+   the request with `requestIdleCallback` (4 s timeout). Browsers without
+   `requestIdleCallback` (Safari) keep the previous 120 ms timing, so the
+   existing warm-up timing assertions still describe that path. `openModal()`
+   still warms synchronously, so a donor who taps Donate immediately sees no
+   change, and the pre-open wallet subtree and its single Stripe instance are
+   untouched.
+
+Validation for this change: `npm run typecheck` and `npm run lint --
+--max-warnings 0` pass; `tests/unit/meta-pixel-setup.test.tsx` (rewritten for
+the two-script bootstrap) and the new `tests/unit/checkout-warmup.test.ts` pass
+with 9 tests. The jsdom half of the suite cannot start in this environment
+(`TypeError: webidl.util.markAsUncloneable is not a function` while jsdom loads
+undici on Node 20.20.2); an untouched jsdom test fails the same way, so this is
+an environment blocker rather than a result. `npm run build` stops at
+`Missing STRIPE_SECRET_KEY` during page-data collection, which is the missing
+local credential documented in the repository guidance.
+
+## Follow-up: cached campaign content, measured bundle split (2026-11-16)
+
+Sanity editorial content was fetched with `cache: "no-store"` on every campaign
+route, in ten page files plus `lib/queries/beneficiary-content.ts`, so each
+request paid a full CMS round trip even though story copy, imagery and goal
+configuration only change when an editor publishes. Those reads now go through
+`lib/queries/campaign-content-cache.ts` (`campaignContentCache(slug)`), which
+asks for `revalidate: 60` with the tags `campaign` and `campaign:<slug>`.
+
+Nothing else loosened: the raised amount and donor list still come from
+Supabase through `getCampaignBySlug`, the locale and currency context stay
+request-scoped, and every route keeps `dynamic = "force-dynamic"` and
+`revalidate = 0`, so the page is still rendered per request and no visitor sees
+another visitor's currency or amount. Next only honours the fetch-level
+cache because the fetch carries an explicit `revalidate`; with `force-dynamic`
+and no explicit config the same fetch stays uncached (`patch-fetch`: the
+`force-dynamic` default only applies to fetches without their own cache
+config). Expect the Sanity half of the server render to drop on the first
+repeat hit; a Sanity webhook can call `revalidateTag("campaign:<slug>")` to
+skip the window.
+
+The donation flow was then tried as a `next/dynamic` chunk. It works: the
+page's initially referenced client chunks fell from 63.7 KB to 41.5 KB gzipped
+(about 22 KB, a 22.4 KB chunk emitted separately). It was reverted anyway.
+`components/donation/donation-flow.tsx` holds the pre-open wallet subtree, and
+four tests in `tests/unit/express-checkout-loading.test.tsx` assert that the
+wallet exists right after mount; those assertions are the encoded form of the
+contract in `docs/apple-pay-wallet-warmup.md`. Deferring the chunk also puts a
+chunk fetch in front of the first Donate tap on slow connections, which is the
+latency the wallet warm-up exists to remove. The split is worth revisiting
+together with a preload on the Donate trigger, not on its own.
+
+Validation for this change: `npm run typecheck`, `npm run lint --
+--max-warnings 0` and the full suite under Node 22 (`vitest run`, 61 files,
+591 tests) pass except five failures that also fail on a clean `HEAD`
+worktree: `campaign-story.test.tsx` (2), `campaign-page.test.tsx` (import
+needs `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`) and `donation-panel.test.tsx` (3).
+`npm run build` completes once placeholder Stripe, Supabase and Sanity values
+are supplied for a local compile; no Stripe, Supabase or Sanity request is made
+by that build.

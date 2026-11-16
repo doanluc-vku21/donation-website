@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { campaignContentCache } from "@/lib/queries/campaign-content-cache";
 import { sanityClient } from "@/sanity/lib/client";
 import { CAMPAIGN_BRANDING_QUERY, CAMPAIGN_QUERY } from "@/sanity/lib/queries";
 import type { SanityCampaign } from "@/sanity/types/campaign";
@@ -16,6 +17,6 @@ export const getBeneficiaryContent = cache(async (slug: string): Promise<SanityC
   const result = await sanityClient.fetch<{
     campaign: SanityCampaign | null;
     branding: Partial<SanityCampaign> | null;
-  }>(BENEFICIARY_CONTENT_QUERY, { slug, brandingSlug: "akram-shake" }, { cache: "no-store" });
+  }>(BENEFICIARY_CONTENT_QUERY, { slug, brandingSlug: "akram-shake" }, campaignContentCache(slug));
   return result.campaign ?? { ...result.branding, _id: `${slug}-page-content`, slug, title: "" };
 });

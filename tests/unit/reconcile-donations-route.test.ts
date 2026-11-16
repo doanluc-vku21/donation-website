@@ -30,6 +30,7 @@ describe("reconcile-donations cron route", () => {
       paid: 9,
       alreadyRecorded: 8,
       backfilled: 1,
+      labelsRepaired: 0,
       unattributed: [],
       skipped: [],
     });
@@ -62,25 +63,26 @@ describe("reconcile-donations cron route", () => {
     expect(mocks.reconcilePaidSessions).not.toHaveBeenCalled();
   });
 
-  it("backs up paid sessions over the last 48 hours", async () => {
+  it("backs up paid sessions over the last week", async () => {
     const response = await GET(authorizedRequest());
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(body).toEqual({
-      windowHours: 48,
+      windowHours: 168,
       scanned: 12,
       paid: 9,
       alreadyRecorded: 8,
       backfilled: 1,
+      labelsRepaired: 0,
       unattributed: 0,
       skipped: 0,
     });
 
     const call = mocks.reconcilePaidSessions.mock.calls[0][0] as { sinceSeconds: number; apply: boolean };
     expect(call.apply).toBe(true);
-    expect(Date.now() / 1000 - call.sinceSeconds).toBeGreaterThan(47 * 60 * 60);
-    expect(Date.now() / 1000 - call.sinceSeconds).toBeLessThan(49 * 60 * 60);
+    expect(Date.now() / 1000 - call.sinceSeconds).toBeGreaterThan(167 * 60 * 60);
+    expect(Date.now() / 1000 - call.sinceSeconds).toBeLessThan(169 * 60 * 60);
   });
 
   it("reports unattributed payments so an operator can attribute them", async () => {

@@ -12,6 +12,7 @@ import {
 } from "@/lib/help-gaza-campaign";
 import { getLocale } from "@/lib/i18n-server";
 import { getCampaignBySlug } from "@/lib/queries/campaigns";
+import { campaignContentCache } from "@/lib/queries/campaign-content-cache";
 import { sanityClient } from "@/sanity/lib/client";
 import { CAMPAIGN_QUERY } from "@/sanity/lib/queries";
 import type { SanityCampaign } from "@/sanity/types/campaign";
@@ -24,7 +25,7 @@ const getContent = cache(async () => {
     sanityClient.fetch<SanityCampaign | null>(
       CAMPAIGN_QUERY,
       { slug: HELP_GAZA_CAMPAIGN_SLUG },
-      { cache: "no-store" },
+      campaignContentCache(HELP_GAZA_CAMPAIGN_SLUG),
     ),
     getLocale(),
   ]);

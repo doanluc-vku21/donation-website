@@ -23,6 +23,10 @@ import {
 } from "@/lib/queries/campaigns";
 
 import {
+  campaignContentCache,
+} from "@/lib/queries/campaign-content-cache";
+
+import {
   sanityClient,
 } from "@/sanity/lib/client";
 
@@ -63,10 +67,7 @@ export default async function ChildHealthPage() {
           slug:
             CAMPAIGN_SLUG,
         },
-        {
-          cache:
-            "no-store",
-        },
+        campaignContentCache(CAMPAIGN_SLUG),
       ),
       getLocale(),
       getCurrencyContext(),

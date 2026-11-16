@@ -12,7 +12,13 @@ export const dynamic = "force-dynamic";
  * donation row, so a missed webhook delays a gift by minutes instead of
  * hiding it until someone complains.
  */
-const RECONCILE_WINDOW_HOURS = 48;
+/*
+ * A week covers both jobs this route does: writing a paid session the webhook
+ * missed, and giving a row back the currency it was stored without. The label
+ * repair only reaches a few days back in practice, so a shorter window would
+ * leave older gifts showing a plain dollar figure for good.
+ */
+const RECONCILE_WINDOW_HOURS = 168;
 
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;

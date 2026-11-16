@@ -23,6 +23,10 @@ import {
 } from "@/lib/localize-campaign";
 
 import {
+  campaignContentCache,
+} from "@/lib/queries/campaign-content-cache";
+
+import {
   sanityClient,
 } from "@/sanity/lib/client";
 
@@ -69,10 +73,7 @@ export default async function GazaHelpPage() {
           slug:
             CAMPAIGN_SLUG,
         },
-        {
-          cache:
-            "no-store",
-        },
+        campaignContentCache(CAMPAIGN_SLUG),
       ),
       getLocale(),
       getCurrencyContext(),

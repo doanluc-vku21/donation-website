@@ -30,6 +30,10 @@ import {
 } from "@/lib/queries/campaigns";
 
 import {
+  campaignContentCache,
+} from "@/lib/queries/campaign-content-cache";
+
+import {
   sanityClient,
 } from "@/sanity/lib/client";
 
@@ -45,7 +49,7 @@ const CAMPAIGN_SLUG =
   "akram-shake";
 
 const getCampaignContent = cache(async (): Promise<SanityCampaign | null> =>
-  sanityClient.fetch<SanityCampaign | null>(CAMPAIGN_QUERY, { slug: CAMPAIGN_SLUG }, { cache: "no-store" }),
+  sanityClient.fetch<SanityCampaign | null>(CAMPAIGN_QUERY, { slug: CAMPAIGN_SLUG }, campaignContentCache(CAMPAIGN_SLUG)),
 );
 
 function localizeDirectCampaign(content: SanityCampaign, locale: Locale): SanityCampaign {

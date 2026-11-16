@@ -7,6 +7,10 @@ import {
 } from "@/components/campaign/campaign-page";
 
 import {
+  campaignContentCache,
+} from "@/lib/queries/campaign-content-cache";
+
+import {
   getCampaignBySlug,
 } from "@/lib/queries/campaigns";
 
@@ -63,10 +67,7 @@ export default async function GazaFoodPage() {
           slug:
             CAMPAIGN_SLUG,
         },
-        {
-          cache:
-            "no-store",
-        },
+        campaignContentCache(CAMPAIGN_SLUG),
       ),
       getLocale(),
       getCurrencyContext(),

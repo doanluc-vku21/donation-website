@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { MetaAttribution } from "@/components/analytics/meta-attribution";
 import { metaBrowserPixelIds } from "@/lib/meta/config";
+import { metaPixelLoaderScript, metaPixelQueueScript } from "@/lib/meta/pixel-bootstrap";
 import { applePayBootstrapScript } from "@/lib/stripe/apple-pay-bootstrap";
 
 import "./globals.css";
@@ -24,48 +25,16 @@ export default function RootLayout({
         <link rel="preconnect" href="https://api.stripe.com" crossOrigin="anonymous" />
         <Script id="apple-pay-sdk-preload" strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: applePayBootstrapScript }} />
-        {/* Meta Pixel Code */}
+        {/* Meta Pixel Code — queue immediately, load the SDK after window load. */}
         <Script
           id="meta-pixel"
           strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              !function(f,b,e,v,n,t,s)
-              {
-                if(f.fbq)return;
-
-                n=f.fbq=function()
-                {
-                  n.callMethod
-                    ? n.callMethod.apply(n,arguments)
-                    : n.queue.push(arguments);
-                };
-
-                if(!f._fbq)f._fbq=n;
-
-                n.push=n;
-                n.loaded=!0;
-                n.version='2.0';
-                n.queue=[];
-
-                t=b.createElement(e);
-                t.async=!0;
-                t.src=v;
-
-                s=b.getElementsByTagName(e)[0];
-                s.parentNode.insertBefore(t,s);
-              }
-              (
-                window,
-                document,
-                'script',
-                'https://connect.facebook.net/en_US/fbevents.js'
-              );
-
-              ${metaBrowserPixelIds.map((pixelId) => `fbq('init', ${JSON.stringify(pixelId)});`).join("\n")}
-              fbq('track', 'PageView');
-            `,
-          }}
+          dangerouslySetInnerHTML={{ __html: metaPixelQueueScript }}
+        />
+        <Script
+          id="meta-pixel-loader"
+          strategy="lazyOnload"
+          dangerouslySetInnerHTML={{ __html: metaPixelLoaderScript }}
         />
         {/* End Meta Pixel Code */}
       </head>

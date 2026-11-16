@@ -5,6 +5,7 @@ import { getCurrencyContext } from "@/lib/currency-server";
 import { localizeAkramMonthlyCampaign } from "@/lib/akram-monthly-campaign";
 import { getCampaignBySlug } from "@/lib/queries/campaigns";
 import { getMonthlySupporters } from "@/lib/queries/monthly-supporters";
+import { campaignContentCache } from "@/lib/queries/campaign-content-cache";
 import { sanityClient } from "@/sanity/lib/client";
 import { CAMPAIGN_QUERY } from "@/sanity/lib/queries";
 import type { SanityCampaign } from "@/sanity/types/campaign";
@@ -25,7 +26,7 @@ export default async function AkramShakeMonthlyPage() {
 
   const [content, supporters] = await Promise.all([
     sanityClient.fetch<SanityCampaign>(
-      CAMPAIGN_QUERY, { slug: CAMPAIGN_SLUG }, { cache: "no-store" },
+      CAMPAIGN_QUERY, { slug: CAMPAIGN_SLUG }, campaignContentCache(CAMPAIGN_SLUG),
     ),
     getMonthlySupporters(campaign.id),
   ]);

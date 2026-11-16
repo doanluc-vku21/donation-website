@@ -3,6 +3,7 @@ import { metaCheckoutFetch } from "@/lib/meta/client";
 import { isMonthlyOnlyDonationPage } from "@/lib/donation-page-policy";
 import { getExpressCheckoutKey } from "@/lib/stripe/express-checkout-key";
 import { shouldPrewarmApplePay } from "@/lib/stripe/wallet-platform";
+import { shouldDeferCheckoutWarmup, type IdleWindow } from "@/lib/stripe/checkout-warmup";
 import { prepareStripe } from "@/lib/stripe/client";
 
 import Image from "next/image";
@@ -441,6 +442,43 @@ export function DonationModal({
    * Give once is created only when the donor switches to it.
    */
   useEffect(() => {
+    /*
+     * Warming the default Express Checkout Session posts to
+     * /api/stripe/express-checkout and creates a real Checkout Session, which
+     * used to happen 120 ms after mount on every page view and competed with
+     * the first paint, hydration and the hero image on slow connections.
+     *
+     * It now waits for an idle slot and skips data-saver / slow-network
+     * visitors entirely. openModal() still warms on the actual interaction, so
+     * a donor who taps Donate immediately keeps the same behavior.
+     */
+    if (disableExpressPrefetch) {
+      return;
+    }
+
+    if (shouldDeferCheckoutWarmup()) {
+      return;
+    }
+
+    const idleWindow = window as IdleWindow;
+
+    if (typeof idleWindow.requestIdleCallback === "function") {
+      const handle = idleWindow.requestIdleCallback(
+        () => {
+          prefetchExpressCheckout();
+        },
+        { timeout: 4000 },
+      );
+
+      return () => {
+        idleWindow.cancelIdleCallback?.(handle);
+      };
+    }
+
+    /*
+     * Browsers without requestIdleCallback (Safari) keep the previous 120 ms
+     * background timing instead of guessing at an idle window.
+     */
     const timeout =
       window.setTimeout(
         () => {
@@ -454,7 +492,7 @@ export function DonationModal({
         timeout,
       );
     };
-  }, [prefetchExpressCheckout]);
+  }, [disableExpressPrefetch, prefetchExpressCheckout]);
 
   function openModal() {
     if (!disableExpressPrefetch) prepareStripe();

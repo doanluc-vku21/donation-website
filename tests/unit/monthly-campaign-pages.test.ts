@@ -1,3 +1,4 @@
+import { campaignContentCache } from "@/lib/queries/campaign-content-cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { isValidElement } from "react";
 import { sampleCampaign, type Campaign } from "@/lib/sample-data";
@@ -169,7 +170,7 @@ describe("monthly campaign entry routes", () => {
       expect(result.props.campaign.supporterProgress).toBeUndefined();
     }
     expect(mocks.campaign).toHaveBeenCalledWith(slug);
-    expect(mocks.content).toHaveBeenCalledWith(expect.any(String), { slug }, { cache: "no-store" });
+    expect(mocks.content).toHaveBeenCalledWith(expect.any(String), { slug }, campaignContentCache(slug));
   });
 
   it("leaves the previous Akram entry page's content unchanged", async () => {
