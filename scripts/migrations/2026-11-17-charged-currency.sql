@@ -124,7 +124,7 @@ BEGIN
      AND a.attname = 'charged_currency'
      AND NOT a.attisdropped;
 
-  IF column_type LIKE 'character%' THEN
+  IF column_type LIKE 'character%' OR column_type = 'text' THEN
     ALTER TABLE public.donations
       DROP CONSTRAINT IF EXISTS donations_charged_currency_shape;
     ALTER TABLE public.donations
