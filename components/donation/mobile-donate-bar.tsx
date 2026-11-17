@@ -65,6 +65,17 @@ export function MobileDonateBar({
     setVisible,
   ] = useState(false);
 
+  /*
+   * A fixed bar parks on top of whatever the reader is looking at. Keeping it
+   * out of the way while the page moves down means a section heading never
+   * sits half-hidden under it; the moment the reader scrolls back up the bar
+   * returns, so the way to give is always one gesture away.
+   */
+  const [
+    tuckedAway,
+    setTuckedAway,
+  ] = useState(false);
+
   const progress =
     progressPercent(
       campaign.raisedAmountUsd,
@@ -114,6 +125,47 @@ export function MobileDonateBar({
     };
   }, []);
 
+  useEffect(() => {
+    let lastScrollY =
+      window.scrollY;
+
+    const onScroll = () => {
+      const nextScrollY =
+        window.scrollY;
+
+      const delta =
+        nextScrollY -
+        lastScrollY;
+
+      if (
+        Math.abs(delta) < 8
+      ) {
+        return;
+      }
+
+      lastScrollY =
+        nextScrollY;
+
+      setTuckedAway(
+        delta > 0 &&
+        nextScrollY > 0,
+      );
+    };
+
+    window.addEventListener(
+      "scroll",
+      onScroll,
+      { passive: true },
+    );
+
+    return () => {
+      window.removeEventListener(
+        "scroll",
+        onScroll,
+      );
+    };
+  }, []);
+
   if (!visible) {
     return null;
   }
@@ -121,7 +173,7 @@ export function MobileDonateBar({
   return (
     <div
       dir="ltr"
-      className="
+      className={`
         fixed
         inset-x-0
         bottom-0
@@ -129,8 +181,17 @@ export function MobileDonateBar({
         px-2
         pb-[max(8px,env(safe-area-inset-bottom))]
 
+        transition-transform
+        duration-300
+        ease-out
+
         lg:hidden
-      "
+
+        ${tuckedAway ? "pointer-events-none translate-y-[130%]" : "translate-y-0"}
+      `}
+      aria-hidden={
+        tuckedAway
+      }
     >
       <section
         dir="ltr"

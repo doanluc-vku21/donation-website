@@ -62,6 +62,32 @@ describe("monthly supporter progress", () => {
     expect(screen.queryByText(/raised/)).not.toBeInTheDocument();
   });
 
+  it("tucks the sticky bar away while the page moves down and returns on the way up", () => {
+    let intersection!: IntersectionObserverCallback;
+    vi.stubGlobal("IntersectionObserver", class {
+      constructor(callback: IntersectionObserverCallback) { intersection = callback; }
+      observe() {}
+      disconnect() {}
+    });
+    const { container } = render(<><div id="mobile-inline-donate" /><MobileDonateBar {...props} /></>);
+    act(() => { intersection([{ isIntersecting: false, boundingClientRect: { bottom: -1 } } as IntersectionObserverEntry], {} as IntersectionObserver); });
+
+    const bar = container.querySelector("div.fixed");
+    expect(bar).not.toBeNull();
+
+    const scrollTo = (value: number) => {
+      Object.defineProperty(window, "scrollY", { value, configurable: true, writable: true });
+      act(() => { window.dispatchEvent(new Event("scroll")); });
+    };
+
+    scrollTo(400);
+    expect(bar!.className).toContain("translate-y-[130%]");
+
+    scrollTo(320);
+    expect(bar!.className).toContain("translate-y-0");
+    expect(bar!.className).not.toContain("translate-y-[130%]");
+  });
+
   it("preserves amount progress when a page has no supporter goal", () => {
     render(<CampaignDonateCard {...props} campaign={sampleCampaign} />);
     expect(screen.queryByText(/Monthly Supporters/)).not.toBeInTheDocument();
